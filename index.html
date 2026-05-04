@@ -1948,6 +1948,8 @@ function renderAll(d){
   })();
   // Reset chat
   document.getElementById('chatHistory').innerHTML='';chatCtx=[];
+  // Render statement-tab commentary (2c)
+  try{renderTabCommentaries(d);}catch(e){console.warn('renderTabCommentaries failed:',e);}
 }
 
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
