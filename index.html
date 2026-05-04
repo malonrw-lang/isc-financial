@@ -963,6 +963,14 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
    CONSTANTS
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 var API = 'https://isc-analyst-api.onrender.com';
+var EMDASH = String.fromCharCode(8212);   // &#8212; em-dash
+var MIDDOT = String.fromCharCode(183);    // &#183; middle dot
+var BULL   = String.fromCharCode(9679);   // &#9679; black circle
+var WARN   = String.fromCharCode(9888);   // &#9888; warning sign
+var PLAY   = String.fromCharCode(9654);   // &#9654; play triangle
+var CHECK  = String.fromCharCode(10003);  // &#10003; check
+var XMARK  = String.fromCharCode(10007);  // &#10007; cross
+var ENDASH = String.fromCharCode(8211);   // &#8211; en-dash
 var D = null;
 var tier = 'free';
 var dataSource = 'edgar';
@@ -1256,6 +1264,17 @@ function showError(msg) {
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
    REGIME PLAIN TEXT
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function dataQualityCheck(d){
+  var IS=d.income_statement||{},CF=d.cash_flow||{};
+  var gm=gv(IS,'gross_margin'),om=gv(IS,'operating_margin'),nm=gv(IS,'net_margin');
+  var fcfM=gv(CF,'fcf_margin');
+  var issues=[];
+  if(gm!=null&&om!=null&&om>gm+0.5)issues.push('Operating margin ('+om.toFixed(1)+'%) exceeds gross margin ('+gm.toFixed(1)+'%) - mathematically impossible. EDGAR pull may have mismatched periods.');
+  if(gm!=null&&gm>100)issues.push('Gross margin reported as '+gm.toFixed(1)+'% - exceeds 100%, likely a data error.');
+  if(nm!=null&&om!=null&&nm>om+5)issues.push('Net margin ('+nm.toFixed(1)+'%) exceeds operating margin ('+om.toFixed(1)+'%) by a wide gap - check for one-time items or accounting noise.');
+  if(fcfM!=null&&Math.abs(fcfM)>100)issues.push('FCF margin reported as '+fcfM.toFixed(1)+'% - implausible value, check API.');
+  return issues;
+}
 function rPlain(r,C,name,financials){
   name=name||'This company';
   financials=financials||{};
@@ -1321,7 +1340,7 @@ async function runAnal() {
     var data=await resp.json();
     clearInterval(iv);fill.style.width='100%';
     setTimeout(function(){fill.style.width='0%';},400);
-    btn.textContent='&#9654; Run Full Analysis';btn.disabled=false;
+    btn.textContent=PLAY+' Run Full Analysis';btn.disabled=false;
     D=data;
     renderAll(data);
     destroyCharts();
@@ -1329,7 +1348,7 @@ async function runAnal() {
     if(data.data_sources&&data.data_sources.edgar) addToPortfolio(data);
   }catch(e){
     clearInterval(iv);fill.style.width='0%';
-    btn.textContent='&#9654; Run Full Analysis';btn.disabled=false;
+    btn.textContent=PLAY+' Run Full Analysis';btn.disabled=false;
     D=mkSim(tk);
     renderAll(D);
     destroyCharts();
@@ -1371,16 +1390,16 @@ function renderAll(d){
   var isReal=d.data_sources&&d.data_sources.edgar;
 
   // Header
-  document.getElementById('cmpName').textContent=d.company_name&&d.company_name!==d.ticker?d.company_name:(d.ticker+' &#8212; '+(d.company_name||''));
-  document.getElementById('cmpSector').textContent=[d.sector,d.industry].filter(Boolean).join(' &#183; ')||'&#8212;';
+  document.getElementById('cmpName').textContent=d.company_name&&d.company_name!==d.ticker?d.company_name:(d.ticker+' '+EMDASH+' '+(d.company_name||''));
+  document.getElementById('cmpSector').textContent=[d.sector,d.industry].filter(Boolean).join(' '+MIDDOT+' ')||EMDASH;
   document.getElementById('cmpDate').textContent=d.analysis_date||'';
   var desc=document.getElementById('cmpDesc');
   if(d.description&&d.description.length>10){desc.textContent=d.description.substring(0,200)+(d.description.length>200?'...':'');desc.style.display='block';}else{desc.style.display='none';}
   var db=document.getElementById('dsrcBadge');
-  if(isReal){db.textContent='&#9679; EDGAR &#183; Live';db.style.background='rgba(16,185,129,.1)';db.style.color='var(--green)';}
-  else if(d.isSimulation){db.textContent='&#9888; Estimated &#8212; run again';db.style.background='rgba(245,158,11,.1)';db.style.color='var(--amber)';}
+  if(isReal){db.textContent=BULL+' EDGAR '+MIDDOT+' Live';db.style.background='rgba(16,185,129,.1)';db.style.color='var(--green)';}
+  else if(d.isSimulation){db.textContent=WARN+' Estimated '+EMDASH+' run again';db.style.background='rgba(245,158,11,.1)';db.style.color='var(--amber)';}
   var rb=document.getElementById('regimeBadge');
-  rb.textContent='&#9679; '+(r||'unknown').toUpperCase();rb.style.color=col;
+  rb.textContent=BULL+' '+(r||'unknown').toUpperCase();rb.style.color=col;
   rb.style.borderColor=col.replace(')',',0.35)').replace('var(--','rgba(');
   rb.style.background=col.replace(')',',0.1)').replace('var(--','rgba(');
 
@@ -1626,11 +1645,21 @@ function renderAll(d){
     return mRow(lbl,fmted,simple,col,true);
   }
   var bsSparkData = {
+    total_assets: makeTrend(gv(BS,'total_assets'), regimeStr),
     cash: makeTrend(gv(BS,'cash'), regimeStr),
-    long_term_debt: makeTrend(gv(BS,'long_term_debt'), regimeStr ? 'regulated' : regimeStr), // debt ideally stable
+    current_assets: makeTrend(gv(BS,'current_assets'), regimeStr),
+    receivables: makeTrend(gv(BS,'receivables'), regimeStr),
+    inventory: makeTrend(gv(BS,'inventory'), regimeStr),
+    ppe_net: makeTrend(gv(BS,'ppe_net'), regimeStr),
+    goodwill: makeTrend(gv(BS,'goodwill'), 'regulated'),
+    total_liabilities: makeTrend(gv(BS,'total_liabilities'), regimeStr),
+    current_liabilities: makeTrend(gv(BS,'current_liabilities'), regimeStr),
+    long_term_debt: makeTrend(gv(BS,'long_term_debt'), 'regulated'),
+    total_debt: makeTrend(gv(BS,'total_debt'), 'regulated'),
+    accounts_payable: makeTrend(gv(BS,'accounts_payable'), regimeStr),
     total_equity: makeTrend(gv(BS,'total_equity'), regimeStr),
-    working_capital: makeTrend(gv(BS,'working_capital'), regimeStr),
     retained_earnings: makeTrend(gv(BS,'retained_earnings'), regimeStr),
+    working_capital: makeTrend(gv(BS,'working_capital'), regimeStr),
   };
   function bsRowSpark(key){
     var obj=BS[key];var v=obj?gv(BS,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');var simple=obj&&obj.simple?obj.simple:'';
@@ -1657,9 +1686,12 @@ function renderAll(d){
   }
   var cfSparkData = {
     cfo: makeTrend(gv(CF,'cfo'), regimeStr),
+    capex: makeTrend(gv(CF,'capex'), 'regulated'),
     fcf: makeTrend(gv(CF,'fcf'), regimeStr),
     fcf_margin: makeTrend(gv(CF,'fcf_margin'), regimeStr),
-    capex: makeTrend(gv(CF,'capex'), regimeStr ? 'regulated' : regimeStr),
+    cash_conversion: makeTrend(gv(CF,'cash_conversion'), regimeStr),
+    cfi: makeTrend(gv(CF,'cfi'), regimeStr),
+    cff: makeTrend(gv(CF,'cff'), regimeStr),
   };
   function cfRowSpark(key){
     var obj=CF[key];var v=obj?gv(CF,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');var simple=obj&&obj.simple?obj.simple:'';
@@ -1714,11 +1746,17 @@ function renderAll(d){
     return '<div class="mrow"><div><div class="mlabel">'+lbl+'<a class="mhelp" href="https://www.investopedia.com/search?q='+encodeURIComponent(lbl)+'" target="_blank" title="Look up on Investopedia">?</a>'+bmLabel+'</div>'+(simple?'<div class="mexp">'+simple+'</div>':'')+'</div><div class="mval" style="color:'+col+'">'+fmted+'</div></div>';
   }
   var tmSparkData = {
-    altman_z: makeTrend(gv(TM,'altman_z'), regimeStr ? 'regulated' : regimeStr),
+    altman_z: makeTrend(gv(TM,'altman_z'), 'regulated'),
+    piotroski_f: makeTrend(gv(TM,'piotroski_f'), 'regulated'),
+    current_ratio: makeTrend(gv(TM,'current_ratio'), 'regulated'),
+    quick_ratio: makeTrend(gv(TM,'quick_ratio'), 'regulated'),
     interest_coverage: makeTrend(gv(TM,'interest_coverage'), regimeStr),
-    current_ratio: makeTrend(gv(TM,'current_ratio'), regimeStr ? 'regulated' : regimeStr),
+    debt_to_ebitda: makeTrend(gv(TM,'debt_to_ebitda'), regimeStr),
+    debt_to_equity: makeTrend(gv(TM,'debt_to_equity'), regimeStr),
     roa: makeTrend(gv(TM,'roa'), regimeStr),
     roe: makeTrend(gv(TM,'roe'), regimeStr),
+    asset_turnover: makeTrend(gv(TM,'asset_turnover'), regimeStr),
+    gross_margin_pct: makeTrend(gv(TM,'gross_margin_pct'), regimeStr),
     op_margin_pct: makeTrend(gv(TM,'op_margin_pct'), regimeStr),
   };
   function tmRowSpark(key){
@@ -1836,7 +1874,7 @@ function renderCharts(d){
     charts.coupling=new Chart(coupCtx,{
       type:'line',
       data:{labels:cLabels,datasets:[
-        {data:cData,borderColor:bdrColor,borderWidth:2,backgroundColor:bgColor,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:bdrColor},
+        {label:'ISC Coupling C',data:cData,borderColor:bdrColor,borderWidth:2,backgroundColor:bgColor,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:bdrColor},
         {data:cLabels.map(function(){return 0.3;}),borderColor:'rgba(239,68,68,.4)',borderWidth:1,borderDash:[4,4],fill:false,pointRadius:0,label:'Bifurcating threshold'}
       ]},
       options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,labels:{color:'#6B7280',font:{size:11},boxWidth:12}}}})
@@ -1951,7 +1989,7 @@ function runDemo(name){
   showPage('analyzer');
   var d;
   if(name==='enron'){
-    d=mkSim('ENR');d.company_name='Enron Corporation (Historical &#8212; Q3 2001)';d.sector='Energy';d.industry='Oil & Gas';d.analysis_date='2001-Q3';d.isSimulation=false;
+    d=mkSim('ENR');d.company_name='Enron Corporation (Historical '+EMDASH+' Q3 2001)';d.sector='Energy';d.industry='Oil & Gas';d.analysis_date='2001-Q3';d.isSimulation=false;
     d.data_sources={edgar:true,yfinance:false};
     d.isc.C=0.321;d.isc.regime='bifurcating';d.isc.stability_score=22;
     d.isc.plain='In Q3 2001, Enron\'s coupling score had crossed into bifurcating regime at C=+0.321. The L4 capital structure filter was amplifying stress rather than absorbing it. Meanwhile, Altman Z remained at 2.1 &#8212; still in the grey zone, not the distress zone. Stock price was near highs. The ISC signal was detecting structural deterioration approximately 4 quarters before the accounting scandal became public and 5 quarters before bankruptcy. This is the early window &#8212; the core ISC value proposition.';
@@ -1959,14 +1997,14 @@ function runDemo(name){
     d.divergence={summary:'Classic ISC/Altman Z divergence. ISC in bifurcating regime. Altman Z still grey zone. Price near highs. This three-way divergence &#8212; ISC deteriorating while traditional metrics and price look stable &#8212; represents the early window. Historical lead time in this case: 4 quarters.',isc_regime:'bifurcating',altman_z:2.1,lead_time:'4 quarters'};
     document.getElementById('tkIn').value='ENR';
   }else if(name==='worldcom'){
-    d=mkSim('WCOM');d.company_name='WorldCom Inc (Historical &#8212; Q1 2002)';d.sector='Telecommunications';d.industry='Long Distance';d.analysis_date='2002-Q1';d.isSimulation=false;
+    d=mkSim('WCOM');d.company_name='WorldCom Inc (Historical '+EMDASH+' Q1 2002)';d.sector='Telecommunications';d.industry='Long Distance';d.analysis_date='2002-Q1';d.isSimulation=false;
     d.data_sources={edgar:true,yfinance:false};
     d.isc.C=0.448;d.isc.regime='bifurcating';d.isc.stability_score=18;
     d.isc.plain='WorldCom\'s coupling score reached C=+0.448 in early 2002 &#8212; deep bifurcating territory. The $11B accounting fraud was uncovered in June 2002. ISC structural dynamics were amplifying long before the fraud disclosure. The L3/L4 cascade was showing severe stress across both debt coverage and capital structure layers.';
     d.traditional={altman_z:{val:1.9,label:'Altman Z-Score',simple:'Grey zone &#8212; borderline.',plain:'Altman Z = 1.9. Grey zone. Concerning but not yet technically distress.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak &#8212; failing most health tests.',plain:'Piotroski F = 2/9. Weak across all dimensions.'}};
     document.getElementById('tkIn').value='WCOM';
   }else{
-    d=mkSim('SAVE');d.company_name='Spirit Airlines &#8212; Ceased Operations May 2, 2026';d.sector='Airlines';d.industry='Ultra Low Cost Carrier';d.analysis_date='2022-FY';d.isSimulation=false;
+    d=mkSim('SAVE');d.company_name='Spirit Airlines '+EMDASH+' Ceased Operations May 2, 2026';d.sector='Airlines';d.industry='Ultra Low Cost Carrier';d.analysis_date='2022-FY';d.isSimulation=false;
     d.data_sources={edgar:true,yfinance:false};
     d.isc.C=0.541;d.isc.regime='bifurcating';d.isc.stability_score=12;
     d.isc.plain='Spirit Airlines ISC coupling reached C=+0.541 in 2022 &#8212; deeply bifurcating. In that same year, revenue grew 57% from $3.2B to $5.1B while operating losses grew 952% from -$57M to -$599M. Revenue recovery with no margin recovery is the classic L5 amplifying fingerprint. ISC detected this structural breakdown 3&#8211;4 years before cessation of operations on May 2, 2026. Elon Musk-level cash injection could not fix structural operational unprofitability &#8212; each flight was priced below its cost to operate.';
@@ -2138,38 +2176,28 @@ function searchEncyc(q){if(!q||!q.trim())return;encycLookup(q.trim());}
 function encycLookup(term){
   var out=document.getElementById('encycResult');
   if(!out)return;
-  out.innerHTML='<div style="padding:24px;text-align:center;color:var(--dim);font-size:13px"><span style="display:inline-block;width:14px;height:14px;border:2px solid var(--bdr);border-top-color:var(--cyan);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:8px"></span>Looking up "'+term+'"...</div>';
-  if(!document.getElementById('spinKF')){var st=document.createElement('style');st.id='spinKF';st.textContent='@keyframes spin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
-  fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:'You are explaining a finance term to a retail investor. Use plain English with one or two concrete examples. Keep it under 220 words. Format: bold the term once, then 2-3 short paragraphs. No lists. No headers. No jargon without explanation.',messages:[{role:'user',content:'Explain: '+term}]})})
-  .then(function(r){return r.json();})
-  .then(function(data){
-    var ans=data&&data.content&&data.content[0]&&data.content[0].text?data.content[0].text:null;
-    if(!ans){out.innerHTML='<div style="padding:18px;color:var(--amber);font-size:13px;line-height:1.7">AI lookup unavailable. The Anthropic API key may not be configured. Try Investopedia: <a href="https://www.investopedia.com/search?q='+encodeURIComponent(term)+'" target="_blank">https://www.investopedia.com/search?q='+encodeURIComponent(term)+'</a></div>';return;}
-    out.innerHTML='<div style="padding:14px 16px;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.18);border-radius:9px;font-size:13px;line-height:1.75;color:#A0B8D0">'+ans.replace(/\n\n/g,'</p><p style="margin-top:10px">').replace(/\n/g,'<br>').replace(/\*\*([^*]+)\*\*/g,'<strong style="color:var(--wh)">$1</strong>')+'</div><div style="margin-top:10px;font-size:11px;color:var(--dim);text-align:right">AI-generated \u00B7 Verify on <a href="https://www.investopedia.com/search?q='+encodeURIComponent(term)+'" target="_blank">Investopedia</a></div>';
-  })
-  .catch(function(e){out.innerHTML='<div style="padding:18px;color:var(--amber);font-size:13px">Lookup error: '+e.message+'<br><br>Try Investopedia: <a href="https://www.investopedia.com/search?q='+encodeURIComponent(term)+'" target="_blank">https://www.investopedia.com/search?q='+encodeURIComponent(term)+'</a></div>';});
+  var url='https://www.investopedia.com/search?q='+encodeURIComponent(term);
+  var titleCase=term.charAt(0).toUpperCase()+term.slice(1);
+  out.innerHTML='<div style="padding:18px 20px;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.18);border-radius:9px;font-size:13px;line-height:1.75;color:#A0B8D0">'
+    +'<div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">'+titleCase+'</div>'
+    +'For a thorough plain-English explanation of <strong style="color:var(--wh)">'+term+'</strong>, Investopedia is the standard reference. Their definitions are written by financial professionals and include practical examples, formulas, and real-world context.'
+    +'<div style="margin-top:14px"><a href="'+url+'" target="_blank" style="display:inline-block;padding:8px 16px;background:var(--blue);color:#fff;border-radius:7px;font-weight:600;font-size:13px;text-decoration:none">Open Investopedia '+String.fromCharCode(8594)+'</a></div>'
+    +'</div>'
+    +'<div style="margin-top:10px;padding:10px 14px;background:rgba(255,255,255,.02);border-radius:7px;font-size:12px;color:var(--dim);line-height:1.6">'
+    +'<strong style="color:#A0B8D0">Tip:</strong> Once you have run an analysis, the AI Analyst tab can answer questions about that specific company including how this term applies to it.'
+    +'</div>';
 }
 function sendHelpChat(){var el=document.getElementById('helpChatIn');if(!el)return;var q=el.value.trim();if(!q)return;el.value='';sendHelpChatQ(q);}
 function sendHelpChatQ(q){
   var hist=document.getElementById('helpChatHistory');
   if(!hist)return;
   hist.innerHTML+='<div class="chat-msg chat-user" style="margin-left:24px"><div class="chat-who" style="color:var(--cyan)">You</div>'+q+'</div>';
-  hist.innerHTML+='<div class="chat-msg chat-ai" id="helpAiTyping"><div class="chat-who" style="color:var(--dim)">Claude</div><span style="color:var(--dim)">Thinking...</span></div>';
+  hist.innerHTML+='<div class="chat-msg chat-ai"><div class="chat-who" style="color:var(--dim)">Help</div>'
+    +'<div style="font-size:13px;line-height:1.7;color:#A0B8D0">For finance term definitions, this help-chat directs you to Investopedia. '
+    +'<a href="https://www.investopedia.com/search?q='+encodeURIComponent(q)+'" target="_blank" style="color:var(--cyan)">Search Investopedia for "'+q+'" '+String.fromCharCode(8594)+'</a>'
+    +'<br><br>For company-specific analysis, run an analysis on any ticker first, then use the <strong style="color:var(--wh)">AI Analyst</strong> tab on the analyzer page.</div></div>';
   hist.scrollTop=hist.scrollHeight;
-  fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,system:'You are a friendly finance tutor inside the ISC Financial app. Answer in plain English with concrete examples. Keep responses under 200 words. No jargon without explanation. ISC = a structural early warning system: coupling C = corr(Var_W, AR1_W). C below -0.10 is regulated (healthy). -0.10 to 0.30 is transitioning. C above 0.30 is bifurcating (pre-collapse pattern). Not financial advice.',messages:[{role:'user',content:q}]})})
-  .then(function(r){return r.json();})
-  .then(function(data){
-    var ans=data&&data.content&&data.content[0]&&data.content[0].text?data.content[0].text:'AI lookup unavailable.';
-    var t=document.getElementById('helpAiTyping');
-    if(t){t.innerHTML='<div class="chat-who" style="color:var(--dim)">Claude</div>'+ans.replace(/\n/g,'<br>');t.id='';}
-    hist.scrollTop=hist.scrollHeight;
-  })
-  .catch(function(e){
-    var t=document.getElementById('helpAiTyping');
-    if(t){t.innerHTML='<div class="chat-who" style="color:var(--dim)">Claude</div><span style="color:var(--amber)">AI requires Anthropic API key in Render environment (CLAUDE_API_KEY). Error: '+e.message+'</span>';t.id='';}
-  });
 }
-
 setTier('free',document.getElementById('t-free'));
 showPage('home');
 renderPortfolio();
