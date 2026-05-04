@@ -627,7 +627,7 @@ function sim(tk){
 function rAll(data){
   var tk=data.ticker,s=data.s,traj=data.traj||[],stab=data.stab,peer=data.peer,conf=data.conf,base=data.base,analogs=data.analogs;
   // Add data source indicator
-  var srcBadge = data.isReal ? '<span style="color:#10B981;font-size:10px;font-family:JetBrains Mono">📊 EDGAR · Live</span>' : '<span style="color:#F59E0B;font-size:10px;font-family:JetBrains Mono">⚠ API cold — run again</span>';
+  var srcBadge = data.isReal ? '<span style="color:#10B981;font-size:10px;font-family:monospace">📊 EDGAR · Live</span>' : '<span style="color:#F59E0B;font-size:10px;font-family:JetBrains Mono">⚠ API cold — run again</span>';
   var hdrEl = document.getElementById('pholder');
   if(data.company_name && data.company_name !== tk) {
     var nameDiv = document.getElementById('cmpNameDiv');
