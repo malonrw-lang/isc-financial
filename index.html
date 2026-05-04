@@ -879,7 +879,7 @@ function drawC(traj,C){
   [-0.5,0,0.3,0.5].forEach(function(v){
     ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(W-pad.r,toY(v));ctx.stroke();
-    ctx.fillStyle='rgba(107,114,128,.8)';ctx.font='9px JetBrains Mono,monospace';
+    ctx.fillStyle='rgba(107,114,128,.8)';ctx.font='9px monospace';
     ctx.fillText(v.toFixed(1),2,toY(v)+3);
   });
   ctx.fillStyle='rgba(239,68,68,.05)';ctx.fillRect(pad.l,toY(1),cw,toY(0.3)-toY(1));
