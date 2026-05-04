@@ -738,6 +738,23 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
                 <div class="chart-wrap"><canvas id="donutChart" height="220"></canvas></div>
               </div>
             </div>
+            <div class="card">
+              <div class="sb-lbl" style="margin-bottom:10px">Cash Flow Bridge <button class="mhelp" onclick="showHelp('fcf-chart')">?</button></div>
+              <div style="font-size:12px;color:var(--dim);margin-bottom:10px">From Net Income to Free Cash Flow. Each step shows how earnings convert (or don't) into cash. Big negative bars on operating items signal accounting risk.</div>
+              <div class="chart-wrap"><canvas id="waterfallChart" height="180"></canvas></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="card">
+                <div class="sb-lbl" style="margin-bottom:10px">7-Layer Stress Heatmap <button class="mhelp" onclick="showHelp('cascade')">?</button></div>
+                <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Each layer in the financial cascade colored by stress intensity. Green = healthy, amber = watch, red = stressed. The pattern shows where stress is concentrated.</div>
+                <div id="heatmapArea" style="min-height:220px"></div>
+              </div>
+              <div class="card">
+                <div class="sb-lbl" style="margin-bottom:10px">ISC Coupling Spread <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
+                <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Distribution of coupling values across financial series. Narrow box = concentrated signal. Wide box = broad-based regime change.</div>
+                <div id="boxplotArea" style="min-height:220px"></div>
+              </div>
+            </div>
             <div id="chartCommentary" class="commentary"></div>
           </div>
 
@@ -2102,6 +2119,114 @@ function renderCharts(d){
         data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:donutColors,borderColor:'rgba(7,16,30,.9)',borderWidth:2}]},
         options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:true,position:'right',labels:{color:'#9CA3AF',font:{size:10},boxWidth:12,padding:8}},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){var pct=ctx.parsed/donutData.reduce(function(a,b){return a+b;},0)*100;return ctx.label+': $'+(ctx.parsed/1000).toFixed(1)+'B ('+pct.toFixed(0)+'%)';}}}}}
       });
+    }
+  }
+  // Waterfall (Cash Flow Bridge)
+  var waterCtx=document.getElementById('waterfallChart');
+  if(waterCtx){
+    var wNi=gv(IS,'net_income')||0;
+    var wEbitda=gv(IS,'ebitda');
+    var wDa=(wEbitda!=null&&gv(IS,'operating_income')!=null)?(wEbitda-gv(IS,'operating_income')):Math.abs(wNi*0.5);
+    var wCfo=gv(CF,'cfo'); if(wCfo==null)wCfo=wNi+wDa;
+    var wcChange=wCfo-wNi-wDa;
+    var wCapex=gv(CF,'capex'); if(wCapex==null)wCapex=-Math.abs(wNi*0.5);
+    var wFcf=gv(CF,'fcf'); if(wFcf==null)wFcf=wCfo+wCapex;
+    var labels=['Net Income','+ D&A','+/- WC','= CFO','- CapEx','= FCF'];
+    var steps=[wNi, wDa, wcChange];
+    var bars=[];
+    var running=0;
+    for(var i=0;i<3;i++){var v=steps[i];bars.push([running, running+v]); running+=v;}
+    bars.push([0, wCfo]);
+    var afterCfo=wCfo;
+    bars.push([afterCfo, afterCfo+wCapex]);
+    bars.push([0, wFcf]);
+    var bColors=[wNi>=0?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)',
+      wDa>=0?'rgba(0,200,255,.7)':'rgba(239,68,68,.7)',
+      wcChange>=0?'rgba(16,185,129,.5)':'rgba(245,158,11,.7)',
+      'rgba(167,139,250,.7)',
+      'rgba(245,158,11,.7)',
+      wFcf>=0?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)'];
+    var bBorders=bColors.map(function(c){return c.replace('.7)','.95)').replace('.5)','.85)');});
+    charts.water=new Chart(waterCtx,{
+      type:'bar',
+      data:{labels:labels,datasets:[{label:'$M',data:bars,backgroundColor:bColors,borderColor:bBorders,borderWidth:1.5,barPercentage:0.7}]},
+      options:Object.assign({},chartDefaults,{plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){var rng=ctx.parsed; var diff=Math.abs(rng._custom?rng._custom.end-rng._custom.start:0); return ctx.label+': '+(diff>=1000?'$'+(diff/1000).toFixed(1)+'B':'$'+diff.toFixed(0)+'M');}}}}})
+    });
+  }
+  // Heatmap (7-Layer Stress Map)
+  var heatArea=document.getElementById('heatmapArea');
+  if(heatArea){
+    var TM2=d.traditional||{};
+    var bs2=d.balance_sheet||{};
+    var ic=gv(TM2,'interest_coverage');
+    var cr=gv(TM2,'current_ratio');
+    var de=gv(TM2,'debt_to_equity');
+    var fcf2=gv(CF,'fcf');
+    var fcfM2=gv(CF,'fcf_margin');
+    var oiPct=gv(IS,'operating_margin');
+    var rg=gv(IS,'revenue_growth');
+    var altz=gv(TM2,'altman_z');
+    function lvl(score){if(score==null)return {c:'#374151',t:'No data',l:'NA'};if(score>=2)return {c:'#10B981',t:'Healthy',l:'OK'};if(score>=1)return {c:'#F59E0B',t:'Watch',l:'!'};return {c:'#EF4444',t:'Stressed',l:'X'};}
+    function scoreCash(){var s=0;if(cr!=null){if(cr>=1.5)s+=2;else if(cr>=1.0)s+=1;}if(fcf2!=null&&fcf2>0)s+=1;return s/3*2;}
+    function scoreReceivables(){var s=2;var rec=gv(bs2,'receivables');var rev=gv(IS,'revenue');if(rec!=null&&rev>0&&rev/rec>0&&(rec/rev)>0.25)s=1;return s;}
+    function scoreCovenants(){var s=0;if(ic!=null){if(ic>=5)s+=2;else if(ic>=2)s+=1;}if(de!=null){if(de<1)s+=1;}return Math.min(2,s/3*2);}
+    function scoreCapStruct(){var s=0;if(altz!=null){if(altz>=3)s=2;else if(altz>=1.81)s=1;}return s;}
+    function scoreOps(){var s=0;if(oiPct!=null){if(oiPct>=10)s=2;else if(oiPct>0)s=1;}return s;}
+    function scoreSales(){var s=0;if(rg!=null){if(rg>=10&&fcfM2!=null&&fcfM2>10)s=2;else if(rg>=0)s=1;}return s;}
+    function scoreDisclosure(){var fcfNI=null;if(fcf2!=null&&gv(IS,'net_income')){var ni=gv(IS,'net_income');if(ni>0)fcfNI=fcf2/ni;}if(fcfNI==null)return null;if(fcfNI>=0.7)return 2;if(fcfNI>=0.3)return 1;return 0;}
+    var layers=[
+      {n:1,name:'Cash / Liquidity',s:scoreCash(),why:'Working capital + FCF positive'},
+      {n:2,name:'Receivables Quality',s:scoreReceivables(),why:'AR is reasonable % of revenue'},
+      {n:3,name:'Debt Covenants',s:scoreCovenants(),why:'Interest coverage + debt/equity'},
+      {n:4,name:'Capital Structure',s:scoreCapStruct(),why:'Altman Z composite signal'},
+      {n:5,name:'Operating Margins',s:scoreOps(),why:'Operating profitability sustainability'},
+      {n:6,name:'Sales Quality',s:scoreSales(),why:'Growth combined with margin discipline'},
+      {n:7,name:'Mgmt / Disclosure',s:scoreDisclosure(),why:'FCF/NI ratio = earnings quality'}
+    ];
+    var hHtml='<div style="display:grid;grid-template-columns:1fr;gap:6px">';
+    layers.forEach(function(L){var st=lvl(L.s);hHtml+='<div style="display:grid;grid-template-columns:36px 1fr 80px;gap:10px;align-items:center;padding:8px 10px;background:rgba(0,0,0,.2);border-left:3px solid '+st.c+';border-radius:5px;font-size:12px"><div style="color:'+st.c+';font-weight:700;font-size:11px;text-align:center;background:rgba(255,255,255,.04);padding:4px 0;border-radius:4px">L'+L.n+'</div><div><div style="color:#F1F5F9;font-weight:600">'+L.name+'</div><div style="color:var(--dim);font-size:10px;margin-top:1px">'+L.why+'</div></div><div style="color:'+st.c+';font-size:10px;text-transform:uppercase;letter-spacing:.05em;text-align:right;font-weight:700">'+st.t+'</div></div>';});
+    hHtml+='</div>';
+    heatArea.innerHTML=hHtml;
+  }
+  // Box-and-whisker (ISC Coupling Spread)
+  var boxArea=document.getElementById('boxplotArea');
+  if(boxArea){
+    var bs=isc.by_series||{};
+    var seriesVals=[];
+    Object.keys(bs).forEach(function(k){if(bs[k]&&typeof bs[k].C==='number')seriesVals.push({n:k,v:bs[k].C});});
+    if(seriesVals.length<3){
+      boxArea.innerHTML='<div style="padding:40px;text-align:center;color:var(--dim);font-size:12px">Need at least 3 financial series for spread analysis. Run a real EDGAR analysis or load a historical demo.</div>';
+    }else{
+      var sorted=seriesVals.map(function(x){return x.v;}).sort(function(a,b){return a-b;});
+      var n=sorted.length;
+      var med=n%2?sorted[(n-1)/2]:(sorted[n/2-1]+sorted[n/2])/2;
+      var lo=sorted.slice(0,Math.floor(n/2));
+      var hi=sorted.slice(Math.ceil(n/2));
+      function pct50(arr){var m=arr.length;if(!m)return null;return m%2?arr[(m-1)/2]:(arr[m/2-1]+arr[m/2])/2;}
+      var q1=pct50(lo); var q3=pct50(hi);
+      var minV=sorted[0]; var maxV=sorted[n-1];
+      var iqr=q3-q1;
+      var w=320,h=180,pad=24;
+      var domMin=Math.min(-0.7,minV-0.1); var domMax=Math.max(0.7,maxV+0.1);
+      function xs(v){return pad+(v-domMin)/(domMax-domMin)*(w-pad*2);}
+      var midY=h/2;
+      var svg='<svg viewBox="0 0 '+w+' '+h+'" width="100%" preserveAspectRatio="xMidYMid meet">';
+      svg+='<rect x="'+pad+'" y="'+(midY-2)+'" width="'+(w-pad*2)+'" height="4" fill="rgba(255,255,255,.04)"/>';
+      [-0.5,-0.1,0.3].forEach(function(tick){var x=xs(tick);var col=tick==-0.1?'#F59E0B':tick==0.3?'#EF4444':'#10B981';svg+='<line x1="'+x+'" y1="'+(midY-30)+'" x2="'+x+'" y2="'+(midY+30)+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3" opacity="0.4"/>';svg+='<text x="'+x+'" y="'+(midY+50)+'" text-anchor="middle" fill="'+col+'" font-size="9" opacity="0.7">'+tick.toFixed(1)+'</text>';});
+      var boxColor=med>0.3?'#EF4444':med>-0.1?'#F59E0B':'#10B981';
+      svg+='<line x1="'+xs(minV)+'" y1="'+(midY-12)+'" x2="'+xs(minV)+'" y2="'+(midY+12)+'" stroke="#9CA3AF" stroke-width="1.5"/>';
+      svg+='<line x1="'+xs(maxV)+'" y1="'+(midY-12)+'" x2="'+xs(maxV)+'" y2="'+(midY+12)+'" stroke="#9CA3AF" stroke-width="1.5"/>';
+      svg+='<line x1="'+xs(minV)+'" y1="'+midY+'" x2="'+xs(q1)+'" y2="'+midY+'" stroke="#9CA3AF" stroke-width="1.5"/>';
+      svg+='<line x1="'+xs(q3)+'" y1="'+midY+'" x2="'+xs(maxV)+'" y2="'+midY+'" stroke="#9CA3AF" stroke-width="1.5"/>';
+      svg+='<rect x="'+xs(q1)+'" y="'+(midY-22)+'" width="'+(xs(q3)-xs(q1))+'" height="44" fill="'+boxColor+'" fill-opacity="0.18" stroke="'+boxColor+'" stroke-width="1.5"/>';
+      svg+='<line x1="'+xs(med)+'" y1="'+(midY-22)+'" x2="'+xs(med)+'" y2="'+(midY+22)+'" stroke="'+boxColor+'" stroke-width="2.5"/>';
+      seriesVals.forEach(function(sv){var ptColor=sv.v>0.3?'#EF4444':sv.v>-0.1?'#F59E0B':'#10B981';svg+='<circle cx="'+xs(sv.v)+'" cy="'+midY+'" r="3" fill="'+ptColor+'" fill-opacity="0.85" stroke="'+ptColor+'" stroke-width="1"><title>'+sv.n+': '+sv.v.toFixed(3)+'</title></circle>';});
+      svg+='<text x="'+pad+'" y="20" fill="#9CA3AF" font-size="10">min: '+minV.toFixed(3)+'</text>';
+      svg+='<text x="'+(w-pad)+'" y="20" text-anchor="end" fill="#9CA3AF" font-size="10">max: '+maxV.toFixed(3)+'</text>';
+      svg+='<text x="'+(w/2)+'" y="20" text-anchor="middle" fill="'+boxColor+'" font-size="11" font-weight="700">median: '+med.toFixed(3)+'</text>';
+      svg+='<text x="'+(w/2)+'" y="'+(h-4)+'" text-anchor="middle" fill="#6B7280" font-size="9">'+seriesVals.length+' series '+EMDASH+' IQR '+iqr.toFixed(3)+(iqr<0.2?' (concentrated)':iqr<0.5?' (moderate)':' (broad-based)')+'</text>';
+      svg+='</svg>';
+      boxArea.innerHTML=svg;
     }
   }
   // Chart commentary
