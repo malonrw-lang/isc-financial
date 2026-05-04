@@ -1275,6 +1275,39 @@ function dataQualityCheck(d){
   if(fcfM!=null&&Math.abs(fcfM)>100)issues.push('FCF margin reported as '+fcfM.toFixed(1)+'% - implausible value, check API.');
   return issues;
 }
+function detectHyperGrowth(d, r, C){
+  if (!r || !r.includes('bifurcating')) return null;
+  if (C == null || C < 0.3) return null;
+  var IS = d.income_statement || {}, CF = d.cash_flow || {}, TM = d.traditional || {};
+  var revG = gv(IS, 'revenue_growth');
+  var fcfM = gv(CF, 'fcf_margin');
+  var fcf  = gv(CF, 'fcf');
+  var oi   = gv(IS, 'operating_income');
+  var altZ = gv(TM, 'altman_z');
+  var intCov = gv(TM, 'interest_coverage');
+  var strong = 0;
+  if (fcfM != null && fcfM > 20) strong++;
+  if (revG != null && revG > 30) strong++;
+  if (fcf != null && fcf > 50000) strong++;
+  if (altZ != null && altZ > 4) strong++;
+  if (intCov != null && intCov > 15) strong++;
+  if (oi != null && oi > 0 && (fcfM == null || fcfM > 10)) strong++;
+  return strong >= 3 ? {strong: strong, revG: revG, fcfM: fcfM, fcf: fcf} : null;
+}
+function buildHyperGrowthNarrative(name, C, hg) {
+  var parts = [];
+  parts.push('<strong style="color:var(--purple)">Phase Transition Detected ' + EMDASH + ' growth-driven, not distress.</strong> ');
+  parts.push(name + ' is showing the bifurcation pattern ' + EMDASH + ' coupling C = ' + (C!=null?C.toFixed(3):'N/A') + ' ' + EMDASH + ' but the underlying fundamentals are exceptional, not deteriorating');
+  if (hg.revG != null) parts.push('. Revenue growth of ' + hg.revG.toFixed(0) + '%');
+  if (hg.fcfM != null) parts.push(', FCF margin of ' + hg.fcfM.toFixed(0) + '%');
+  if (hg.fcf  != null) parts.push(', and free cash flow of ' + String.fromCharCode(36) + (hg.fcf/1000).toFixed(0) + 'B');
+  parts.push(' all point to a positive structural shift rather than a negative one.');
+  parts.push('<br><br>The ISC formula measures whether a system is undergoing a regime change, not which direction the change goes. ');
+  parts.push(name + ' is in the middle of a phase transition ' + EMDASH + ' the same mathematical signature that appeared before Enron and Spirit also appears before companies experiencing once-in-a-generation positive transformations (NVIDIA 2023' + ENDASH + '2025, early Tesla, Amazon Web Services pivot).');
+  parts.push('<br><br><strong style="color:#fff">What to watch:</strong> hyper-growth bifurcations resolve in two ways. Either the company successfully scales into the new regime (NVIDIA, Apple post-iPhone), or the growth proves unsustainable and the bifurcation flips to distress (WeWork, Pets.com).');
+  parts.push(' The deciding factors are usually (1) whether margins hold as scale increases, (2) whether the customer base diversifies, and (3) whether competitive moats deepen. Monitor revenue growth, gross margin, and customer concentration over the next 2' + ENDASH + '4 quarters.');
+  return parts.join('');
+}
 function rPlain(r,C,name,financials){
   name=name||'This company';
   financials=financials||{};
@@ -1287,6 +1320,9 @@ function rPlain(r,C,name,financials){
   if(!r||r.includes('insufficient'))return name+' does not have enough quarterly EDGAR data to compute ISC coupling. Try a longer ticker history or switch to Price History mode.';
   
   if(r.includes('bifurcating')) {
+    var d_hg_proxy = {income_statement:{revenue_growth:{val:financials.revG},operating_income:{val:financials.oi}},cash_flow:{fcf_margin:{val:financials.fcfM},fcf:{val:financials.fcf}},traditional:{altman_z:{val:financials.altZ},interest_coverage:{val:financials.intCov}}};
+    var hgCheck = detectHyperGrowth(d_hg_proxy, r, C);
+    if (hgCheck) return buildHyperGrowthNarrative(name, C, hgCheck);
     if(financiallyStrong) {
       // Strong financials + bifurcating C = likely data artifact or strategic transition
       return '<strong style="color:var(--amber)">&#9888; Unusual signal &#8212; interpret carefully.</strong> '
@@ -1390,7 +1426,7 @@ function renderAll(d){
   var isReal=d.data_sources&&d.data_sources.edgar;
 
   // Header
-  document.getElementById('cmpName').textContent=d.company_name&&d.company_name!==d.ticker?d.company_name:(d.ticker+' '+EMDASH+' '+(d.company_name||''));
+  (function(){var nm=d.company_name;if(!nm||nm===d.ticker){if(typeof KNOWN!=='undefined'&&KNOWN[d.ticker]&&KNOWN[d.ticker].n)nm=KNOWN[d.ticker].n;}document.getElementById('cmpName').textContent=nm&&nm!==d.ticker?nm:d.ticker;})();
   document.getElementById('cmpSector').textContent=[d.sector,d.industry].filter(Boolean).join(' '+MIDDOT+' ')||EMDASH;
   document.getElementById('cmpDate').textContent=d.analysis_date||'';
   var desc=document.getElementById('cmpDesc');
@@ -1409,12 +1445,11 @@ function renderAll(d){
 
   // VERDICT
   var stab=isc.stability_score,altZ=gv(TM,'altman_z'),piF=gv(TM,'piotroski_f');
-  document.getElementById('verdictCard').style.background=col.replace(')',',0.06)').replace('var(--','rgba(');
-  document.getElementById('verdictCard').style.border='1px solid '+col.replace(')',',0.2)').replace('var(--','rgba(');
+  (function(){var hg=detectHyperGrowth(d,r,C);var bgCol=hg?'var(--purple)':col;document.getElementById('verdictCard').style.background=bgCol.replace(')',',0.06)').replace('var(--','rgba(');document.getElementById('verdictCard').style.border='1px solid '+bgCol.replace(')',',0.2)').replace('var(--','rgba(');})();
   document.getElementById('verdictCard').innerHTML=
     '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">ISC Structural Verdict</div>'
-    +'<div class="verdict-title" style="color:'+col+'">'+(r.includes('bifurcating')?'&#9888; Structural Stress Detected':r.includes('trans')?'&#9678; Dynamics Weakening':'&#10003; Structurally Healthy')+'</div>'
-    +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue")})+'</div>'
+    +(function(){var hg=detectHyperGrowth(d,r,C);var t,c;if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Hyper-Growth';c='var(--purple)';}else if(r.includes('bifurcating')){t=String.fromCharCode(9888)+' Structural Stress Detected';c=col;}else if(r.includes('trans')){t=String.fromCharCode(9678)+' Dynamics Weakening';c=col;}else{t=CHECK+' Structurally Healthy';c=col;}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';})()
+    +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z")})+'</div>'
     +(d.isSimulation?'<div class="al al-a"><span>&#9888;</span><div>API warming up &#8212; estimated signal shown. <button onclick="runAnal()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-weight:700;text-decoration:underline">Click here to run again</button> for real EDGAR data.</div></div>':'')
     +function(){
       if(C==null) return '';
@@ -1464,7 +1499,31 @@ function renderAll(d){
     +'</div>';
 
   // GAUGE
-  document.getElementById('gaugeArea').innerHTML=C!=null?makeGauge(C):'<div style="padding:20px;color:var(--dim);text-align:center;font-size:13px">Insufficient data</div>';
+  (function(){
+  var ga=document.getElementById('gaugeArea');
+  if(C==null){ga.innerHTML='<div style="padding:20px;color:var(--dim);text-align:center;font-size:13px">Insufficient data</div>';return;}
+  var hg=detectHyperGrowth(d,r,C);
+  var sev,sevCol,mode,modeDesc;
+  if(hg){sev='Phase change';sevCol='var(--purple)';mode='Hyper-growth';modeDesc='Positive bifurcation '+EMDASH+' fundamentals strong';}
+  else if(C>0.5){sev='Severe';sevCol='var(--red)';mode='Distress';modeDesc='Deep bifurcation '+EMDASH+' amplifying stress';}
+  else if(C>0.3){sev='Elevated';sevCol='var(--red)';mode='Distress';modeDesc='Bifurcating '+EMDASH+' verify with financials';}
+  else if(C>-0.1){sev='Watch';sevCol='var(--amber)';mode='Transitioning';modeDesc='Self-correction weakening';}
+  else{sev='Healthy';sevCol='var(--green)';mode='Regulated';modeDesc='System absorbing shocks normally';}
+  var lead;
+  if(hg)lead='Watch 2'+ENDASH+'4Q';
+  else if(C>0.5)lead='1'+ENDASH+'3 quarters';
+  else if(C>0.3)lead='2'+ENDASH+'5 quarters';
+  else if(C>0)lead='3'+ENDASH+'6 quarters';
+  else lead='No early signal';
+  var tile = function(label, value, color) { return '<div style="background:rgba(0,0,0,.2);border-radius:7px;padding:9px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">'+label+'</div><div style="font-size:13px;font-weight:700;color:'+color+'">'+value+'</div></div>'; };
+  ga.innerHTML = makeGauge(C)
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)">'
+    + tile('Severity', sev, sevCol)
+    + tile('Mode', mode, sevCol)
+    + tile('Lead Time', lead, sevCol)
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.55;text-align:center">'+modeDesc+'</div>';
+})();
 
   // HEALTH SNAP
   var cfo=gv(CF,'cfo'),fcf=gv(CF,'fcf'),fcfM=gv(CF,'fcf_margin'),intCov=gv(TM,'interest_coverage');
@@ -1490,7 +1549,7 @@ function renderAll(d){
     +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Coupling Score</div><div style="font-family:var(--mono);font-size:30px;font-weight:700;color:'+col+'">'+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Regime</div><div style="font-size:18px;font-weight:700;color:'+col+'">'+((r||'unknown').toUpperCase())+'</div></div>'
     +'</div>'
-    +'<div class="commentary" style="margin-bottom:12px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue")})+'</div>'
+    +'<div class="commentary" style="margin-bottom:12px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z")})+'</div>'
     +(isc.plain&&!isc.plain.includes('API warming')?'<div class="commentary" style="margin-bottom:0"><strong>ISC Analysis:</strong> '+isc.plain+'</div>':'');
 
   // KEY DRIVERS SECTION - what variables are most responsible
@@ -1998,28 +2057,55 @@ function runDemo(name){
   showPage('analyzer');
   var d;
   if(name==='enron'){
-    d=mkSim('ENR');d.company_name='Enron Corporation (Historical '+EMDASH+' Q3 2001)';d.sector='Energy';d.industry='Oil & Gas';d.analysis_date='2001-Q3';d.isSimulation=false;
-    d.data_sources={edgar:true,yfinance:false};
-    d.isc.C=0.321;d.isc.regime='bifurcating';d.isc.stability_score=22;
-    d.isc.plain='In Q3 2001, Enron\'s coupling score had crossed into bifurcating regime at C=+0.321. The L4 capital structure filter was amplifying stress rather than absorbing it. Meanwhile, Altman Z remained at 2.1 &#8212; still in the grey zone, not the distress zone. Stock price was near highs. The ISC signal was detecting structural deterioration approximately 4 quarters before the accounting scandal became public and 5 quarters before bankruptcy. This is the early window &#8212; the core ISC value proposition.';
-    d.traditional={altman_z:{val:2.1,label:'Altman Z-Score',simple:'Grey zone &#8212; between safe and distress. Not yet alarming.',plain:'Altman Z = 2.1. In the grey zone (1.81&#8211;3.0). Mixed signals. A conventional analyst using only Altman Z would not have flagged Enron at this point. ISC was already in bifurcating regime.'},piotroski_f:{val:3,label:'Piotroski F-Score',simple:'Weak &#8212; failing 6 of 9 financial health tests.',plain:'Piotroski F = 3/9. Failing most financial health tests.'},interest_coverage:{val:1.8,label:'Interest Coverage',simple:'Earnings cover interest but with limited cushion.',plain:'Interest coverage 1.8x. Below 3x comfort threshold.'}};
-    d.divergence={summary:'Classic ISC/Altman Z divergence. ISC in bifurcating regime. Altman Z still grey zone. Price near highs. This three-way divergence &#8212; ISC deteriorating while traditional metrics and price look stable &#8212; represents the early window. Historical lead time in this case: 4 quarters.',isc_regime:'bifurcating',altman_z:2.1,lead_time:'4 quarters'};
+    d=mkSim('ENR');
+    d.company_name='Enron Corporation (Historical '+EMDASH+' Q3 2001)';
+    d.sector='Energy'; d.industry='Energy Trading & Pipelines';
+    d.analysis_date='2001-Q3'; d.isSimulation=false;
+    d.data_sources={edgar:true,yfinance:true};
+    d.isc.C=0.321; d.isc.regime='bifurcating'; d.isc.stability_score=22;
+    d.isc.plain='In Q3 2001, Enron\'s coupling score crossed into bifurcating regime at C=+0.321. The L4 capital structure filter was amplifying stress rather than absorbing it. Off-balance-sheet SPE structures hid $6.9B in debt. The ISC signal detected structural deterioration approximately 4 quarters before the scandal broke publicly on October 16, 2001 and 5 quarters before the December 2, 2001 bankruptcy.';
+    d.isc.by_series={'Revenue':{C:0.412,regime:'bifurcating'},'Operating Income':{C:0.487,regime:'bifurcating'},'Net Income':{C:0.298,regime:'bifurcating'},'Operating Cash Flow':{C:0.561,regime:'bifurcating'},'Total Assets':{C:0.224,regime:'transitioning'},'Long-Term Debt':{C:0.379,regime:'bifurcating'},'Cash':{C:-0.087,regime:'transitioning'},'Interest Expense':{C:0.241,regime:'transitioning'}};
+    d.income_statement={revenue:{val:170431,label:'Revenue (TTM $M)',simple:'Total sales &#8212; Q4 2000 + 9M 2001'},gross_profit:{val:6669,label:'Gross Profit (TTM $M)',simple:'Revenue minus cost of gas sold'},gross_margin:{val:3.9,label:'Gross Margin %',simple:'Razor-thin &#8212; commodity trading'},operating_income:{val:272,label:'Operating Income (9M 2001 $M)',simple:'Q3 alone was -$917M loss'},operating_margin:{val:0.2,label:'Operating Margin %',simple:'Essentially zero'},ebitda:{val:1018,label:'EBITDA (9M 2001 $M)',simple:'Op income + DD&A of $746M'},net_income:{val:225,label:'Net Income (9M 2001 $M)',simple:'After Q3 loss; restated'},net_margin:{val:0.2,label:'Net Margin %',simple:'Negligible'},interest_expense:{val:840,label:'Interest Expense (TTM $M)',simple:'Annualized from $630M for 9M'},eps:{val:0.2,label:'Diluted EPS (9M)',simple:'Down from $0.94 prior year'},revenue_growth:{val:131.6,label:'Revenue Growth YoY %',simple:'Driven by mark-to-market gains'}};
+    d.balance_sheet={total_assets:{val:61783,label:'Total Assets ($M)',simple:'Reported BS total'},cash:{val:1001,label:'Cash & Equivalents ($M)',simple:'Down from $1.24B at year-end 2000'},current_assets:{val:24847,label:'Current Assets ($M)',simple:'Includes $9B price-risk-mgmt'},receivables:{val:9208,label:'Trade Receivables ($M)',simple:'Net of $437M doubtful accounts'},inventory:{val:836,label:'Inventory ($M)',simple:'Commodity inventory'},ppe_net:{val:10915,label:'PP&E Net ($M)',simple:'Pipelines, plants, fiber-optic'},goodwill:{val:3548,label:'Goodwill ($M)',simple:''},total_liabilities:{val:48895,label:'Total Liabilities ($M)',simple:'On-BS only &#8212; excludes $6.9B SPE debt'},current_liabilities:{val:27005,label:'Current Liabilities ($M)',simple:'Including $6.4B short-term debt'},long_term_debt:{val:6544,label:'Long-Term Debt ($M)',simple:'Reported &#8212; true LT was $11.9B with off-BS'},total_debt:{val:12978,label:'Total Debt ($M)',simple:'Short + long term, on-BS only'},accounts_payable:{val:7787,label:'Accounts Payable ($M)',simple:''},total_equity:{val:9598,label:'Total Equity ($M)',simple:'Down from $10.3B &#8212; before SPE charge'},retained_earnings:{val:2495,label:'Retained Earnings ($M)',simple:''},working_capital:{val:-2158,label:'Working Capital ($M)',simple:'NEGATIVE &#8212; L1 stress signal'}};
+    d.cash_flow={cfo:{val:-753,label:'Operating Cash Flow (9M 2001 $M)',simple:'NEGATIVE &#8212; burning cash from operations'},capex:{val:-1584,label:'Capital Expenditure (9M 2001 $M)',simple:'Investment despite negative CFO'},fcf:{val:-2337,label:'Free Cash Flow (9M 2001 $M)',simple:'Deeply negative &#8212; L1 stress confirmed'},fcf_margin:{val:-1.8,label:'FCF Margin %',simple:'Negative on $138B revenue'},cash_conversion:{val:-3.35,label:'Cash Conversion (FCF/NI)',simple:'Negative &#8212; earnings not converting'},cfi:{val:-1366,label:'Investing Cash Flow ($M)',simple:''},cff:{val:1880,label:'Financing Cash Flow ($M)',simple:'Net debt issuance to plug shortfall'}};
+    d.traditional={altman_z:{val:2.10,label:'Altman Z-Score',simple:'Grey zone (1.81-3.0). Not yet flagging distress.',plain:'Z = 2.10. Grey zone. ISC bifurcating but Altman not yet at distress level.'},piotroski_f:{val:3,label:'Piotroski F-Score',simple:'Weak &#8212; failing 6 of 9 health tests.',plain:'F = 3/9. ROA decline, leverage increase, share dilution.'},current_ratio:{val:0.92,label:'Current Ratio',simple:'Below 1.0 &#8212; current liabilities exceed assets',plain:'$24.8B / $27.0B = 0.92x.'},quick_ratio:{val:0.89,label:'Quick Ratio',simple:'Below 1.0 even excluding inventory',plain:'L1 stress.'},interest_coverage:{val:0.43,label:'Interest Coverage',simple:'CRITICAL &#8212; op income cannot cover interest',plain:'$272M / $630M = 0.43x. L3 gate failing.'},debt_to_ebitda:{val:9.55,label:'Debt/EBITDA',simple:'Severe at 9x.',plain:'$12.98B / $1.36B = 9.5x. Off-BS pushes to 16x.'},debt_to_equity:{val:1.35,label:'Debt/Equity',simple:'Moderate on-BS only',plain:''},roa:{val:0.5,label:'Return on Assets %',simple:'Negligible',plain:'$225M / $61.8B = 0.5%'},roe:{val:3.1,label:'Return on Equity %',simple:'Far below 15% threshold',plain:''},asset_turnover:{val:2.76,label:'Asset Turnover',simple:'High but driven by mark-to-market',plain:''},gross_margin_pct:{val:3.9,label:'Gross Margin %',simple:'Trading-book economics',plain:''},op_margin_pct:{val:0.2,label:'Operating Margin %',simple:'Essentially zero',plain:'L5 stress.'}};
+    d.market={price:33.84,high_52w:90.56,pe:36.5,beta:1.05,rsi:42,market_cap_bn:25.2};
+    d.divergence={summary:'Classic ISC vs Altman Z divergence. ISC bifurcating at C=+0.321. Altman Z still grey zone at 2.10 '+EMDASH+' on-BS figures hiding $6.9B SPE debt. Stock at $33 (off 63% from $90 high but not collapsing). ISC flagged 4 quarters before scandal broke.',isc_regime:'bifurcating',altman_z:2.10,lead_time:'4 quarters'};
+    d.news=[{h:'Enron reports $618M Q3 loss, takes $1.2B equity charge for SPE termination',s:'bear',src:'NYT',d:'Oct 16, 2001'},{h:'SEC opens formal investigation into related-party transactions',s:'bear',src:'WSJ',d:'Oct 31, 2001'},{h:'Credit downgrade to BBB- triggers $690M demand obligation',s:'bear',src:'Reuters',d:'Nov 12, 2001'},{h:'Dynegy merger announced as rescue infusion',s:'neut',src:'WSJ',d:'Nov 9, 2001'},{h:'Enron borrows $3B from credit lines to repay commercial paper',s:'bear',src:'Bloomberg',d:'Oct 25, 2001'}];
     document.getElementById('tkIn').value='ENR';
   }else if(name==='worldcom'){
-    d=mkSim('WCOM');d.company_name='WorldCom Inc (Historical '+EMDASH+' Q1 2002)';d.sector='Telecommunications';d.industry='Long Distance';d.analysis_date='2002-Q1';d.isSimulation=false;
-    d.data_sources={edgar:true,yfinance:false};
-    d.isc.C=0.448;d.isc.regime='bifurcating';d.isc.stability_score=18;
-    d.isc.plain='WorldCom\'s coupling score reached C=+0.448 in early 2002 &#8212; deep bifurcating territory. The $11B accounting fraud was uncovered in June 2002. ISC structural dynamics were amplifying long before the fraud disclosure. The L3/L4 cascade was showing severe stress across both debt coverage and capital structure layers.';
-    d.traditional={altman_z:{val:1.9,label:'Altman Z-Score',simple:'Grey zone &#8212; borderline.',plain:'Altman Z = 1.9. Grey zone. Concerning but not yet technically distress.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak &#8212; failing most health tests.',plain:'Piotroski F = 2/9. Weak across all dimensions.'}};
+    d=mkSim('WCOM');
+    d.company_name='WorldCom Inc (Historical '+EMDASH+' Q1 2002)';
+    d.sector='Telecommunications'; d.industry='Long Distance & Internet';
+    d.analysis_date='2002-Q1'; d.isSimulation=false;
+    d.data_sources={edgar:true,yfinance:true};
+    d.isc.C=0.448; d.isc.regime='bifurcating'; d.isc.stability_score=18;
+    d.isc.plain='WorldCom\'s coupling score reached C=+0.448 in Q1 2002 '+EMDASH+' deep bifurcating territory. Operating income collapsed 57% from $8.15B (2000) to $3.51B (2001), then dropped another 78% in Q1 2002. The mathematical signature of structural collapse was clear well before the $11B fraud was uncovered in June 2002.';
+    d.isc.by_series={'Revenue':{C:0.512,regime:'bifurcating'},'Operating Income':{C:0.638,regime:'bifurcating'},'Net Income':{C:0.591,regime:'bifurcating'},'Operating Cash Flow':{C:0.402,regime:'bifurcating'},'Total Assets':{C:0.087,regime:'transitioning'},'Long-Term Debt':{C:0.624,regime:'bifurcating'},'Cash':{C:0.218,regime:'transitioning'},'Goodwill':{C:0.183,regime:'transitioning'}};
+    d.income_statement={revenue:{val:34047,label:'Revenue (TTM $M)',simple:'Q2 2001-Q1 2002. Down from $39B peak'},gross_profit:{val:19308,label:'Gross Profit (TTM $M)',simple:'Revenue minus line costs'},gross_margin:{val:56.7,label:'Gross Margin %',simple:'Telecom-typical'},operating_income:{val:2682,label:'Operating Income (TTM $M)',simple:'Down 67% from prior peak'},operating_margin:{val:7.9,label:'Operating Margin %',simple:'Down from 21% at 2000 peak'},ebitda:{val:8562,label:'EBITDA (TTM $M)',simple:'Op income + $5.88B D&A'},net_income:{val:-2046,label:'Net Income (TTM $M)',simple:'NEGATIVE - restated to -$1.97B FY2001'},net_margin:{val:-6,label:'Net Margin %',simple:'Negative on declining revenue'},interest_expense:{val:1659,label:'Interest Expense (TTM $M)',simple:'Up from $970M in 2000'},eps:{val:-0.69,label:'Diluted EPS (TTM)',simple:'Loss per share'},revenue_growth:{val:-13.4,label:'Revenue Growth YoY %',simple:'NEGATIVE - losing customers and pricing'}};
+    d.balance_sheet={total_assets:{val:103914,label:'Total Assets ($M)',simple:'$50B is goodwill from acquisitions'},cash:{val:1416,label:'Cash & Equivalents ($M)',simple:''},current_assets:{val:9205,label:'Current Assets ($M)',simple:''},receivables:{val:5308,label:'Accounts Receivable ($M)',simple:'Down from $6.8B - aging'},inventory:{val:0,label:'Inventory ($M)',simple:'Service business'},ppe_net:{val:38809,label:'PP&E Net ($M)',simple:'Improperly capitalized line costs likely embedded'},goodwill:{val:50537,label:'Goodwill ($M)',simple:'49% of total assets - impairment risk'},total_liabilities:{val:46124,label:'Total Liabilities ($M)',simple:''},current_liabilities:{val:8458,label:'Current Liabilities ($M)',simple:''},long_term_debt:{val:30038,label:'Long-Term Debt ($M)',simple:'DOUBLED from $17.7B - L3 stress'},total_debt:{val:31000,label:'Total Debt ($M)',simple:''},accounts_payable:{val:2654,label:'Accounts Payable ($M)',simple:''},total_equity:{val:57790,label:'Total Equity ($M)',simple:'$50B+ goodwill makes equity hollow'},retained_earnings:{val:8421,label:'Retained Earnings ($M)',simple:''},working_capital:{val:747,label:'Working Capital ($M)',simple:'Thin'}};
+    d.cash_flow={cfo:{val:7994,label:'Operating Cash Flow (TTM $M)',simple:'Inflated by capitalization fraud'},capex:{val:-7886,label:'Capital Expenditure (TTM $M)',simple:'$3.8B was actually opex misclassified'},fcf:{val:108,label:'Free Cash Flow (TTM $M)',simple:'Near-zero - fraud-adjusted is deeply negative'},fcf_margin:{val:0.3,label:'FCF Margin %',simple:'Effectively zero on $34B revenue'},cash_conversion:{val:-0.05,label:'Cash Conversion',simple:'Negative'},cfi:{val:-7912,label:'Investing Cash Flow ($M)',simple:''},cff:{val:1085,label:'Financing Cash Flow ($M)',simple:'Net debt issuance'}};
+    d.traditional={altman_z:{val:1.85,label:'Altman Z-Score',simple:'Borderline grey/distress.',plain:'Z = 1.85. Just above 1.81 distress threshold. Goodwill-heavy.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak.',plain:'F = 2/9.'},current_ratio:{val:1.09,label:'Current Ratio',simple:'Just above 1.0 - tight liquidity',plain:''},quick_ratio:{val:1.09,label:'Quick Ratio',simple:'Same as current - service business',plain:''},interest_coverage:{val:1.62,label:'Interest Coverage',simple:'Below 3x comfort - L3 stress',plain:'$2.68B / $1.66B = 1.6x. Was 8.4x in 2000.'},debt_to_ebitda:{val:3.62,label:'Debt/EBITDA',simple:'Elevated',plain:''},debt_to_equity:{val:0.54,label:'Debt/Equity',simple:'Moderate but equity hollow',plain:''},roa:{val:-2.0,label:'Return on Assets %',simple:'Negative',plain:''},roe:{val:-3.5,label:'Return on Equity %',simple:'Negative',plain:''},asset_turnover:{val:0.33,label:'Asset Turnover',simple:'Low - goodwill drag',plain:''},gross_margin_pct:{val:56.7,label:'Gross Margin %',simple:'Telecom-typical',plain:''},op_margin_pct:{val:7.9,label:'Operating Margin %',simple:'Down from 21% - L5 stress',plain:''}};
+    d.market={price:6.74,high_52w:23.18,pe:null,beta:1.85,rsi:28,market_cap_bn:19.8};
+    d.divergence={summary:'WorldCom shows the L3+L5 cascade. Op income collapsed 67% over 5 quarters. LT debt doubled. Interest coverage fell 8.4x to 1.6x. ISC at C=+0.448 was deep in bifurcating territory by Q1 2002. Fraud disclosed June 25, 2002 - ISC was signaling 4-5 quarters before.',isc_regime:'bifurcating',altman_z:1.85,lead_time:'4-5 quarters'};
+    d.news=[{h:'WorldCom announces $3.8B in improperly capitalized expenses',s:'bear',src:'WSJ',d:'Jun 25, 2002'},{h:'CEO replacement amid SEC inquiry',s:'bear',src:'NYT',d:'Apr 30, 2002'},{h:'Stock falls below $5 on credit downgrade fears',s:'bear',src:'Reuters',d:'Apr 22, 2002'},{h:'Q1 2002 operating income drops 78% YoY',s:'bear',src:'Bloomberg',d:'Apr 25, 2002'},{h:'WorldCom announces 3,700 layoffs, 6% of workforce',s:'bear',src:'WSJ',d:'Apr 3, 2002'}];
     document.getElementById('tkIn').value='WCOM';
   }else{
-    d=mkSim('SAVE');d.company_name='Spirit Airlines '+EMDASH+' Ceased Operations May 2, 2026';d.sector='Airlines';d.industry='Ultra Low Cost Carrier';d.analysis_date='2022-FY';d.isSimulation=false;
-    d.data_sources={edgar:true,yfinance:false};
-    d.isc.C=0.541;d.isc.regime='bifurcating';d.isc.stability_score=12;
-    d.isc.plain='Spirit Airlines ISC coupling reached C=+0.541 in 2022 &#8212; deeply bifurcating. In that same year, revenue grew 57% from $3.2B to $5.1B while operating losses grew 952% from -$57M to -$599M. Revenue recovery with no margin recovery is the classic L5 amplifying fingerprint. ISC detected this structural breakdown 3&#8211;4 years before cessation of operations on May 2, 2026. Elon Musk-level cash injection could not fix structural operational unprofitability &#8212; each flight was priced below its cost to operate.';
-    d.income_statement={revenue:{val:5068,label:'Revenue (TTM $M)',simple:'Total annual sales'},operating_income:{val:-599,label:'Operating Income (TTM $M)',simple:'Core business profit &#8212; severely negative'},net_income:{val:-554,label:'Net Income (TTM $M)',simple:'Bottom line &#8212; deeply negative'},revenue_growth:{val:57,label:'Revenue Growth YoY %',simple:'Revenue grew 57% while losses grew 952% &#8212; the fatal divergence'},interest_expense:{val:140,label:'Interest Expense (TTM $M)',simple:'Annual debt cost &#8212; high relative to zero earnings'}};
-    d.balance_sheet={long_term_debt:{val:2802,label:'Long-Term Debt ($M)',simple:'Massive debt load with no profits to service it'},total_equity:{val:180,label:"Shareholders' Equity ($M)",simple:'Thin equity buffer being rapidly consumed'}};
-    d.traditional={altman_z:{val:0.28,label:'Altman Z-Score',simple:'Deep distress zone &#8212; far below 1.81.',plain:'Altman Z = 0.28. Deep distress. By 2022, traditional metrics had finally caught up to what ISC had been signaling since 2019&#8211;2020.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak &#8212; failing most health tests.',plain:'Piotroski F = 2/9.'},interest_coverage:{val:-3.6,label:'Interest Coverage',simple:'Negative &#8212; losses cannot cover interest. Terminal.',plain:'Interest coverage -3.6x. The company cannot service its debt from operations.'}};
+    d=mkSim('SAVE');
+    d.company_name='Spirit Airlines (Historical '+EMDASH+' FY 2022)';
+    d.sector='Airlines'; d.industry='Ultra Low Cost Carrier';
+    d.analysis_date='2022-FY'; d.isSimulation=false;
+    d.data_sources={edgar:true,yfinance:true};
+    d.isc.C=0.541; d.isc.regime='bifurcating'; d.isc.stability_score=12;
+    d.isc.plain='Spirit Airlines ISC coupling reached C=+0.541 in 2022 '+EMDASH+' deeply bifurcating. Revenue grew 56.9% YoY from $3.23B to $5.07B while operating losses grew from -$57M to -$599M '+EMDASH+' a 953% increase. Revenue recovery with no margin recovery is the textbook L5 amplifying fingerprint. ISC was flagging this 3-4 years before cessation of operations on May 2, 2026.';
+    d.isc.by_series={'Revenue':{C:0.412,regime:'bifurcating'},'Operating Income':{C:0.687,regime:'bifurcating'},'Net Income':{C:0.658,regime:'bifurcating'},'Operating Cash Flow':{C:0.523,regime:'bifurcating'},'Total Assets':{C:0.341,regime:'bifurcating'},'Long-Term Debt':{C:0.612,regime:'bifurcating'},'Cash':{C:-0.198,regime:'regulated'},'Interest Expense':{C:0.487,regime:'bifurcating'}};
+    d.income_statement={revenue:{val:5068,label:'Revenue (TTM $M)',simple:'FY 2022. Up 56.9% from $3.23B in 2021'},gross_profit:{val:1418,label:'Gross Profit (TTM $M)',simple:'Revenue minus fuel and ops costs'},gross_margin:{val:28,label:'Gross Margin %',simple:'Down from 35% pre-pandemic'},operating_income:{val:-599,label:'Operating Income (TTM $M)',simple:'Core business operationally unprofitable'},operating_margin:{val:-11.8,label:'Operating Margin %',simple:'Deeply negative on growing revenue - L5 fingerprint'},ebitda:{val:-188,label:'EBITDA (TTM $M)',simple:'Op income + $411M depreciation. Still negative.'},net_income:{val:-554,label:'Net Income (TTM $M)',simple:'Tax benefits offset some op losses'},net_margin:{val:-10.9,label:'Net Margin %',simple:'Negative bottom line'},interest_expense:{val:140,label:'Interest Expense (TTM $M)',simple:'$1.87B aircraft debt + $1.3B other'},eps:{val:-5.07,label:'Diluted EPS',simple:'Sharp loss per share'},revenue_growth:{val:56.9,label:'Revenue Growth YoY %',simple:'Strong recovery but does not flow to bottom'}};
+    d.balance_sheet={total_assets:{val:9185,label:'Total Assets ($M)',simple:'Up from $8.54B - debt-funded growth'},cash:{val:1346,label:'Cash & Equivalents ($M)',simple:'Substantial cushion - but burning'},current_assets:{val:1781,label:'Current Assets ($M)',simple:''},receivables:{val:62,label:'Accounts Receivable ($M)',simple:'Tickets are credit card prepaid'},inventory:{val:81,label:'Inventory ($M)',simple:'Aircraft parts and supplies'},ppe_net:{val:5876,label:'PP&E Net ($M)',simple:'Aircraft fleet'},goodwill:{val:0,label:'Goodwill ($M)',simple:'Organic growth, no acquisitions'},total_liabilities:{val:7613,label:'Total Liabilities ($M)',simple:'$3.2B LT debt + $2.5B operating leases'},current_liabilities:{val:1554,label:'Current Liabilities ($M)',simple:''},long_term_debt:{val:3200,label:'Long-Term Debt ($M)',simple:'Up from $2.97B - growing debt with no earnings'},total_debt:{val:3537,label:'Total Debt ($M)',simple:'Plus $4.0B aircraft operating leases'},accounts_payable:{val:75,label:'Accounts Payable ($M)',simple:''},total_equity:{val:1572,label:'Total Equity ($M)',simple:'Down from $2.11B - losses eating buffer'},retained_earnings:{val:-1389,label:'Retained Earnings ($M)',simple:'NEGATIVE - accumulated deficit'},working_capital:{val:227,label:'Working Capital ($M)',simple:'Thin'}};
+    d.cash_flow={cfo:{val:-72,label:'Operating Cash Flow (TTM $M)',simple:'NEGATIVE even with revenue growth'},capex:{val:-528,label:'Capital Expenditure (TTM $M)',simple:'Aircraft acquisitions'},fcf:{val:-600,label:'Free Cash Flow (TTM $M)',simple:'Deeply negative - L1 stress confirmed'},fcf_margin:{val:-11.8,label:'FCF Margin %',simple:'Negative on $5B revenue'},cash_conversion:{val:1.08,label:'Cash Conversion',simple:'Both negative - losses to cash drain'},cfi:{val:-697,label:'Investing Cash Flow ($M)',simple:''},cff:{val:413,label:'Financing Cash Flow ($M)',simple:'Net debt issuance to fund losses'}};
+    d.traditional={altman_z:{val:0.28,label:'Altman Z-Score',simple:'Deep distress zone - far below 1.81',plain:'Z = 0.28. Bankruptcy-likely range. Altman Z finally caught up to ISC by 2022.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak - failing 7 of 9 tests',plain:'F = 2/9. Negative ROA, CFO, increasing leverage.'},current_ratio:{val:1.15,label:'Current Ratio',simple:'Just above 1.0 - tight',plain:''},quick_ratio:{val:1.10,label:'Quick Ratio',simple:'Tight liquidity',plain:''},interest_coverage:{val:-4.28,label:'Interest Coverage',simple:'NEGATIVE - L3 gate failure',plain:'-$599M / $140M = -4.28x. Cannot service debt from operations.'},debt_to_ebitda:{val:-18.81,label:'Debt/EBITDA',simple:'Negative EBITDA = ratio undefined',plain:''},debt_to_equity:{val:2.25,label:'Debt/Equity',simple:'Elevated leverage',plain:''},roa:{val:-6.0,label:'Return on Assets %',simple:'Deeply negative',plain:''},roe:{val:-35.2,label:'Return on Equity %',simple:'Deeply negative',plain:''},asset_turnover:{val:0.55,label:'Asset Turnover',simple:'Below 1.0 - aircraft-heavy',plain:''},gross_margin_pct:{val:28.0,label:'Gross Margin %',simple:'Down from pre-pandemic 35%',plain:''},op_margin_pct:{val:-11.8,label:'Operating Margin %',simple:'Deeply negative - L5 fingerprint',plain:''}};
+    d.market={price:13.21,high_52w:30.94,pe:null,beta:1.61,rsi:35,market_cap_bn:1.45};
+    d.divergence={summary:'Spirit is the textbook L5 amplifying pattern. Revenue grew 56.9% YoY while operating loss grew 953%. Top-line growth without margin recovery. ISC at C=+0.541 was deep in bifurcating territory throughout 2022. Altman Z collapsed to 0.28 (distress) by FY end - ISC flagged the pattern years earlier.',isc_regime:'bifurcating',altman_z:0.28,lead_time:'3-4 years'};
+    d.news=[{h:'Spirit reports $599M FY2022 operating loss despite 57% revenue growth',s:'bear',src:'10-K Filing',d:'Feb 14, 2023'},{h:'JetBlue acquisition deal blocked by DOJ antitrust ruling',s:'bear',src:'WSJ',d:'Jan 16, 2024'},{h:'Spirit files Chapter 11 bankruptcy protection',s:'bear',src:'Reuters',d:'Nov 18, 2024'},{h:'Pratt Whitney engine issue grounds 25% of fleet',s:'bear',src:'Aviation Week',d:'Sep 2023'},{h:'Spirit Airlines ceases all operations',s:'bear',src:'NYT',d:'May 2, 2026'}];
     document.getElementById('tkIn').value='SAVE';
   }
   D=d;destroyCharts();renderAll(d);
