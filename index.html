@@ -1490,10 +1490,10 @@ function renderAll(d){
 
   // VERDICT
   var stab=isc.stability_score,altZ=gv(TM,'altman_z'),piF=gv(TM,'piotroski_f');
-  (function(){var hg=detectHyperGrowth(d,r,C);var bgCol=hg?'var(--purple)':col;document.getElementById('verdictCard').style.background=bgCol.replace(')',',0.06)').replace('var(--','rgba(');document.getElementById('verdictCard').style.border='1px solid '+bgCol.replace(')',',0.2)').replace('var(--','rgba(');})();
+  (function(){var hg=detectHyperGrowth(d,r,C);var bgCol;if(!r||r.includes('insufficient')){bgCol='var(--dim)';}else if(hg){bgCol='var(--purple)';}else{bgCol=col;}document.getElementById('verdictCard').style.background=bgCol.replace(')',',0.06)').replace('var(--','rgba(');document.getElementById('verdictCard').style.border='1px solid '+bgCol.replace(')',',0.2)').replace('var(--','rgba(');})();
   document.getElementById('verdictCard').innerHTML=
     '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">ISC Structural Verdict</div>'
-    +(function(){var hg=detectHyperGrowth(d,r,C);var t,c;if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Hyper-Growth';c='var(--purple)';}else if(r.includes('bifurcating')){t=String.fromCharCode(9888)+' Structural Stress Detected';c=col;}else if(r.includes('trans')){t=String.fromCharCode(9678)+' Dynamics Weakening';c=col;}else{t=CHECK+' Structurally Healthy';c=col;}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';})()
+    +(function(){var hg=detectHyperGrowth(d,r,C);var t,c;if(!r||r.includes('insufficient')){t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}else if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Hyper-Growth';c='var(--purple)';}else if(r.includes('bifurcating')){t=String.fromCharCode(9888)+' Structural Stress Detected';c=col;}else if(r.includes('trans')){t=String.fromCharCode(9678)+' Dynamics Weakening';c=col;}else if(r.includes('regulated')){t=CHECK+' Structurally Healthy';c=col;}else{t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';})()
     +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z")})+'</div>'
     +(d.isSimulation?'<div class="al al-a"><span>&#9888;</span><div>API warming up &#8212; estimated signal shown. <button onclick="runAnal()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-weight:700;text-decoration:underline">Click here to run again</button> for real EDGAR data.</div></div>':'')
     +function(){
@@ -2191,7 +2191,7 @@ function genPDF(){
       doc.setTextColor(rgb[0],rgb[1],rgb[2]);doc.setFontSize(9);doc.setFont('helvetica','bold');
       doc.text('ISC STRUCTURAL VERDICT',m+4,78);
       doc.setFontSize(13);
-      doc.text(r.includes('bifurcating')?'Structural Stress Detected':r.includes('trans')?'Dynamics Weakening':'Structurally Healthy',m+4,89);
+      doc.text((!r||r.includes('insufficient'))?'Insufficient Data Available':r.includes('bifurcating')?'Structural Stress Detected':r.includes('trans')?'Dynamics Weakening':r.includes('regulated')?'Structurally Healthy':'Insufficient Data Available',m+4,89);
       doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(200,210,230);
       doc.text('Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'   Regime: '+((r||'N/A').toUpperCase())+'   Stability: '+(isc.stability_score||'N/A')+'/100',m+4,100);
       y=118;
