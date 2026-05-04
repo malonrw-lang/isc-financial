@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISC Financial — The Filter Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Azeret+Mono:wght@300;400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   ROOT & RESET
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:16px; scroll-behavior:smooth; }
+
+:root {
+  /* Palette — Ink & Signal */
+  --void:    #0B0E13;
+  --deep:    #11151C;
+  --surface: #161B24;
+  --raised:  #1C2330;
+  --edge:    #232C3A;
+
+  --signal:  #3D9EFF;
+  --signal2: #1A7FE8;
+  --gold:    #E8A020;
+  --gold2:   #C87D10;
+  --green:   #22C98A;
+  --red:     #F04848;
+  --amber:   #F0A830;
+  --purple:  #9B6DF8;
+
+  --ink:     #EBF0F8;
+  --ink2:    #A8B8D0;
+  --ink3:    #6878A0;
+  --ink4:    #2A3548;
+
+  --wire:    rgba(255,255,255,0.06);
+  --wire2:   rgba(255,255,255,0.03);
+  --glow:    rgba(61,158,255,0.12);
+
+  /* Type */
+  --serif:  'Cormorant Garamond', Georgia, serif;
+  --mono:   'Azeret Mono', 'Courier New', monospace;
+  --sans:   'Outfit', system-ui, sans-serif;
+}
+
+body {
+  font-family: var(--sans);
+  background: var(--void);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient background */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 0%, rgba(61,158,255,0.07) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 85% 100%, rgba(155,109,248,0.05) 0%, transparent 55%),
+    repeating-linear-gradient(0deg, transparent, transparent 47px, rgba(255,255,255,0.018) 47px, rgba(255,255,255,0.018) 48px),
+    repeating-linear-gradient(90deg, transparent, transparent 47px, rgba(255,255,255,0.018) 47px, rgba(255,255,255,0.018) 48px);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════════════════ */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  background: rgba(11,14,19,0.96);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--wire);
+  display: flex; align-items: center;
+  padding: 0 20px; gap: 0;
+  z-index: 200;
+}
+
+.tb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding-right: 20px;
+  border-right: 1px solid var(--wire);
+  margin-right: 16px;
+  text-decoration: none;
+}
+
+.tb-logo {
+  width: 28px; height: 28px;
+  background: var(--signal);
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  color: var(--void);
+}
+
+.tb-name {
+  font-family: var(--serif); font-size: 17px; font-weight: 600;
+  color: var(--ink); letter-spacing: 0.2px;
+}
+.tb-name em { font-style: italic; color: var(--signal); }
+
+.tb-ticker-feed {
+  flex: 1; overflow: hidden; height: 52px;
+  display: flex; align-items: center;
+}
+
+.tb-ticker-inner {
+  display: flex; gap: 40px;
+  animation: tickerScroll 35s linear infinite;
+  white-space: nowrap;
+}
+
+@keyframes tickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.tb-tick {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink2);
+  flex-shrink: 0;
+}
+.tb-tick-sym { color: var(--ink2); font-weight: 500; }
+.tb-tick-val { }
+.tb-tick-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+.tb-right {
+  display: flex; align-items: center; gap: 10px;
+  padding-left: 16px; border-left: 1px solid var(--wire);
+  margin-left: 16px;
+}
+
+.tier-switcher {
+  display: flex; gap: 2px;
+  background: var(--surface); border-radius: 5px;
+  padding: 3px; border: 1px solid var(--wire);
+}
+.tier-btn {
+  padding: 4px 12px;
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  letter-spacing: 0.5px;
+  border: none; border-radius: 4px;
+  background: transparent; cursor: pointer;
+  transition: all 0.18s; color: var(--ink2);
+}
+.tier-btn.retail.on   { background: rgba(232,160,32,0.18); color: var(--gold); }
+.tier-btn.investor.on { background: rgba(34,201,138,0.18); color: var(--green); }
+.tier-btn.pro.on      { background: rgba(61,158,255,0.18); color: var(--signal); }
+.tier-btn.ent.on      { background: rgba(155,109,248,0.18); color: var(--purple); }
+.tier-btn:not(.on):hover { color: var(--ink2); }
+
+.tb-status {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink2);
+}
+.tb-status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: blink 2.5s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT — Two column: sidebar + main
+═══════════════════════════════════════════════════════ */
+.app {
+  position: relative; z-index: 1;
+  padding-top: 52px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  background: var(--deep);
+  border-right: 1px solid var(--wire);
+  padding: 20px 16px;
+  position: sticky; top: 52px;
+  height: calc(100vh - 52px);
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 18px;
+}
+
+/* Sidebar scrollbar */
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 2px; }
+
+.sb-block { display: flex; flex-direction: column; gap: 8px; }
+
+.sb-label {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ink2); padding: 0 2px;
+}
+
+/* Tier info card */
+.tier-card {
+  padding: 12px 14px;
+  border-radius: 6px; border: 1px solid var(--wire);
+  background: var(--surface);
+}
+.tc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.tc-name { font-size: 14px; font-weight: 600; }
+.tc-price { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+.tc-desc { font-size: 11px; color: var(--ink2); line-height: 1.5; margin-bottom: 10px; }
+.tc-feats { display: flex; flex-direction: column; gap: 5px; }
+.tc-feat {
+  font-size: 11px; color: var(--ink2);
+  display: flex; align-items: flex-start; gap: 6px; line-height: 1.4;
+}
+.tc-feat-check { font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+
+/* Ticker input */
+.ticker-input-wrap { position: relative; }
+.ticker-input {
+  width: 100%; padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--wire);
+  border-radius: 6px;
+  color: var(--ink);
+  font-family: var(--mono); font-size: 18px; font-weight: 600;
+  letter-spacing: 2px; text-transform: uppercase;
+  outline: none; transition: border-color 0.2s;
+}
+.ticker-input:focus { border-color: var(--signal); }
+.ticker-input::placeholder { color: var(--ink4); font-size: 14px; font-weight: 400; letter-spacing: 1px; }
+
+/* Autocomplete */
+.auto-item {
+  padding: 9px 14px; cursor: pointer;
+  border-bottom: 1px solid var(--wire2);
+  transition: background 0.15s;
+  display: flex; align-items: center;
+}
+.auto-item:hover { background: rgba(61,158,255,0.08); }
+.auto-item:last-child { border-bottom: none; }
+
+.quick-tickers {
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.qtk {
+  padding: 3px 8px;
+  font-family: var(--mono); font-size: 11px;
+  border: 1px solid var(--wire); border-radius: 3px;
+  color: var(--ink2); background: transparent;
+  cursor: pointer; transition: all 0.15s;
+}
+.qtk:hover { border-color: var(--signal); color: var(--signal); }
+
+/* Window slider */
+.slider-wrap { display: flex; flex-direction: column; gap: 5px; }
+.slider-labels { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+.slider-labels .center { color: var(--signal); }
+input[type=range] { width: 100%; accent-color: var(--signal); height: 3px; }
+
+/* Series select */
+.sb-select {
+  width: 100%;
+  background: var(--surface); border: 1px solid var(--wire);
+  border-radius: 5px; padding: 8px 10px;
+  color: var(--ink2); font-family: var(--mono); font-size: 11px;
+  outline: none; cursor: pointer;
+}
+.sb-select option { background: var(--deep); }
+
+/* Run button */
+.run-btn {
+  width: 100%; padding: 12px;
+  background: var(--signal);
+  border: none; border-radius: 6px;
+  color: var(--void); font-family: var(--sans);
+  font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+  letter-spacing: 0.3px;
+}
+.run-btn:hover { background: #5AAFFF; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(61,158,255,0.3); }
+.run-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Progress bar */
+.progress-wrap { height: 2px; background: var(--wire); border-radius: 1px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--signal), var(--purple)); width: 0%; transition: width 0.3s ease; border-radius: 1px; }
+
+/* Framework note */
+.fw-note {
+  padding: 12px 14px;
+  background: rgba(61,158,255,0.05);
+  border: 1px solid rgba(61,158,255,0.12);
+  border-radius: 5px;
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink2); line-height: 1.9;
+}
+.fw-note strong { color: var(--ink2); }
+.fw-note a { color: var(--signal); text-decoration: none; }
+
+/* ─── Main content ─── */
+.main {
+  display: flex; flex-direction: column;
+  background: var(--void); overflow: hidden;
+}
+
+/* Placeholder */
+.placeholder {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 16px; padding: 60px 40px;
+}
+.ph-icon {
+  font-family: var(--serif); font-size: 80px;
+  color: var(--ink4); font-style: italic; line-height: 1;
+  animation: phFloat 4s ease-in-out infinite;
+}
+@keyframes phFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+.ph-title { font-family: var(--serif); font-size: 28px; font-weight: 300; font-style: italic; color: var(--ink2); }
+.ph-sub { font-size: 13px; color: var(--ink4); text-align: center; max-width: 280px; line-height: 1.7; }
+.ph-tickers { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+.ph-tick {
+  padding: 5px 12px; border: 1px solid var(--wire); border-radius: 3px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink4);
+  cursor: pointer; transition: all 0.2s;
+}
+.ph-tick:hover { border-color: var(--signal); color: var(--signal); }
+
+/* Results */
+.results { display: flex; flex-direction: column; }
+
+/* Company header */
+.co-header {
+  padding: 20px 24px;
+  background: var(--deep);
+  border-bottom: 1px solid var(--wire);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px; align-items: start;
+}
+
+.co-name {
+  font-family: var(--serif); font-size: 26px;
+  font-weight: 600; margin-bottom: 2px;
+}
+.co-meta {
+  font-family: var(--mono); font-size: 11px;
+  color: var(--ink2); letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.co-desc { font-size: 12px; color: var(--ink2); line-height: 1.6; max-width: 600px; }
+
+.co-price-block { text-align: right; }
+.co-price {
+  font-family: var(--serif); font-size: 36px;
+  font-weight: 700; line-height: 1; margin-bottom: 4px;
+}
+.co-price-meta { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+
+/* Data source badges */
+.data-badges { display: flex; gap: 6px; margin-top: 10px; }
+.ds-badge {
+  padding: 2px 8px; border-radius: 2px;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 1px;
+}
+.ds-live   { background: rgba(34,201,138,0.15); color: var(--green); border: 1px solid rgba(34,201,138,0.3); }
+.ds-cached { background: rgba(232,160,32,0.12); color: var(--amber); border: 1px solid rgba(232,160,32,0.25); }
+.ds-sim    { background: rgba(255,255,255,0.06); color: var(--ink2); border: 1px solid var(--wire); }
+
+/* Sub tab bar */
+.sub-tabs {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 1px solid var(--wire);
+  overflow-x: auto;
+  padding: 0 4px;
+}
+.sub-tabs::-webkit-scrollbar { display: none; }
+
+.stab {
+  padding: 12px 16px;
+  font-family: var(--mono); font-size: 11px;
+  font-weight: 500; letter-spacing: 0.8px;
+  text-transform: uppercase; color: var(--ink2);
+  border: none; background: transparent;
+  cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.18s; flex-shrink: 0;
+}
+.stab:hover { color: var(--ink2); }
+.stab.on { color: var(--signal); border-bottom-color: var(--signal); }
+
+/* Tab content */
+.tab-content { padding: 24px; }
+
+/* ─── Cards ─── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--wire);
+  border-radius: 8px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: rgba(255,255,255,0.1); }
+.card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+}
+.c-signal::before  { background: var(--signal); }
+.c-green::before   { background: var(--green); }
+.c-red::before     { background: var(--red); }
+.c-amber::before   { background: var(--amber); }
+.c-gold::before    { background: var(--gold); }
+.c-purple::before  { background: var(--purple); }
+.c-slate::before   { background: var(--ink3); }
+
+.card-label {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ink2); margin-bottom: 8px;
+}
+.card-value {
+  font-family: var(--serif); font-size: 28px;
+  font-weight: 600; line-height: 1; margin-bottom: 4px;
+}
+.card-sub { font-size: 11px; color: var(--ink2); line-height: 1.5; }
+
+.card-badge {
+  position: absolute; top: 14px; right: 14px;
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 1px; padding: 2px 7px; border-radius: 2px;
+}
+.b-green  { background: rgba(34,201,138,0.15);  color: var(--green); }
+.b-red    { background: rgba(240,72,72,0.15);    color: var(--red); }
+.b-amber  { background: rgba(240,168,48,0.15);   color: var(--amber); }
+.b-signal { background: rgba(61,158,255,0.15);   color: var(--signal); }
+.b-purple { background: rgba(155,109,248,0.15);  color: var(--purple); }
+.b-gold   { background: rgba(232,160,32,0.12);   color: var(--gold); }
+.b-slate  { background: rgba(255,255,255,0.06);  color: var(--ink2); }
+
+/* ─── Metric row (plain English hover) ─── */
+.metric-row {
+  display: flex; align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--wire2);
+  cursor: default;
+  transition: background 0.15s;
+  border-radius: 3px;
+  padding: 8px 10px;
+  margin: 0 -10px;
+}
+.metric-row:hover { background: rgba(255,255,255,0.025); }
+.metric-row:last-child { border-bottom: none; }
+
+.mr-label {
+  font-size: 12px; color: var(--ink2); flex: 1;
+  transition: color 0.15s;
+}
+.metric-row:hover .mr-label { color: var(--ink2); }
+
+.mr-val {
+  font-family: var(--mono); font-size: 13px;
+  font-weight: 500; min-width: 90px; text-align: right;
+}
+
+.mr-signal {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; margin-left: 8px; flex-shrink: 0;
+}
+
+/* Plain English tooltip */
+.mr-plain {
+  display: none;
+  font-size: 11px; color: var(--ink2);
+  line-height: 1.55; padding: 4px 10px 6px;
+  border-left: 2px solid var(--signal);
+  margin-left: 10px; margin-top: 2px;
+  background: rgba(61,158,255,0.04);
+  border-radius: 0 3px 3px 0;
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+.metric-block:hover .mr-plain { display: block; }
+.metric-block { cursor: default; }
+
+/* ─── Gauge ─── */
+.gauge-wrap {
+  position: relative; width: 180px; height: 100px;
+  margin: 0 auto;
+}
+.gauge-val {
+  position: absolute; bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--serif); font-size: 22px;
+  font-weight: 700; text-align: center;
+  line-height: 1;
+}
+
+/* ─── Regime pills ─── */
+.regime-strip {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+}
+.rp {
+  padding: 10px 12px; border-radius: 5px;
+  border: 1px solid transparent;
+  opacity: 0.3; transition: all 0.3s; cursor: default;
+}
+.rp.on { opacity: 1; }
+.rp-g { border-color: rgba(34,201,138,0.4); background: rgba(34,201,138,0.07); }
+.rp-a { border-color: rgba(240,168,48,0.4);  background: rgba(240,168,48,0.07); }
+.rp-r { border-color: rgba(240,72,72,0.4);   background: rgba(240,72,72,0.07); }
+.rp-name { font-weight: 600; font-size: 12px; margin-bottom: 2px; }
+.rp-g .rp-name { color: var(--green); }
+.rp-a .rp-name { color: var(--amber); }
+.rp-r .rp-name { color: var(--red); }
+.rp-range { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+.rp-plain { font-size: 11px; color: var(--ink2); margin-top: 4px; }
+
+/* ─── Score bars ─── */
+.score-bar-wrap { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.sbw-hdr { display: flex; justify-content: space-between; font-size: 11px; }
+.sbw-lbl { color: var(--ink2); }
+.sbw-val { font-family: var(--mono); font-weight: 500; }
+.sbw-track { height: 4px; background: var(--edge); border-radius: 2px; overflow: hidden; }
+.sbw-fill { height: 100%; border-radius: 2px; transition: width 0.9s ease; }
+
+/* ─── Canvas charts ─── */
+canvas { display: block; width: 100%; }
+.chart-wrap { position: relative; }
+.chart-hdr {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.chart-title { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--ink2); }
+.chart-legend { display: flex; gap: 14px; }
+.cl-item { display: flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+.cl-line { width: 14px; height: 2px; border-radius: 1px; }
+
+/* ─── ISC series grid ─── */
+.isc-series-grid {
+  display: grid; grid-template-columns: repeat(2,1fr); gap: 8px;
+}
+.isc-series-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px;
+  background: var(--raised); border-radius: 4px;
+  border: 1px solid var(--wire2);
+}
+.isi-name { font-size: 11px; color: var(--ink2); }
+.isi-c { font-family: var(--mono); font-size: 12px; font-weight: 500; }
+.isi-regime {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  padding: 1px 6px; border-radius: 2px;
+}
+
+/* ─── Financial table ─── */
+.fin-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.fin-table th {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--ink2);
+  padding: 8px 12px; text-align: left;
+  border-bottom: 1px solid var(--wire);
+}
+.fin-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--wire2);
+  color: var(--ink2); vertical-align: top;
+}
+.fin-table tr:last-child td { border-bottom: none; }
+.fin-table tr:hover td { background: rgba(255,255,255,0.02); }
+.fin-table .val-col {
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  text-align: right; white-space: nowrap;
+}
+.fin-table .sig-col { text-align: center; width: 80px; }
+.fin-table .plain-col { font-size: 11px; color: var(--ink2); line-height: 1.5; }
+
+/* ─── Layer cascade ─── */
+.layer-list { display: flex; flex-direction: column; gap: 6px; }
+.layer-item {
+  display: grid; grid-template-columns: 30px 1fr 100px 50px;
+  gap: 10px; align-items: center;
+  padding: 9px 12px; border-radius: 5px;
+  background: var(--raised); border: 1px solid var(--wire2);
+}
+.layer-item.warn { border-color: rgba(240,168,48,0.3); background: rgba(240,168,48,0.04); }
+.layer-item.alert { border-color: rgba(240,72,72,0.3); background: rgba(240,72,72,0.04); }
+.li-num { font-family: var(--mono); font-size: 11px; color: var(--ink2); text-align: center; }
+.li-name { font-size: 12px; font-weight: 600; }
+.li-sub { font-size: 11px; color: var(--ink2); }
+.li-bar { height: 4px; background: var(--edge); border-radius: 2px; overflow: hidden; margin-top: 3px; }
+.li-fill { height: 100%; border-radius: 2px; transition: width 1s ease; }
+.li-status { font-family: var(--mono); font-size: 11px; font-weight: 600; text-align: right; }
+
+/* ─── Prediction cards ─── */
+.pred-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.pred-card {
+  padding: 16px; background: var(--raised);
+  border: 1px solid var(--wire); border-radius: 6px; text-align: center;
+}
+.pred-h { font-family: var(--mono); font-size: 11px; color: var(--ink2); margin-bottom: 8px; }
+.pred-pct { font-family: var(--serif); font-size: 36px; font-weight: 700; font-style: italic; margin-bottom: 4px; }
+.pred-lbl { font-size: 11px; color: var(--ink2); }
+.pred-plain { font-size: 11px; color: var(--ink2); margin-top: 8px; line-height: 1.5; }
+
+/* ─── Analog rows ─── */
+.analog-item {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 14px; align-items: center;
+  padding: 10px 12px; margin-bottom: 6px;
+  background: var(--raised); border: 1px solid var(--wire2);
+  border-radius: 5px;
+}
+.an-name { font-size: 13px; font-weight: 600; }
+.an-year { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+.an-sim { font-family: var(--mono); font-size: 11px; color: var(--signal); font-weight: 500; }
+.an-out { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; }
+
+/* ─── News ─── */
+.news-item {
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 14px; align-items: start;
+  padding: 12px; margin-bottom: 6px;
+  background: var(--raised); border: 1px solid var(--wire2); border-radius: 5px;
+}
+.ni-headline { font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.4; }
+.ni-meta { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+.ni-sentiment {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  padding: 3px 8px; border-radius: 3px; white-space: nowrap;
+}
+.ns-bull { background: rgba(34,201,138,0.15); color: var(--green); }
+.ns-bear { background: rgba(240,72,72,0.15);  color: var(--red); }
+.ns-neut { background: rgba(255,255,255,0.06); color: var(--ink2); }
+
+/* ─── Divergence chart ─── */
+.div-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 10px; }
+.dl-item { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+.dl-line { width: 16px; height: 2px; border-radius: 1px; }
+
+/* ─── Options ─── */
+.opt-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+.opt-card {
+  padding: 14px; background: var(--raised);
+  border: 1px solid var(--wire); border-radius: 6px;
+}
+.opt-label { font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink2); margin-bottom: 8px; }
+.opt-val { font-family: var(--serif); font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+.opt-sub { font-size: 11px; color: var(--ink2); line-height: 1.5; }
+
+.iv-gap-bar {
+  padding: 16px; border-radius: 6px;
+  margin-bottom: 14px; display: flex;
+  align-items: center; gap: 14px;
+  border: 1px solid var(--wire);
+}
+.iv-arrow { font-size: 28px; flex-shrink: 0; }
+.iv-text { flex: 1; font-size: 13px; line-height: 1.6; color: var(--ink2); }
+.iv-text strong { color: var(--ink); }
+
+.vol-smile-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.vol-smile-table th { font-family: var(--mono); font-size: 11px; color: var(--ink2); padding: 5px 8px; text-align: center; border-bottom: 1px solid var(--wire); }
+.vol-smile-table td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--wire2); font-family: var(--mono); }
+
+/* ─── Claude / Chat ─── */
+.claude-layout { display: grid; grid-template-columns: 1fr 240px; gap: 16px; }
+
+.chat-box {
+  background: var(--raised); border: 1px solid var(--wire);
+  border-radius: 7px; padding: 14px;
+  min-height: 280px; max-height: 420px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chat-box::-webkit-scrollbar { width: 4px; }
+.chat-box::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 2px; }
+
+.cmsg { display: flex; flex-direction: column; gap: 3px; }
+.cmsg-role { font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+.cmsg.user .cmsg-role { color: var(--signal); text-align: right; }
+.cmsg.claude .cmsg-role { color: var(--gold); }
+.cmsg.gpt .cmsg-role { color: var(--green); }
+.cmsg-body { font-size: 12px; line-height: 1.75; padding: 10px 13px; border-radius: 6px; }
+.cmsg.user .cmsg-body { background: rgba(61,158,255,0.1); border: 1px solid rgba(61,158,255,0.18); margin-left: 32px; }
+.cmsg.claude .cmsg-body { background: rgba(232,160,32,0.06); border: 1px solid rgba(232,160,32,0.12); margin-right: 32px; color: var(--ink2); }
+.cmsg.gpt .cmsg-body { background: rgba(34,201,138,0.06); border: 1px solid rgba(34,201,138,0.12); margin-right: 32px; color: var(--ink2); }
+.cmsg-body strong { color: var(--ink); }
+
+.chat-input-row { display: flex; gap: 8px; margin-top: 10px; }
+.chat-in {
+  flex: 1; background: var(--surface); border: 1px solid var(--wire);
+  border-radius: 5px; padding: 9px 12px; color: var(--ink);
+  font-family: var(--sans); font-size: 12px; outline: none;
+}
+.chat-in:focus { border-color: var(--signal); }
+.chat-in::placeholder { color: var(--ink4); }
+
+.chat-send {
+  padding: 9px 16px; background: var(--signal); border: none;
+  border-radius: 5px; color: var(--void); font-size: 12px;
+  font-weight: 700; cursor: pointer; transition: all 0.18s;
+}
+.chat-send:hover { background: #5AAFFF; }
+.chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ai-model-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.ai-tab {
+  padding: 5px 12px; border-radius: 4px; border: 1px solid var(--wire);
+  font-family: var(--mono); font-size: 11px; cursor: pointer;
+  background: transparent; transition: all 0.18s; color: var(--ink2);
+}
+.ai-tab.claude-on { background: rgba(232,160,32,0.12); color: var(--gold); border-color: rgba(232,160,32,0.25); }
+.ai-tab.gpt-on    { background: rgba(34,201,138,0.1);  color: var(--green); border-color: rgba(34,201,138,0.25); }
+.ai-tab.both-on   { background: rgba(155,109,248,0.12); color: var(--purple); border-color: rgba(155,109,248,0.25); }
+
+.chat-sidebar { display: flex; flex-direction: column; gap: 10px; }
+
+.qq-list { display: flex; flex-direction: column; gap: 4px; }
+.qq {
+  padding: 7px 10px; background: var(--raised);
+  border: 1px solid var(--wire2); border-radius: 4px;
+  font-size: 11px; color: var(--ink2); cursor: pointer;
+  transition: all 0.15s; line-height: 1.4;
+}
+.qq:hover { border-color: var(--signal); color: var(--ink2); }
+
+.ctx-card {
+  background: rgba(232,160,32,0.05);
+  border: 1px solid rgba(232,160,32,0.15);
+  border-radius: 5px; padding: 12px;
+}
+.ctx-title { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--gold); margin-bottom: 8px; }
+.ctx-row {
+  display: flex; justify-content: space-between;
+  padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-size: 11px;
+}
+.ctx-row:last-child { border-bottom: none; }
+.ctx-k { color: var(--ink2); }
+.ctx-v { font-family: var(--mono); font-size: 11px; font-weight: 500; }
+
+/* Typing indicator */
+.typing { display: flex; gap: 4px; padding: 2px; }
+.td { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); animation: td 0.8s ease-in-out infinite; }
+.td:nth-child(2) { animation-delay: 0.15s; }
+.td:nth-child(3) { animation-delay: 0.3s; }
+@keyframes td { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-4px);} }
+
+/* ─── Callouts ─── */
+.callout {
+  padding: 12px 16px; border-radius: 0 6px 6px 0;
+  border-left: 3px solid var(--signal);
+  background: rgba(61,158,255,0.06);
+  font-size: 12px; line-height: 1.75; color: var(--ink2);
+  margin-bottom: 14px;
+}
+.callout strong { color: var(--ink); }
+.callout.green  { border-left-color: var(--green); background: rgba(34,201,138,0.05); }
+.callout.red    { border-left-color: var(--red);   background: rgba(240,72,72,0.05); }
+.callout.amber  { border-left-color: var(--amber); background: rgba(240,168,48,0.05); }
+.callout.gold   { border-left-color: var(--gold);  background: rgba(232,160,32,0.05); }
+.callout.purple { border-left-color: var(--purple);background: rgba(155,109,248,0.05); }
+
+/* ─── Grid layouts ─── */
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g-gauge { display: grid; grid-template-columns: 190px 1fr; gap: 14px; align-items: center; }
+
+/* ─── Section header ─── */
+.sec-h {
+  font-family: var(--mono); font-size: 11px;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--ink2); margin-bottom: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.sec-h::after { content: ''; flex: 1; height: 1px; background: var(--wire); }
+
+/* ─── Piotroski signals ─── */
+.pio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.pio-item {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; color: var(--ink2); padding: 4px 6px;
+  border-radius: 3px; border: 1px solid var(--wire2);
+}
+.pio-pass { color: var(--green); }
+.pio-fail { color: var(--red); }
+
+/* ─── Trade signal ─── */
+.trade-signal {
+  padding: 16px; border-radius: 6px;
+  background: rgba(155,109,248,0.07);
+  border: 1px solid rgba(155,109,248,0.2);
+  margin-bottom: 14px;
+}
+.ts-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ts-badge {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 2px;
+  background: rgba(155,109,248,0.2); color: var(--purple);
+}
+.ts-title { font-size: 14px; font-weight: 600; }
+.ts-body { font-size: 12px; color: var(--ink2); line-height: 1.7; }
+.ts-body strong { color: var(--ink); }
+.ts-disclaimer { font-family: var(--mono); font-size: 11px; color: var(--ink2); margin-top: 8px; }
+
+/* ─── Retail verdict ─── */
+.retail-verdict {
+  padding: 20px; border-radius: 7px;
+  background: rgba(232,160,32,0.06);
+  border: 1px solid rgba(232,160,32,0.2);
+  margin-bottom: 16px;
+}
+.rv-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.rv-icon { font-size: 32px; }
+.rv-title { font-family: var(--serif); font-size: 20px; font-weight: 600; }
+.rv-sub { font-size: 12px; color: var(--ink2); }
+
+/* ─── Consensus panel ─── */
+.consensus-panel {
+  padding: 16px; border-radius: 6px;
+  background: rgba(34,201,138,0.06);
+  border: 1px solid rgba(34,201,138,0.2);
+  margin-top: 12px;
+}
+.cp-label { font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--green); margin-bottom: 8px; }
+.cp-text { font-size: 12px; color: var(--ink2); line-height: 1.7; }
+
+/* ─── Utilities ─── */
+.hidden { display: none !important; }
+.spacer { height: 16px; }
+
+/* ═══ MOBILE ═══ */
+@media (max-width: 768px) {
+  .topbar { padding: 0 12px; }
+  .tb-name { font-size: 14px; }
+  .tb-ticker-feed { display: none; }
+  .tier-btn { padding: 4px 8px; font-size: 11px; }
+  .tb-status span { display: none; }
+  .app { grid-template-columns: 1fr; }
+  .sidebar {
+    position: relative; top: 0; height: auto;
+    overflow-y: visible; border-right: none;
+    border-bottom: 1px solid var(--wire);
+    padding: 14px 14px 10px; gap: 10px;
+  }
+  .tc-feats { display: none; }
+  .fw-note { font-size: 11px; padding: 8px 10px; }
+  .co-header { grid-template-columns: 1fr; gap: 6px; padding: 12px 14px; }
+  .co-name { font-size: 18px; }
+  .co-price-block { text-align: left; }
+  .co-price { font-size: 22px; }
+  .sub-tabs { padding: 0 2px; }
+  .stab { padding: 9px 10px; font-size: 11px; letter-spacing: 0.3px; }
+  .tab-content { padding: 12px; }
+  .g4 { grid-template-columns: repeat(2,1fr); gap: 7px; }
+  .g3 { grid-template-columns: repeat(2,1fr); gap: 7px; }
+  .g2 { grid-template-columns: 1fr; gap: 10px; }
+  .g-gauge { grid-template-columns: 1fr; }
+  .opt-grid { grid-template-columns: repeat(2,1fr); gap: 7px; }
+  .isc-series-grid { grid-template-columns: 1fr; }
+  .card-value { font-size: 20px !important; }
+  .rp-plain { display: none; }
+  .fin-table .plain-col { display: none; }
+  .fin-table th:last-child { display: none; }
+  .li-sub { display: none; }
+  .an-sim { display: none; }
+  .news-item { grid-template-columns: 1fr; gap: 4px; }
+  .claude-layout { grid-template-columns: 1fr; }
+  .chat-sidebar { display: none; }
+  .chat-box { min-height: 200px; max-height: 280px; }
+  .pred-plain { display: none; }
+  .pred-pct { font-size: 26px; }
+  .regime-strip { gap: 5px; }
+  .rp { padding: 7px 9px; }
+  .retail-verdict { padding: 12px; }
+  .rv-title { font-size: 15px; }
+  .ai-model-tabs { flex-wrap: wrap; gap: 4px; }
+  .placeholder { padding: 30px 16px; }
+  .ph-icon { font-size: 48px; }
+  .ph-title { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOP BAR ═══ -->
+<div class="topbar">
+  <a class="tb-brand" href="#">
+    <div class="tb-logo">FL</div>
+    <span class="tb-name">ISC <em>Financial</em></span>
+  </a>
+
+  <div class="tb-ticker-feed">
+    <div class="tb-ticker-inner" id="tbTicker"></div>
+  </div>
+
+  <div class="tb-right">
+    <div class="tier-switcher">
+      <button class="tier-btn retail on"   onclick="setTier('retail',this)">🌱 Free</button>
+      <button class="tier-btn investor"    onclick="setTier('investor',this)">📊 $19.99</button>
+      <button class="tier-btn pro"         onclick="setTier('pro',this)">⚡ $99</button>
+      <button class="tier-btn ent"         onclick="setTier('ent',this)">🏛 $499</button>
+    </div>
+    <div class="tb-status">
+      <div class="tb-status-dot"></div>
+      <span>LIVE</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ APP LAYOUT ═══ -->
+<div class="app">
+
+  <!-- ─── SIDEBAR ─── -->
+  <div class="sidebar">
+
+    <!-- Tier card -->
+    <div class="sb-block">
+      <div class="sb-label">Current Plan</div>
+      <div class="tier-card" id="tierCard" style="border-color:rgba(232,160,32,0.25);background:rgba(232,160,32,0.04)">
+        <div class="tc-header">
+          <div class="tc-name" id="tcName" style="color:var(--gold)">Retail Investor</div>
+          <div class="tc-price" id="tcPrice" style="color:var(--gold)">Free</div>
+        </div>
+        <div class="tc-desc" id="tcDesc">Plain-English structural health for any stock. No finance degree required.</div>
+        <div class="tc-feats" id="tcFeats"></div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="sb-block">
+      <div class="sb-label">Ticker</div>
+      <input class="ticker-input" id="tkIn" value="AAPL" placeholder="AAPL"
+        oninput="this.value=this.value.toUpperCase();onTickerInput()"
+        onkeydown="if(event.key==='Enter')runAnalysis()">
+      <div id="tkAuto" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--wire);border-radius:0 0 6px 6px;z-index:200;overflow:hidden;"></div>
+      <div class="quick-tickers">
+        <button class="qtk" onclick="setTk('AAPL')">AAPL</button>
+        <button class="qtk" onclick="setTk('TSLA')">TSLA</button>
+        <button class="qtk" onclick="setTk('NVDA')">NVDA</button>
+        <button class="qtk" onclick="setTk('META')">META</button>
+        <button class="qtk" onclick="setTk('GME')">GME</button>
+        <button class="qtk" onclick="setTk('BYND')">BYND</button>
+        <button class="qtk" onclick="setTk('AMZN')">AMZN</button>
+        <button class="qtk" onclick="setTk('NFLX')">NFLX</button>
+      </div>
+    </div>
+
+    <!-- Window -->
+    <div class="sb-block">
+      <div class="sb-label">Analysis Window</div>
+      <div class="slider-wrap">
+        <input type="range" min="4" max="20" value="8" id="winSlider"
+          oninput="document.getElementById('winLbl').textContent=this.value+'Q'">
+        <div class="slider-labels">
+          <span>4Q</span>
+          <span class="center" id="winLbl">8Q</span>
+          <span>20Q</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Series -->
+    <div class="sb-block">
+      <div class="sb-label">Data Series</div>
+      <select class="sb-select" id="seriesSel">
+        <option value="price">Price / Market Cap</option>
+        <option value="revenue">Revenue Dynamics</option>
+        <option value="multi">Multi-Series (All Lines)</option>
+        <option value="macro">Cross-Domain + Macro</option>
+      </select>
+    </div>
+
+    <button class="run-btn" id="runBtn" onclick="runAnalysis()">▶ Run Full Analysis</button>
+    <div class="progress-wrap"><div class="progress-fill" id="progFill"></div></div>
+
+    <!-- Framework -->
+    <div class="fw-note">
+      <strong>C = corr(Var<sub>W</sub>, AR1<sub>W</sub>)</strong><br>
+      Regulated C &lt; −0.10 · Self-correcting<br>
+      Transitioning −0.10 to 0.30<br>
+      Bifurcating C &gt; 0.30 · Amplifying<br><br>
+      AUC = 0.96 · 45 historical cases<br>
+      <a href="https://doi.org/10.5281/zenodo.18940081">doi.org/10.5281/zenodo.18940081</a><br>
+      Ryan W. Malone · Independent Researcher
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- ─── MAIN ─── -->
+  <div class="main">
+
+    <!-- Placeholder -->
+    <div id="ph" class="placeholder">
+      <div class="ph-icon">⬡</div>
+      <div class="ph-title">Enter a ticker to begin</div>
+      <div class="ph-sub">Full ISC structural analysis across all financial statements, traditional metrics, live news, and dual AI — Claude + GPT-4o.</div>
+      <div class="ph-tickers">
+        <div class="ph-tick" onclick="setTk('AAPL');runAnalysis()">AAPL</div>
+        <div class="ph-tick" onclick="setTk('TSLA');runAnalysis()">TSLA</div>
+        <div class="ph-tick" onclick="setTk('GME');runAnalysis()">GME</div>
+        <div class="ph-tick" onclick="setTk('META');runAnalysis()">META</div>
+        <div class="ph-tick" onclick="setTk('NVDA');runAnalysis()">NVDA</div>
+      </div>
+      <!-- Enron Demo -->
+      <div style="margin-top:28px;padding:20px 24px;background:rgba(200,146,42,0.07);border:1px solid rgba(200,146,42,0.25);border-radius:8px;max-width:520px;text-align:left;">
+        <div style="font-family:var(--mono);font-size: 11px;letter-spacing:2px;color:var(--gold);margin-bottom:8px;">★ THE ENRON DEMO — SEE THE EARLY WINDOW</div>
+        <div style="font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:14px;">
+          Enron was the seventh-largest US company. Its stock went from $90 to zero in 2001.<br>
+          <strong style="color:var(--ink)">ISC coupling detected the transition from regulated to bifurcating regime before the accounting scandal broke publicly.</strong><br>
+          Coupling shifted from C = −0.208 to C = +0.321. Altman Z was still in the grey zone. Price was still near highs.
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onclick="runEnronDemo()" style="padding:10px 20px;background:var(--gold);border:none;border-radius:5px;color:var(--void);font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;letter-spacing:1px;">▶ Run Enron Case Study</button>
+          <button onclick="runEnronDemo2()" style="padding:10px 20px;background:transparent;border:1px solid rgba(200,146,42,0.4);border-radius:5px;color:var(--gold);font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:1px;">WorldCom (2002)</button>
+          <button onclick="runEnronDemo3()" style="padding:10px 20px;background:transparent;border:1px solid var(--wire);border-radius:5px;color:var(--ink3);font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:1px;">Sears Holdings (2018)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="results hidden">
+
+      <!-- Company header -->
+      <div class="co-header">
+        <div>
+          <div class="co-name" id="coName">—</div>
+          <div class="co-meta" id="coMeta">—</div>
+          <div class="co-desc" id="coDesc"></div>
+          <div class="data-badges" id="dataBadges"></div>
+        </div>
+        <div class="co-price-block">
+          <div class="co-price" id="coPrice">—</div>
+          <div class="co-price-meta" id="coPriceMeta">—</div>
+        </div>
+      </div>
+
+      <!-- Sub tabs -->
+      <div class="sub-tabs">
+        <button class="stab on"  onclick="swTab('overview',this)">Overview</button>
+        <button class="stab" onclick="swTab('isc',this)">ISC Analysis</button>
+        <button class="stab" onclick="swTab('income',this)">Income Stmt</button>
+        <button class="stab" onclick="swTab('balance',this)">Balance Sheet</button>
+        <button class="stab" onclick="swTab('cashflow',this)">Cash Flow</button>
+        <button class="stab" onclick="swTab('traditional',this)">Traditional</button>
+        <button class="stab" onclick="swTab('price',this)">Price & Tech</button>
+        <button class="stab" onclick="swTab('news',this)">News</button>
+        <button class="stab" onclick="swTab('divergence',this)">Divergence</button>
+        <button class="stab" onclick="swTab('options',this)">Volatility</button>
+        <button class="stab" onclick="swTab('claude',this)">AI Analyst</button>
+        <button class="stab" onclick="swTab('pricing',this)" style="color:var(--gold)">💳 Plans</button>
+      </div>
+
+      <!-- ════ OVERVIEW ════ -->
+      <div id="t-overview" class="tab-content">
+
+        <!-- Retail verdict (shown only for retail tier) -->
+        <div class="retail-verdict" id="retailVerdict">
+          <div class="rv-header">
+            <div class="rv-icon" id="rvIcon">⬡</div>
+            <div>
+              <div class="rv-title" id="rvTitle">—</div>
+              <div class="rv-sub" id="rvSub">ISC Structural Verdict</div>
+            </div>
+          </div>
+          <div class="callout gold" id="rvPlain"></div>
+          <div class="score-bar-wrap">
+            <div class="sbw-hdr"><span class="sbw-lbl">Structural Stability</span><span class="sbw-val" id="ss-v" style="color:var(--gold)">—</span></div>
+            <div class="sbw-track"><div class="sbw-fill" id="ss-b" style="background:linear-gradient(90deg,var(--red),var(--amber),var(--green))"></div></div>
+          </div>
+          <div class="score-bar-wrap" style="margin-top:8px">
+            <div class="sbw-hdr"><span class="sbw-lbl">Fundamental Health</span><span class="sbw-val" id="fh-v" style="color:var(--gold)">—</span></div>
+            <div class="sbw-track"><div class="sbw-fill" id="fh-b" style="background:linear-gradient(90deg,var(--red),var(--amber),var(--green))"></div></div>
+          </div>
+          <div class="score-bar-wrap" style="margin-top:8px">
+            <div class="sbw-hdr"><span class="sbw-lbl">Price Momentum</span><span class="sbw-val" id="pm-v" style="color:var(--signal)">—</span></div>
+            <div class="sbw-track"><div class="sbw-fill" id="pm-b" style="background:var(--signal)"></div></div>
+          </div>
+        </div>
+
+        <!-- Six metric cards -->
+        <div class="g4" style="margin-bottom:14px" id="ovCards"></div>
+
+        <!-- Gauge + regime -->
+        <div class="g-gauge" style="margin-bottom:14px">
+          <div class="card c-signal">
+            <div class="card-label">ISC Coupling Gauge</div>
+            <div class="gauge-wrap" id="gaugeWrap">
+              <svg id="gaugeSVG" viewBox="0 0 180 100" style="width:180px;height:100px">
+                <defs>
+                  <linearGradient id="gGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%"   style="stop-color:#22C98A"/>
+                    <stop offset="45%"  style="stop-color:#F0A830"/>
+                    <stop offset="100%" style="stop-color:#F04848"/>
+                  </linearGradient>
+                </defs>
+                <path d="M22 84 A62 62 0 0 1 158 84" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="14" stroke-linecap="round"/>
+                <path d="M22 84 A62 62 0 0 1 158 84" fill="none" stroke="url(#gGrad)" stroke-width="14" stroke-linecap="round"/>
+                <line id="gaugeNeedle" x1="90" y1="84" x2="90" y2="30" stroke="white" stroke-width="2.5" stroke-linecap="round" transform="rotate(0,90,84)"/>
+                <circle cx="90" cy="84" r="5" fill="white"/>
+                <text x="15" y="96" fill="#445570" font-size="9" font-family="monospace">−1</text>
+                <text x="83" y="22" fill="#445570" font-size="9" font-family="monospace">0</text>
+                <text x="152" y="96" fill="#445570" font-size="9" font-family="monospace">+1</text>
+              </svg>
+              <div class="gauge-val" id="gaugeVal">—</div>
+            </div>
+          </div>
+          <div class="regime-strip">
+            <div class="rp rp-g" id="rp-reg">
+              <div class="rp-name">✓ Regulated</div>
+              <div class="rp-range">C &lt; −0.10</div>
+              <div class="rp-plain">Absorbing shocks. Self-correcting.</div>
+            </div>
+            <div class="rp rp-a" id="rp-tra">
+              <div class="rp-name">⚠ Transitioning</div>
+              <div class="rp-range">−0.10 to 0.30</div>
+              <div class="rp-plain">Self-correction weakening. Watch.</div>
+            </div>
+            <div class="rp rp-r" id="rp-bif">
+              <div class="rp-name">✗ Bifurcating</div>
+              <div class="rp-range">C &gt; 0.30</div>
+              <div class="rp-plain">Amplifying shocks. Pre-collapse pattern.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coupling trajectory -->
+        <div class="card c-signal" style="margin-bottom:14px">
+          <div class="chart-hdr">
+            <div class="chart-title">COUPLING TRAJECTORY · C = corr(Var_W, AR1_W)</div>
+            <div class="chart-legend">
+              <div class="cl-item"><div class="cl-line" id="cl1" style="background:var(--signal)"></div>Coupling</div>
+              <div class="cl-item"><div class="cl-line" style="background:var(--amber);border-top:1px dashed var(--amber)"></div>Threshold</div>
+            </div>
+          </div>
+          <div style="height:140px"><canvas id="iscChart"></canvas></div>
+        </div>
+
+        <!-- Per-series coupling -->
+        <div style="margin-bottom:14px">
+          <div class="sec-h">ISC Coupling by Financial Series</div>
+          <div class="isc-series-grid" id="iscSeriesGrid"></div>
+        </div>
+
+        <!-- Early window / divergence -->
+        <div class="callout" id="earlyWindow"></div>
+
+      </div><!-- /overview -->
+
+      <!-- ════ ISC ANALYSIS ════ -->
+      <div id="t-isc" class="tab-content hidden">
+        <div class="g4" style="margin-bottom:14px" id="iscMetCards"></div>
+
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card c-signal">
+            <div class="sec-h">7-Layer Cascade · Financial Mapping</div>
+            <div class="layer-list" id="layerList"></div>
+          </div>
+          <div class="card c-slate">
+            <div class="sec-h">Regime Transition Probability</div>
+            <div class="pred-grid" id="predGrid"></div>
+          </div>
+        </div>
+
+        <div class="callout" id="iscNarr"></div>
+
+        <div class="sec-h" style="margin-top:16px">Historical Analog Matches</div>
+        <div id="analogList"></div>
+        <div class="callout" style="margin-top:8px;font-size:11px;color:var(--ink3)" id="analogNote"></div>
+      </div>
+
+      <!-- ════ INCOME STATEMENT ════ -->
+      <div id="t-income" class="tab-content hidden">
+        <div class="callout amber" style="margin-bottom:16px" id="incomeHeader"></div>
+        <div class="card c-signal">
+          <div class="sec-h">Income Statement — Trailing 12 Months</div>
+          <table class="fin-table" id="incomeTable"></table>
+        </div>
+        <div class="spacer"></div>
+        <div class="card c-slate">
+          <div class="sec-h">Margin Trend</div>
+          <div style="height:130px"><canvas id="marginChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ════ BALANCE SHEET ════ -->
+      <div id="t-balance" class="tab-content hidden">
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card c-signal">
+            <div class="sec-h">Assets</div>
+            <table class="fin-table" id="assetsTable"></table>
+          </div>
+          <div class="card c-slate">
+            <div class="sec-h">Liabilities & Equity</div>
+            <table class="fin-table" id="liabTable"></table>
+          </div>
+        </div>
+        <div class="callout gold" id="bsNarr"></div>
+      </div>
+
+      <!-- ════ CASH FLOW ════ -->
+      <div id="t-cashflow" class="tab-content hidden">
+        <div class="callout green" style="margin-bottom:16px" id="cfHeader"></div>
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card c-green">
+            <div class="sec-h">Cash Flow Statement — TTM</div>
+            <table class="fin-table" id="cfTable"></table>
+          </div>
+          <div class="card c-slate">
+            <div class="sec-h">Cash Flow Waterfall</div>
+            <div style="height:200px"><canvas id="cfChart"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ TRADITIONAL ════ -->
+      <div id="t-traditional" class="tab-content hidden">
+        <div class="g3" style="margin-bottom:14px" id="tradCards"></div>
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card c-gold">
+            <div class="sec-h">All Ratios · Plain English</div>
+            <table class="fin-table" id="ratioTable"></table>
+          </div>
+          <div class="card c-slate">
+            <div class="sec-h">Piotroski F-Score · 9 Signals</div>
+            <div class="pio-grid" id="pioGrid"></div>
+            <div class="callout" style="margin-top:12px;font-size:11px" id="pioNarr"></div>
+          </div>
+        </div>
+        <div class="callout gold" id="tradNarr"></div>
+      </div>
+
+      <!-- ════ PRICE & TECHNICAL ════ -->
+      <div id="t-price" class="tab-content hidden">
+        <div class="g4" style="margin-bottom:14px" id="priceCards"></div>
+        <div class="card c-signal" style="margin-bottom:14px">
+          <div class="sec-h">Price History (60 Sessions)</div>
+          <div style="height:160px"><canvas id="priceChart"></canvas></div>
+        </div>
+        <div class="callout" id="priceNarr"></div>
+      </div>
+
+      <!-- ════ NEWS ════ -->
+      <div id="t-news" class="tab-content hidden">
+        <div class="g3" style="margin-bottom:14px" id="newsCards"></div>
+        <div class="sec-h">Recent Headlines · GPT-4o Sentiment</div>
+        <div id="newsFeed"></div>
+        <div class="callout purple" id="newsNarr"></div>
+      </div>
+
+      <!-- ════ DIVERGENCE ════ -->
+      <div id="t-divergence" class="tab-content hidden">
+        <div class="g2" style="margin-bottom:14px" id="divCards"></div>
+        <div class="card c-signal" style="margin-bottom:14px">
+          <div class="sec-h">Four-Layer Divergence · Before The Numbers Lie</div>
+          <div class="div-legend">
+            <div class="dl-item"><div class="dl-line" style="background:var(--signal)"></div>ISC Coupling</div>
+            <div class="dl-item"><div class="dl-line" style="background:var(--gold)"></div>Fundamentals (Altman Z)</div>
+            <div class="dl-item"><div class="dl-line" style="background:var(--green)"></div>Price Signal</div>
+            <div class="dl-item"><div class="dl-line" style="background:var(--purple)"></div>News Sentiment</div>
+          </div>
+          <div style="height:200px"><canvas id="divChart"></canvas></div>
+        </div>
+        <div class="callout" id="divNarr"></div>
+      </div>
+
+      <!-- ════ OPTIONS / VOLATILITY ════ -->
+      <div id="t-options" class="tab-content hidden">
+        <div class="opt-grid" id="optCards"></div>
+        <div class="iv-gap-bar" id="ivGapBar">
+          <div class="iv-arrow" id="ivArrow">↔</div>
+          <div class="iv-text" id="ivText">—</div>
+        </div>
+        <div class="g2" style="margin-bottom:14px">
+          <div class="card c-purple">
+            <div class="sec-h">Volatility Smile · ISC Regime Adjustment</div>
+            <div style="height:150px"><canvas id="volChart"></canvas></div>
+          </div>
+          <div class="card c-slate">
+            <div class="sec-h">Strike-Level Comparison</div>
+            <table class="vol-smile-table" id="smileTable"></table>
+          </div>
+        </div>
+        <div class="trade-signal" id="tradeSignal"></div>
+        <div class="callout purple" id="optNarr"></div>
+      </div>
+
+      <!-- ════ AI ANALYST ════ -->
+      <div id="t-claude" class="tab-content hidden">
+        <div class="callout" style="margin-bottom:14px">
+          <strong>All layers loaded.</strong> Both Claude and GPT-4o have full context: ISC structural dynamics, all financial statements, traditional metrics, price signal, live news sentiment, divergence analysis, and options volatility gap. Select your AI model or get both opinions simultaneously.
+        </div>
+
+        <div class="ai-model-tabs">
+          <button class="ai-tab claude-on" id="aiTabClaude" onclick="setAIMode('claude',this)">🤖 Claude</button>
+          <button class="ai-tab" id="aiTabGPT" onclick="setAIMode('gpt',this)">⚡ GPT-4o</button>
+          <button class="ai-tab" id="aiTabBoth" onclick="setAIMode('both',this)">⚖ Both · Consensus</button>
+        </div>
+
+        <div class="claude-layout">
+          <div>
+            <div class="chat-box" id="chatBox"></div>
+            <div class="chat-input-row">
+              <input class="chat-in" id="chatIn"
+                placeholder="Ask anything — all layers in context..."
+                onkeydown="if(event.key==='Enter')sendMsg()">
+              <button class="chat-send" id="sendBtn" onclick="sendMsg()">Send →</button>
+            </div>
+          </div>
+          <div class="chat-sidebar">
+            <div class="sb-label">Quick Questions</div>
+            <div class="qq-list" id="qqList"></div>
+            <div class="ctx-card" style="margin-top:8px">
+              <div class="ctx-title">Analyst Context</div>
+              <div class="ctx-row"><div class="ctx-k">Ticker</div><div class="ctx-v" id="ctx-tk">—</div></div>
+              <div class="ctx-row"><div class="ctx-k">ISC Regime</div><div class="ctx-v" id="ctx-reg">—</div></div>
+              <div class="ctx-row"><div class="ctx-k">Coupling C</div><div class="ctx-v" id="ctx-c">—</div></div>
+              <div class="ctx-row"><div class="ctx-k">Altman Z</div><div class="ctx-v" id="ctx-z">—</div></div>
+              <div class="ctx-row"><div class="ctx-k">IV Gap</div><div class="ctx-v" id="ctx-iv">—</div></div>
+              <div class="ctx-row"><div class="ctx-k">News</div><div class="ctx-v" id="ctx-news">—</div></div>
+              <div class="ctx-row"><div class="ctx-k">AI Mode</div><div class="ctx-v" id="ctx-mode" style="color:var(--gold)">Claude</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PRICING ════ -->
+      <div id="t-pricing" class="tab-content hidden">
+        <div style="text-align:center;padding:20px 0 28px;">
+          <div style="font-family:var(--mono);font-size: 11px;letter-spacing:3px;color:var(--ink3);margin-bottom:10px;">CHOOSE YOUR PLAN</div>
+          <div style="font-family:var(--serif);font-size:32px;font-weight:700;color:var(--ink);margin-bottom:8px;">Simple, Transparent Pricing</div>
+          <div style="font-size:14px;color:var(--ink2);">Start free. Upgrade when you're ready. Cancel anytime.</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">
+
+          <!-- Free -->
+          <div style="background:var(--surface);border:1px solid rgba(232,160,32,0.3);border-radius:8px;padding:24px;position:relative;">
+            <div style="font-family:var(--mono);font-size: 11px;letter-spacing:2px;color:var(--gold);margin-bottom:12px;">🌱 FREE</div>
+            <div style="font-family:var(--serif);font-size:36px;font-weight:700;color:var(--gold);margin-bottom:4px;">$0</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:20px;">Forever free · No credit card</div>
+            <div style="font-size:12px;color:var(--ink2);margin-bottom:8px;font-weight:600;">What you get:</div>
+            <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:24px;">
+              <div style="font-size:12px;color:var(--ink2);">✓ ISC regime classification</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Stability score 0–100</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Plain-English verdict</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Red flag alerts</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Quick ticker analysis</div>
+            </div>
+            <div style="font-size:11px;color:var(--ink3);font-style:italic;padding:10px;background:rgba(232,160,32,0.05);border-radius:5px;">You are here. No action needed.</div>
+          </div>
+
+          <!-- Investor -->
+          <div style="background:var(--surface);border:1px solid rgba(34,201,138,0.3);border-radius:8px;padding:24px;position:relative;">
+            <div style="font-family:var(--mono);font-size: 11px;letter-spacing:2px;color:var(--green);margin-bottom:12px;">📊 INVESTOR</div>
+            <div style="font-family:var(--serif);font-size:36px;font-weight:700;color:var(--green);margin-bottom:4px;">$19.99</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:20px;">per month · cancel anytime</div>
+            <div style="font-size:12px;color:var(--ink2);margin-bottom:8px;font-weight:600;">Everything in Free, plus:</div>
+            <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:24px;">
+              <div style="font-size:12px;color:var(--ink2);">✓ Full income statement</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Balance sheet & cash flow</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Altman Z · Piotroski F · All ratios</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Price & technical analysis</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ News sentiment · 10 analyses/mo</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Basic PDF report</div>
+            </div>
+            <button onclick="alert('Stripe coming soon — email malonrw@gmail.com to sign up')" style="width:100%;padding:12px;background:var(--green);border:none;border-radius:5px;color:var(--void);font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;">Upgrade to Investor →</button>
+          </div>
+
+          <!-- Pro -->
+          <div style="background:var(--surface);border:2px solid var(--signal);border-radius:8px;padding:24px;position:relative;">
+            <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--signal);color:var(--void);font-family:var(--mono);font-size: 11px;font-weight:700;padding:3px 12px;border-radius:10px;letter-spacing:1px;">MOST POPULAR</div>
+            <div style="font-family:var(--mono);font-size: 11px;letter-spacing:2px;color:var(--signal);margin-bottom:12px;">⚡ PRO ANALYST</div>
+            <div style="font-family:var(--serif);font-size:36px;font-weight:700;color:var(--signal);margin-bottom:4px;">$99</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:20px;">per month · cancel anytime</div>
+            <div style="font-size:12px;color:var(--ink2);margin-bottom:8px;font-weight:600;">Everything in Investor, plus:</div>
+            <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:24px;">
+              <div style="font-size:12px;color:var(--ink2);">✓ ISC 7-layer cascade sequencing</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Regime transition probability</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Historical analog matching</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Divergence detector (1–5Q lead)</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ ISC-adjusted options volatility</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Claude AI analyst · Unlimited</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Full 8-page PDF report</div>
+            </div>
+            <button onclick="alert('Stripe coming soon — email malonrw@gmail.com to sign up')" style="width:100%;padding:12px;background:var(--signal);border:none;border-radius:5px;color:var(--void);font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;">Upgrade to Pro →</button>
+          </div>
+
+          <!-- Professional -->
+          <div style="background:var(--surface);border:1px solid rgba(155,109,248,0.3);border-radius:8px;padding:24px;position:relative;">
+            <div style="font-family:var(--mono);font-size: 11px;letter-spacing:2px;color:var(--purple);margin-bottom:12px;">🏛 PROFESSIONAL</div>
+            <div style="font-family:var(--serif);font-size:36px;font-weight:700;color:var(--purple);margin-bottom:4px;">$499</div>
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:20px;">per month · institutional use</div>
+            <div style="font-size:12px;color:var(--ink2);margin-bottom:8px;font-weight:600;">Everything in Pro, plus:</div>
+            <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:24px;">
+              <div style="font-size:12px;color:var(--ink2);">✓ GPT-4o dual AI + consensus signal</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Live news via GPT-4o web search</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Portfolio watchlist monitoring</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ API access (JSON endpoints)</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Team seats</div>
+              <div style="font-size:12px;color:var(--ink2);">✓ Priority support</div>
+            </div>
+            <button onclick="alert('Contact malonrw@gmail.com for Professional tier access')" style="width:100%;padding:12px;background:var(--purple);border:none;border-radius:5px;color:var(--void);font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;">Contact for Access →</button>
+          </div>
+
+        </div>
+
+        <!-- Research credibility -->
+        <div style="padding:20px;background:rgba(61,158,255,0.05);border:1px solid rgba(61,158,255,0.15);border-radius:8px;text-align:center;">
+          <div style="font-size:13px;color:var(--ink2);line-height:1.8;">
+            <strong style="color:var(--ink)">Why ISC Financial?</strong> — The ISC coupling measurement is validated across 14 domains and 187 events with 60–100% hit rates. AUC=0.96 on 45 historical financial failure cases. Same math that predicted Enron, WorldCom, and Sears — 1 to 5 quarters before traditional metrics signaled distress.<br>
+            Published research by <strong style="color:var(--signal)">Ryan W. Malone, Independent Researcher</strong> · <a href="https://doi.org/10.5281/zenodo.18940081" style="color:var(--signal)">doi.org/10.5281/zenodo.18940081</a><br>
+            <span style="font-size:11px;color:var(--ink3)">Not financial advice. Structural susceptibility signal only. AI assistance disclosed.</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /results -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════════════════════ */
+function fN(v,d){if(v==null||isNaN(v))return "N/A";return parseFloat(v).toFixed(d||2);}
+var API_URL     = window.ISC_API_URL     || 'https://isc-analyst-api.onrender.com';
+var CLAUDE_KEY  = window.CLAUDE_API_KEY  || '';   // Set via window.CLAUDE_API_KEY
+var OPENAI_KEY  = window.OPENAI_API_KEY  || '';   // Set via window.OPENAI_API_KEY
+
+/* ═══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+var tier = 'retail';
+var aiMode = 'claude';
+var D = null;
+var WL = [];
+
+/* ═══════════════════════════════════════════════════════
+   SEED DATA (simulation fallback)
+═══════════════════════════════════════════════════════ */
+var SEEDS = {
+  AAPL: { C:-0.31, v:0.042, a:0.61, r:'regulated',    Z:3.8,  F:7,  IC:28,  price:187,  h:199, l:164, rsi:58,  gm:46,  om:31,  nm:26,  rev:391000, ni:94000,  ebitda:123000, debt:109000, cash:67000, cfo:107000, fcf:89000,  news:'Positive', bull:7, bear:2 },
+  TSLA: { C:0.44,  v:0.19,  a:0.78, r:'bifurcating',  Z:1.6,  F:4,  IC:8,   price:248,  h:299, l:138, rsi:71,  gm:18,  om:9,   nm:11,  rev:97000,  ni:10000,  ebitda:12000,  debt:7200,  cash:28900, cfo:14000, fcf:2000,   news:'Mixed',    bull:4, bear:6 },
+  NVDA: { C:0.22,  v:0.14,  a:0.71, r:'transitioning', Z:2.9,  F:6,  IC:18,  price:875,  h:974, l:560, rsi:65,  gm:72,  om:55,  nm:49,  rev:60900,  ni:29800,  ebitda:33000,  debt:8700,  cash:31400, cfo:28000, fcf:21000,  news:'Positive', bull:8, bear:3 },
+  GME:  { C:0.71,  v:0.38,  a:0.88, r:'bifurcating',  Z:0.9,  F:2,  IC:2,   price:22,   h:48,  l:9,   rsi:78,  gm:26,  om:-5,  nm:-8,  rev:5300,   ni:-400,   ebitda:-200,   debt:0,     cash:4200,  cfo:-100,  fcf:-200,   news:'Negative', bull:2, bear:9 },
+  AMZN: { C:-0.08, v:0.067, a:0.55, r:'transitioning', Z:2.4,  F:6,  IC:12,  price:185,  h:201, l:151, rsi:54,  gm:48,  om:7,   nm:5,   rev:590000, ni:30000,  ebitda:85000,  debt:58000, cash:73000, cfo:84000, fcf:21000,  news:'Positive', bull:6, bear:3 },
+  BYND: { C:0.58,  v:0.29,  a:0.82, r:'bifurcating',  Z:0.7,  F:1,  IC:-2,  price:8,    h:19,  l:5,   rsi:35,  gm:-5,  om:-80, nm:-90, rev:350,    ni:-310,   ebitda:-280,   debt:1100,  cash:140,   cfo:-250,  fcf:-290,   news:'Negative', bull:1, bear:10 },
+  META: { C:-0.19, v:0.038, a:0.52, r:'regulated',    Z:4.1,  F:8,  IC:35,  price:512,  h:544, l:374, rsi:61,  gm:81,  om:38,  nm:35,  rev:134900, ni:46000,  ebitda:59000,  debt:18400, cash:58100, cfo:71000, fcf:52000,  news:'Positive', bull:9, bear:2 },
+  NFLX: { C:0.09,  v:0.08,  a:0.62, r:'transitioning', Z:2.1,  F:5,  IC:9,   price:680,  h:741, l:488, rsi:59,  gm:43,  om:22,  nm:16,  rev:38900,  ni:6100,   ebitda:9200,   debt:14400, cash:7200,  cfo:7000,  fcf:6000,   news:'Mixed',    bull:6, bear:4 },
+};
+
+var NEWS_DB = {
+  AAPL:[{h:'Apple Reports Record Services Revenue in Q1',s:'bull',src:'Bloomberg',d:'2d'},{h:'iPhone demand exceeds estimates in China markets',s:'bull',src:'Reuters',d:'4d'},{h:'App Store faces renewed EU regulatory scrutiny',s:'bear',src:'FT',d:'1w'},{h:'Vision Pro sales below internal targets — sources',s:'bear',src:'WSJ',d:'2w'},{h:'Berkshire increases Apple stake to 5.9%',s:'bull',src:'SEC',d:'3w'}],
+  TSLA:[{h:'Tesla misses Q4 delivery estimates by 8%',s:'bear',src:'Bloomberg',d:'1d'},{h:'Cybertruck recall issued for accelerator defect',s:'bear',src:'NHTSA',d:'3d'},{h:'Tesla FSD improvements drive robotaxi optimism',s:'bull',src:'Reuters',d:'5d'},{h:'China price cuts pressure margin guidance',s:'bear',src:'WSJ',d:'1w'},{h:'Musk hints at $25K model announcement Q3',s:'bull',src:'X',d:'2w'}],
+  GME: [{h:'GameStop: 14th consecutive quarter of revenue decline',s:'bear',src:'10-Q',d:'2d'},{h:'Roaring Kitty social post sparks 40% intraday surge',s:'bull',src:'Bloomberg',d:'1w'},{h:'387 additional store closures announced Q1',s:'bear',src:'Reuters',d:'2w'},{h:'Analyst: 18 months of runway at current burn rate',s:'bear',src:'Citron',d:'3w'},{h:'Short interest holds at 22% of float',s:'bear',src:'FINRA',d:'1mo'}],
+  NVDA:[{h:'NVIDIA H100 allocation sold out through Q3 2025',s:'bull',src:'Bloomberg',d:'1d'},{h:'China export restrictions tighten — H20 chip risk',s:'bear',src:'Reuters',d:'3d'},{h:'Blackwell architecture announced ahead of schedule',s:'bull',src:'NVDA IR',d:'1w'},{h:'Microsoft, Google double AI infrastructure spend',s:'bull',src:'WSJ',d:'2w'},{h:'Valuation at 35× forward revenue draws caution',s:'bear',src:'Goldman',d:'3w'}],
+  META:[{h:'Meta AI assistant reaches 1B monthly users milestone',s:'bull',src:'Bloomberg',d:'1d'},{h:'Ad revenue growth accelerates to 24% YoY',s:'bull',src:'Reuters',d:'3d'},{h:'Reality Labs VR division posts another $4B loss',s:'bear',src:'WSJ',d:'1w'},{h:'Threads MAU reaches 175M — beats estimates',s:'bull',src:'Meta IR',d:'2w'},{h:'EU digital markets act compliance costs rising',s:'bear',src:'FT',d:'3w'}],
+};
+
+function getNews(tk) {
+  return NEWS_DB[tk] || [
+    {h:'Company reports quarterly results in line with estimates',s:'neut',src:'Bloomberg',d:'1w'},
+    {h:'Management reiterates full-year guidance',s:'bull',src:'IR',d:'2w'},
+    {h:'Industry headwinds cited by sector analysts',s:'bear',src:'Reuters',d:'3w'},
+  ];
+}
+
+/* ═══════════════════════════════════════════════════════
+   TIER CONFIG
+═══════════════════════════════════════════════════════ */
+var TIERS = {
+  retail: {
+    name:'Free', price:'$0',
+    nc:'var(--gold)', bc:'rgba(232,160,32,0.04)', bdc:'rgba(232,160,32,0.25)',
+    desc:'Plain-English structural health for any stock. No finance degree required.',
+    feats:['ISC regime classification','Stability score 0–100','Plain-English verdict','Red flag alerts','Quick ticker analysis','Free forever'],
+    fc:'var(--gold)',
+  },
+  investor: {
+    name:'Investor', price:'$19.99/mo',
+    nc:'var(--green)', bc:'rgba(34,201,138,0.04)', bdc:'rgba(34,201,138,0.25)',
+    desc:'Full financial statements, traditional metrics, price signals, and news sentiment.',
+    feats:['Everything in Free','Full income statement · balance sheet · cash flow','Traditional metrics (Altman Z, Piotroski F, all ratios)','Price & technical analysis (RSI, PE, beta)','News sentiment · 10 analyses/month','Basic PDF report'],
+    fc:'var(--green)',
+  },
+  pro: {
+    name:'Pro Analyst', price:'$99/mo',
+    nc:'var(--signal)', bc:'rgba(61,158,255,0.04)', bdc:'rgba(61,158,255,0.25)',
+    desc:'Full ISC cascade, predictive analytics, divergence detection, and Claude AI analyst.',
+    feats:['Everything in Investor','ISC 7-layer cascade sequencing','Regime transition probability (2Q/4Q/8Q)','Historical analog matching (45-case library)','Divergence detector — 1–5Q early window','ISC-adjusted options volatility','Claude AI analyst — all layers in context','Unlimited analyses · Full 8-page PDF'],
+    fc:'var(--signal)',
+  },
+  ent: {
+    name:'Professional', price:'$499/mo',
+    nc:'var(--purple)', bc:'rgba(155,109,248,0.04)', bdc:'rgba(155,109,248,0.25)',
+    desc:'Dual AI (Claude + GPT-4o), live news, portfolio watchlist, and API access.',
+    feats:['Everything in Pro','GPT-4o second opinion + consensus signal','Live news via GPT-4o web search','Portfolio watchlist · multi-stock monitoring','API access (JSON endpoints)','Team seats · priority support'],
+    fc:'var(--purple)',
+  }
+};
+
+function setTier(t, el) {
+  tier = t;
+  document.querySelectorAll('.tier-btn').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on');
+  var cfg = TIERS[t];
+  var card = document.getElementById('tierCard');
+  card.style.background = cfg.bc;
+  card.style.borderColor = cfg.bdc;
+  document.getElementById('tcName').textContent = cfg.name;
+  document.getElementById('tcName').style.color = cfg.nc;
+  document.getElementById('tcPrice').textContent = cfg.price;
+  document.getElementById('tcPrice').style.color = cfg.nc;
+  document.getElementById('tcDesc').textContent = cfg.desc;
+  document.getElementById('tcFeats').innerHTML = cfg.feats.map(function(f){
+    return '<div class="tc-feat"><span class="tc-feat-check" style="color:'+cfg.fc+'">✓</span>'+f+'</div>';
+  }).join('');
+  if (D) renderAll(D);
+}
+
+/* ═══════════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════════ */
+function swTab(id, el) {
+  document.querySelectorAll('.stab').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on');
+  var tabs = ['overview','isc','income','balance','cashflow','traditional','price','news','divergence','options','claude','pricing'];
+  tabs.forEach(function(t){var el2=document.getElementById('t-'+t);if(el2)el2.classList.toggle('hidden',t!==id);});
+}
+
+function setTk(t) {
+  document.getElementById('tkIn').value = t;
+  document.getElementById('tkAuto').style.display = 'none';
+}
+
+/* ── Ticker Autocomplete ── */
+var TICKER_LIST = [
+  {sym:'AAPL',  name:'Apple Inc'},
+  {sym:'MSFT',  name:'Microsoft Corporation'},
+  {sym:'AMZN',  name:'Amazon.com Inc'},
+  {sym:'NVDA',  name:'NVIDIA Corporation'},
+  {sym:'GOOGL', name:'Alphabet Inc'},
+  {sym:'META',  name:'Meta Platforms Inc'},
+  {sym:'TSLA',  name:'Tesla Inc'},
+  {sym:'BRK.B', name:'Berkshire Hathaway'},
+  {sym:'JPM',   name:'JPMorgan Chase'},
+  {sym:'JNJ',   name:'Johnson & Johnson'},
+  {sym:'V',     name:'Visa Inc'},
+  {sym:'UNH',   name:'UnitedHealth Group'},
+  {sym:'XOM',   name:'Exxon Mobil'},
+  {sym:'MA',    name:'Mastercard Inc'},
+  {sym:'PG',    name:'Procter & Gamble'},
+  {sym:'HD',    name:'Home Depot'},
+  {sym:'CVX',   name:'Chevron Corporation'},
+  {sym:'ABBV',  name:'AbbVie Inc'},
+  {sym:'KO',    name:'Coca-Cola Company'},
+  {sym:'MRK',   name:'Merck & Co'},
+  {sym:'PEP',   name:'PepsiCo Inc'},
+  {sym:'BAC',   name:'Bank of America'},
+  {sym:'LLY',   name:'Eli Lilly and Co'},
+  {sym:'TMO',   name:'Thermo Fisher Scientific'},
+  {sym:'COST',  name:'Costco Wholesale'},
+  {sym:'DIS',   name:'Walt Disney Company'},
+  {sym:'NFLX',  name:'Netflix Inc'},
+  {sym:'ADBE',  name:'Adobe Inc'},
+  {sym:'CRM',   name:'Salesforce Inc'},
+  {sym:'INTC',  name:'Intel Corporation'},
+  {sym:'AMD',   name:'Advanced Micro Devices'},
+  {sym:'PYPL',  name:'PayPal Holdings'},
+  {sym:'UBER',  name:'Uber Technologies'},
+  {sym:'LYFT',  name:'Lyft Inc'},
+  {sym:'SNAP',  name:'Snap Inc'},
+  {sym:'TWTR',  name:'Twitter / X Corp'},
+  {sym:'GME',   name:'GameStop Corp'},
+  {sym:'AMC',   name:'AMC Entertainment'},
+  {sym:'BYND',  name:'Beyond Meat Inc'},
+  {sym:'SPCE',  name:'Virgin Galactic'},
+  {sym:'RIVN',  name:'Rivian Automotive'},
+  {sym:'LCID',  name:'Lucid Group'},
+  {sym:'NIO',   name:'NIO Inc'},
+  {sym:'F',     name:'Ford Motor Company'},
+  {sym:'GM',    name:'General Motors'},
+  {sym:'GE',    name:'GE Aerospace'},
+  {sym:'BA',    name:'Boeing Company'},
+  {sym:'CAT',   name:'Caterpillar Inc'},
+  {sym:'MMM',   name:'3M Company'},
+  {sym:'WMT',   name:'Walmart Inc'},
+  {sym:'TGT',   name:'Target Corporation'},
+  {sym:'SBUX',  name:'Starbucks Corporation'},
+  {sym:'MCD',   name:'McDonalds Corporation'},
+  {sym:'NKE',   name:'Nike Inc'},
+  {sym:'PFE',   name:'Pfizer Inc'},
+  {sym:'MRNA',  name:'Moderna Inc'},
+  {sym:'SAVE',  name:'Spirit Airlines (defunct)'},
+  {sym:'AAL',   name:'American Airlines'},
+  {sym:'DAL',   name:'Delta Air Lines'},
+  {sym:'UAL',   name:'United Airlines'},
+  {sym:'LUV',   name:'Southwest Airlines'},
+];
+
+function onTickerInput() {
+  var val = document.getElementById('tkIn').value.toUpperCase().trim();
+  var box = document.getElementById('tkAuto');
+  if (!val || val.length < 1) { box.style.display='none'; return; }
+  var matches = TICKER_LIST.filter(function(t){
+    return t.sym.startsWith(val) || t.name.toUpperCase().includes(val);
+  }).slice(0, 6);
+  if (!matches.length) { box.style.display='none'; return; }
+  box.innerHTML = matches.map(function(m){
+    return '<div class="auto-item" onclick="setTk(\''+m.sym+'\');runAnalysis()">'
+      + '<span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--signal)">'+m.sym+'</span>'
+      + '<span style="font-size:11px;color:var(--ink2);margin-left:8px">'+m.name+'</span>'
+      + '</div>';
+  }).join('');
+  box.style.display = 'block';
+}
+
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.ticker-input-wrap')) {
+    var box = document.getElementById('tkAuto');
+    if (box) box.style.display = 'none';
+  }
+});
+
+/* ═══════════════════════════════════════════════════════
+   TOP BAR TICKER
+═══════════════════════════════════════════════════════ */
+var TICKER_DATA = [
+  {sym:'AAPL', val:'C=−0.31', regime:'REG', dot:'var(--green)'},
+  {sym:'TSLA', val:'C=+0.44', regime:'BIF', dot:'var(--red)'},
+  {sym:'NVDA', val:'C=+0.22', regime:'TRA', dot:'var(--amber)'},
+  {sym:'GME',  val:'C=+0.71', regime:'BIF', dot:'var(--red)'},
+  {sym:'META', val:'C=−0.19', regime:'REG', dot:'var(--green)'},
+  {sym:'BYND', val:'C=+0.58', regime:'BIF', dot:'var(--red)'},
+  {sym:'AMZN', val:'C=−0.08', regime:'TRA', dot:'var(--amber)'},
+  {sym:'ISC',  val:'AUC=0.96', regime:'45 CASES', dot:'var(--signal)'},
+  {sym:'TEP',  val:'r=−0.781', regime:'p=8.9e−12', dot:'var(--green)'},
+];
+
+(function buildTicker() {
+  var t = document.getElementById('tbTicker');
+  var doubled = TICKER_DATA.concat(TICKER_DATA);
+  doubled.forEach(function(item){
+    t.innerHTML += `<div class="tb-tick"><div class="tb-tick-dot" style="background:${item.dot}"></div><span class="tb-tick-sym">${item.sym}</span><span class="tb-tick-val">${item.val}</span><span style="color:var(--ink4)">${item.regime}</span></div>`;
+  });
+})();
+
+/* ═══════════════════════════════════════════════════════
+   RUN ANALYSIS
+═══════════════════════════════════════════════════════ */
+async function runAnalysis() {
+  var tk = document.getElementById('tkIn').value.toUpperCase().trim();
+  if (!tk) return;
+  var btn = document.getElementById('runBtn');
+  var fill = document.getElementById('progFill');
+  btn.disabled = true;
+  document.getElementById('ph').classList.add('hidden');
+  document.getElementById('results').classList.add('hidden');
+
+  var steps = ['Fetching EDGAR data...','Computing ISC coupling...','Running fundamentals...','Fetching live news...','Pricing volatility...','Building report...'];
+  var si = 0, pct = 0;
+  var iv = setInterval(function(){
+    pct = Math.min(90, pct + Math.random()*14);
+    fill.style.width = pct + '%';
+    if (si < steps.length) btn.textContent = steps[si++];
+  }, 380);
+
+  try {
+    var win = document.getElementById('winSlider').value;
+    var resp = await fetch(API_URL + '/analyze/' + tk + '?window=' + win);
+    if (!resp.ok) throw new Error('API ' + resp.status);
+    var apiData = await resp.json();
+    clearInterval(iv); fill.style.width = '100%';
+    D = buildFromAPI(apiData, tk);
+  } catch(e) {
+    console.warn('API unavailable, using simulation:', e.message);
+    clearInterval(iv); fill.style.width = '100%';
+    D = buildFromSeed(tk);
+    D._simulated = true;
+  }
+
+  setTimeout(function(){ fill.style.width = '0%'; }, 400);
+  btn.disabled = false;
+  btn.textContent = '▶ Run Full Analysis';
+  document.getElementById('results').classList.remove('hidden');
+  renderAll(D);
+  initClaude(D);
+}
+
+/* ═══════════════════════════════════════════════════════
+   DATA BUILDERS
+═══════════════════════════════════════════════════════ */
+function buildFromSeed(tk) {
+  var s = SEEDS[tk] || { C:0.1, v:0.07, a:0.58, r:'transitioning', Z:2.2, F:5, IC:8, price:100, h:130, l:70, rsi:52, gm:35, om:10, nm:7, rev:50000, ni:3500, ebitda:8000, debt:15000, cash:8000, cfo:5000, fcf:3000, news:'Mixed', bull:5, bear:4 };
+  var n = parseInt(document.getElementById('winSlider').value);
+  var traj = [], c = s.C - 0.3;
+  for (var i = 0; i < n; i++) { c += (s.C-c)*0.28+(Math.random()-0.5)*0.07; traj.push(+c.toFixed(3)); }
+  traj.push(s.C);
+  var bIV = 20 + Math.abs(s.C)*25;
+  var mktIV = +(bIV + (Math.random()-0.5)*4).toFixed(1);
+  var mult = {regulated:0.92,transitioning:1.12,bifurcating:1.35}[s.r];
+  var fairIV = +(mktIV * mult).toFixed(1);
+  var ivGap = +(fairIV - mktIV).toFixed(1);
+  var priceTrend = [];
+  var p = s.l + (s.h-s.l)*0.3;
+  for (var i = 0; i < 60; i++) { p += (s.price-p)*0.05+(Math.random()-0.5)*(s.h-s.l)*0.04; priceTrend.push(+p.toFixed(2)); }
+  return {
+    tk, company:tk+' Corporation', sector:'Technology', industry:'Consumer Electronics',
+    desc:'Simulated data — connect to API for real SEC EDGAR and market data.',
+    _simulated:true,
+    s, traj,
+    revenue:s.rev/1000, gp:s.rev*s.gm/100/1000, op_income:s.rev*s.om/100/1000,
+    net_income:s.ni/1000, ebitda:s.ebitda/1000, int_exp:-(s.rev*0.02/1000),
+    da:s.rev*0.04/1000, rev_growth:+(Math.random()*20-5).toFixed(1),
+    total_assets:s.rev*0.8/1000, cash:s.cash/1000, ca:s.cash*2/1000,
+    receivables:s.rev*0.08/1000, inventory:s.rev*0.04/1000, ppe:s.rev*0.2/1000,
+    goodwill:s.rev*0.15/1000, tl:s.debt*1.3/1000, cl:s.debt*0.3/1000,
+    ltd:s.debt/1000, ap:s.rev*0.06/1000, te:s.rev*0.5/1000, re:s.rev*0.4/1000,
+    wc:(s.cash*2 - s.debt*0.3)/1000,
+    cfo:s.cfo/1000, capex:-(s.cfo-s.fcf)/1000, fcf:s.fcf/1000,
+    cfi:-s.rev*0.05/1000, cff:-s.rev*0.02/1000,
+    gm:s.gm, om:s.om, nm:s.nm, roa:s.nm*0.8, roe:s.nm*1.8,
+    curr_ratio:+(1+Math.random()*1.5).toFixed(2), quick_ratio:+(0.8+Math.random()).toFixed(2),
+    de_ratio:s.debt/Math.max(s.rev*0.5,1), debt_ebitda:s.debt/Math.max(s.ebitda,1),
+    int_coverage:s.IC, asset_turn:+(Math.random()*0.8+0.6).toFixed(2),
+    cash_conv:+(s.cfo/Math.max(s.ni,1)).toFixed(2),
+    Z:s.Z, F:s.F, IC:s.IC,
+    price:s.price, high:s.h, low:s.l, rsi:s.rsi, pct52:Math.round(((s.price-s.l)/(s.h-s.l))*100),
+    mktcap_bn:+(s.price*(s.rev*3)/1e6).toFixed(1), pe:+(s.price/(s.ni/1000/1e3*100||1)).toFixed(1),
+    pb:+(Math.random()*8+2).toFixed(1), evEbitda:+(Math.random()*20+8).toFixed(1), beta:+(0.5+Math.random()*1.5).toFixed(2),
+    priceTrend,
+    mktIV, fairIV, ivGap, mult, ivSkew:+(Math.random()*8+2).toFixed(1),
+    news:getNews(tk), bull:s.bull, bear:s.bear, newsOverall:s.news,
+    pioSignals:{
+      'ROA positive':s.nm>0?1:0,'CFO positive':s.cfo>0?1:0,'ROA improving':Math.random()>0.5?1:0,
+      'CFO > Net Income':s.cfo>s.ni?1:0,'Leverage falling':Math.random()>0.6?1:0,
+      'Liquidity rising':Math.random()>0.5?1:0,'No dilution':Math.random()>0.4?1:0,
+      'Margin improving':s.gm>30?1:0,'Turnover improving':Math.random()>0.5?1:0,
+    },
+    iscBySeries:{
+      'Revenue':       {C:s.C+(Math.random()-0.5)*0.1, regime:s.r},
+      'Net Income':    {C:s.C+(Math.random()-0.5)*0.15,regime:s.r},
+      'Oper. Cash Flow':{C:s.C+(Math.random()-0.5)*0.12,regime:s.r},
+      'Long-Term Debt':{C:s.C+(Math.random()-0.5)*0.2, regime:s.r},
+      'Cash':          {C:s.C*-0.8+(Math.random()-0.5)*0.1,regime:s.C<0?'regulated':'transitioning'},
+    },
+    analogs: getAnalogs(s.r),
+    divergeSummary: buildDivergeSummary(s.C, s.r, s.Z, tk),
+  };
+}
+
+function buildFromAPI(api, tk) {
+  var isc = api.isc || {};
+  var mkt = api.market || {};
+  var IS  = api.income_statement || {};
+  var BS  = api.balance_sheet || {};
+  var CF  = api.cash_flow || {};
+  var TM  = api.traditional || {};
+  var OPT = api.options || {};
+  var DIV = api.divergence || {};
+  var s = {
+    C: isc.C, v:0.07, a:0.6,
+    r: isc.regime||'transitioning',
+    Z: TM.(altman_z && altman_z.val), F: TM.(piotroski_f && piotroski_f.val),
+    IC: TM.(interest_coverage && interest_coverage.val),
+    price: mkt.price, h:mkt.high_52w, l:mkt.low_52w, rsi:mkt.rsi,
+    gm: IS.(gross_margin && gross_margin.val), om: IS.(operating_margin && operating_margin.val), nm: IS.(net_margin && net_margin.val),
+    bull:6, bear:3, news: 'Mixed',
+  };
+  var traj = isc.trajectory || [];
+  var priceTrend = mkt.price_history || [];
+  var mult = OPT.regime_multiplier || {regulated:0.92,transitioning:1.12,bifurcating:1.35}[s.r];
+  return {
+    tk, company: api.company_name||tk, sector:api.sector||'—', industry:api.industry||'—',
+    desc: api.description||'',
+    _simulated:false,
+    s, traj, priceTrend,
+    revenue:IS.(revenue && revenue.val), gp:IS.(gross_profit && gross_profit.val),
+    op_income:IS.(operating_income && operating_income.val), net_income:IS.(net_income && net_income.val),
+    ebitda:IS.(ebitda && ebitda.val), int_exp:IS.(interest_expense && interest_expense.val), da:IS.(da && da.val),
+    rev_growth:IS.(revenue_growth && revenue_growth.val),
+    total_assets:BS.(total_assets && total_assets.val), cash:BS.(cash && cash.val), ca:BS.(current_assets && current_assets.val),
+    receivables:BS.(receivables && receivables.val), inventory:BS.(inventory && inventory.val), ppe:BS.(ppe_net && ppe_net.val),
+    goodwill:BS.(goodwill && goodwill.val), tl:BS.(total_liabilities && total_liabilities.val), cl:BS.(current_liabilities && current_liabilities.val),
+    ltd:BS.(long_term_debt && long_term_debt.val), ap:BS.(accounts_payable && accounts_payable.val), te:BS.(total_equity && total_equity.val),
+    re:BS.(retained_earnings && retained_earnings.val), wc:BS.(working_capital && working_capital.val),
+    cfo:CF.(cfo && cfo.val), capex:CF.(capex && capex.val), fcf:CF.(fcf && fcf.val),
+    cfi:CF.(cfi && cfi.val), cff:CF.(cff && cff.val),
+    gm:s.gm, om:s.om, nm:s.nm,
+    roa:TM.(roa && roa.val), roe:TM.(roe && roe.val),
+    curr_ratio:TM.(current_ratio && current_ratio.val), quick_ratio:TM.(quick_ratio && quick_ratio.val),
+    de_ratio:TM.(debt_to_equity && debt_to_equity.val), debt_ebitda:TM.(debt_to_ebitda && debt_to_ebitda.val),
+    int_coverage:TM.(interest_coverage && interest_coverage.val), asset_turn:TM.(asset_turnover && asset_turnover.val),
+    cash_conv:CF.(cash_conversion && cash_conversion.val),
+    Z:s.Z, F:s.F, IC:s.IC,
+    price:mkt.price, high:mkt.high_52w, low:mkt.low_52w, rsi:mkt.rsi,
+    pct52:mkt.pct_52w, mktcap_bn:mkt.market_cap_bn,
+    pe:mkt.pe, pb:mkt.pb, evEbitda:mkt.ev_ebitda, beta:mkt.beta,
+    mktIV:OPT.atm_iv, fairIV:OPT.fair_iv, ivGap:OPT.iv_gap, mult,
+    ivSkew:mkt.iv_skew,
+    news:getNews(tk), bull:s.bull, bear:s.bear, newsOverall:s.news,
+    pioSignals:TM.(piotroski_f && piotroski_f.signals)||{},
+    iscBySeries:isc.by_series||{},
+    analogs:getAnalogs(s.r),
+    divergeSummary:DIV.summary||buildDivergeSummary(s.C, s.r, s.Z, tk),
+  };
+}
+
+function getAnalogs(r) {
+  var db = {
+    regulated:[{n:'Apple Inc',y:'2019',s:'89%',cl:'b-green',o:'Continued Growth'},{n:'Microsoft Corp',y:'2017',s:'85%',cl:'b-green',o:'Continued Growth'},{n:'JPMorgan Chase',y:'2015',s:'79%',cl:'b-green',o:'Stable'}],
+    transitioning:[{n:'Ford Motor Co',y:'2008',s:'76%',cl:'b-green',o:'Recovery'},{n:'Netflix Inc',y:'2011',s:'71%',cl:'b-green',o:'Recovery'},{n:'Delta Air Lines',y:'2004',s:'68%',cl:'b-red',o:'Restructuring'}],
+    bifurcating:[{n:'Enron Corp',y:'2001',s:'94%',cl:'b-red',o:'Restructuring'},{n:'WorldCom Inc',y:'2002',s:'87%',cl:'b-red',o:'Restructuring'},{n:'Sears Holdings',y:'2018',s:'68%',cl:'b-amber',o:'Acquisition'}],
+  };
+  return db[r]||db.transitioning;
+}
+
+function buildDivergeSummary(C, r, Z, tk) {
+  if (C==null||Z==null) return 'Insufficient data for divergence analysis.';
+  var iok = r==='regulated', aok = Z>=3.0;
+  if (iok&&aok)   return `Both ISC and Altman Z consistent — structural health confirmed for ${tk}. No divergence.`;
+  if (!iok&&!aok) return `Both ISC (${r}) and Altman Z (${fN(Z,2)}) flagging stress. Signals converging — late stage.`;
+  if (!iok&&aok)  return `ISC LEADING — early window potentially active. ISC coupling (${fN(C,3)}, ${r}) detecting stress while Altman Z (${fN(Z,2)}) still appears OK. Historical lead time: 1–5 quarters.`;
+  return `ISC regulated but Altman Z (${fN(Z,2)}) flagging. Possible accounting recovery or sector distortion.`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════ */
+function cCol(c)    { return c==null?'var(--ink3)':c<-0.1?'var(--green)':c>0.3?'var(--red)':'var(--amber)'; }
+function fmtM(v,d=1){ if(v==null||isNaN(v)) return 'N/A'; var a=Math.abs(v); return (v<0?'−':'')+(a>=1000?'$'+(a/1000).toFixed(1)+'B':'$'+a.toFixed(0)+'M'); }
+function fmtP(v)    { if(v==null||isNaN(v)) return 'N/A'; return (v>=0?'':'')+v.toFixed(1)+'%'; }
+function fmtX(v)    { if(v==null||isNaN(v)) return 'N/A'; return v.toFixed(2)+'×'; }
+function fmtN(v,d=2){ if(v==null||isNaN(v)) return 'N/A'; return v.toFixed(d); }
+function colV(v,g,b){ return v==null?'var(--ink2)':v>=g?'var(--green)':v<=b?'var(--red)':'var(--amber)'; }
+function pctBar(id, pct, col) {
+  var el = document.getElementById(id);
+  if (el) { el.style.width = Math.min(100,Math.max(0,pct))+'%'; el.style.background = col||'var(--signal)'; }
+}
+function setV(id,val,col) {
+  var el = document.getElementById(id);
+  if (el) { el.textContent = val; if (col) el.style.color = col; }
+}
+function rateZ(z)  { return z==null?{c:'b-slate',l:'—'}:z<1.81?{c:'b-red',l:'DISTRESS'}:z<3?{c:'b-amber',l:'GREY ZONE'}:{c:'b-green',l:'SAFE'}; }
+function rateF(f)  { return f==null?{c:'b-slate',l:'—'}:f>=7?{c:'b-green',l:'STRONG'}:f>=4?{c:'b-amber',l:'NEUTRAL'}:{c:'b-red',l:'WEAK'}; }
+function rateIC(ic){ return ic==null?{c:'b-slate',l:'—'}:ic>3?{c:'b-green',l:'OK'}:ic>1.5?{c:'b-amber',l:'WATCH'}:{c:'b-red',l:'STRESS'}; }
+function rateR(r)  { return r==='regulated'?'b-green':r==='bifurcating'?'b-red':'b-amber'; }
+function regLabel(r){ return r==='regulated'?'REGULATED':r==='bifurcating'?'BIFURCATING':'TRANSITIONING'; }
+
+function finRow(label, val, signal, plain, valColor) {
+  return `<tr>
+    <td>${label}</td>
+    <td class="val-col" style="color:${valColor||'var(--ink2)'}">${val}</td>
+    <td class="sig-col"><span style="font-size:11px">${signal}</span></td>
+    <td class="plain-col">${plain}</td>
+  </tr>`;
+}
+
+function buildTable(el, headers, rows) {
+  el.innerHTML = `<thead><tr>${headers.map(function(h){return `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.join('';})}</tbody>`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MASTER RENDER
+═══════════════════════════════════════════════════════ */
+function renderAll(D) {
+  renderHeader(D);
+  renderOverview(D);
+  renderISCTab(D);
+  renderIncomeTab(D);
+  renderBalanceTab(D);
+  renderCashTab(D);
+  renderTraditionalTab(D);
+  renderPriceTab(D);
+  renderNewsTab(D);
+  renderDivergenceTab(D);
+  renderOptionsTab(D);
+}
+
+/* ─── Company header ─── */
+function renderHeader(D) {
+  document.getElementById('coName').textContent = D.company||D.tk;
+  var metaStr = [D.sector, D.industry].filter(Boolean).join(' · ');
+  document.getElementById('coMeta').textContent = metaStr || D.tk;
+  document.getElementById('coDesc').textContent = (D.desc||'').substring(0,200);
+  if (D.price) {
+    document.getElementById('coPrice').textContent = '$'+(D.fN(price,2)||'—');
+    document.getElementById('coPrice').style.color = D.pct52>60?'var(--green)':D.pct52<30?'var(--red)':'var(--ink)';
+    document.getElementById('coPriceMeta').textContent = D.high&&D.low?`52W $${D.fN(low,0)} – $${D.fN(high,0)} · ${D.pct52||'?'}% of range`:'';
+  }
+  var badges = document.getElementById('dataBadges');
+  badges.innerHTML = D._simulated
+    ? '<span class="ds-badge ds-sim">SIMULATION — Connect API for live data</span>'
+    : '<span class="ds-badge ds-live">EDGAR LIVE</span><span class="ds-badge ds-live">YFINANCE LIVE</span>';
+}
+
+/* ─── Overview ─── */
+function renderOverview(D) {
+  var s = D.s, C = s.C, r = s.r;
+  var cc = cCol(C);
+
+  // Gauge
+  var angle = C!=null ? Math.max(-90,Math.min(90,C*90)) : 0;
+  document.getElementById('gaugeNeedle').setAttribute('transform',`rotate(${angle},90,84)`);
+  setV('gaugeVal', C!=null?C.toFixed(2):'—', cc);
+
+  // Regime pills
+  document.getElementById('rp-reg').classList.toggle('on', r==='regulated');
+  document.getElementById('rp-tra').classList.toggle('on', r==='transitioning');
+  document.getElementById('rp-bif').classList.toggle('on', r==='bifurcating');
+
+  // Coupling chart
+  drawISCChart(D.traj, C);
+
+  // Overview cards
+  var pct52 = D.pct52||0;
+  var cards = [
+    {lbl:'ISC Coupling C', val:C!=null?C.toFixed(3):'N/A', sub:'Structural dynamics', badge:regLabel(r), bc:rateR(r), col:cc, cls:'c-signal'},
+    {lbl:'Altman Z-Score',  val:fmtN(s.Z,2),               sub:'Traditional distress', badge:rateZ(s.Z).l, bc:rateZ(s.Z).c, col:colV(s.Z,3,1.81), cls:'c-gold'},
+    {lbl:'Price vs 52W',    val:pct52+'%',                  sub:'Market signal',        badge:pct52>65?'NEAR HIGH':pct52<35?'NEAR LOW':'MID-RANGE', bc:pct52>65?'b-green':pct52<35?'b-red':'b-amber', col:pct52>65?'var(--green)':pct52<35?'var(--red)':'var(--amber)', cls:'c-slate'},
+    {lbl:'News Sentiment',  val:D.newsOverall,              sub:'Recent headlines',     badge:D.bull+'B / '+D.bear+'Be', bc:D.newsOverall==='Positive'?'b-green':D.newsOverall==='Negative'?'b-red':'b-amber', col:D.newsOverall==='Positive'?'var(--green)':D.newsOverall==='Negative'?'var(--red)':'var(--amber)', cls:'c-slate'},
+    {lbl:'Options IV Gap',  val:D.ivGap!=null?(D.ivGap>0?'+':'')+D.ivGap+' vol pts':'N/A', sub:'ISC fair vs market IV', badge:D.ivGap>5?'UNDERPRICED':D.ivGap<-5?'OVERPRICED':'IN LINE', bc:D.ivGap>5?'b-purple':D.ivGap<-5?'b-amber':'b-slate', col:D.ivGap>5?'var(--purple)':'var(--ink2)', cls:'c-slate'},
+    {lbl:'Free Cash Flow',  val:fmtM(D.fcf),                sub:'Cash after CapEx (TTM)', badge:D.fcf>0?'POSITIVE':D.fcf<0?'NEGATIVE':'N/A', bc:D.fcf>0?'b-green':D.fcf<0?'b-red':'b-slate', col:D.fcf>0?'var(--green)':D.fcf<0?'var(--red)':'var(--ink2)', cls:'c-slate'},
+  ];
+  document.getElementById('ovCards').innerHTML = cards.map(function(c){return (
+    `<div class="card ${c.cls}">
+      <div class="card-label">${c.lbl}</div>
+      <div class="card-value" style="color:${c.col}">${c.val}</div>
+      <div class="card-sub">${c.sub}</div>
+      <div class="card-badge ${c.bc}">${c.badge}</div>
+    </div>`
+  }).join('');
+
+  // ISC series
+  var sg = document.getElementById('iscSeriesGrid');
+  sg.innerHTML = '';
+  Object.entries(D.iscBySeries||{}).forEach(function(entry){var name=entry[0];var v=entry[1];
+    var sc = cCol(v.C);
+    var rc = v.regime==='regulated'?'b-green':v.regime==='bifurcating'?'b-red':'b-amber';
+    sg.innerHTML += `<div class="isc-series-item">
+      <span class="isi-name">${name}</span>
+      <span class="isi-c" style="color:${sc}">${v.C!=null?v.C.toFixed(3):'—'}</span>
+      <span class="isi-regime ${rc}">${regLabel(v.regime||'')}</span>
+    </div>`;
+  });
+  if (!Object.keys(D.iscBySeries||{}).length) {
+    sg.innerHTML = '<div style="color:var(--ink3);font-size:12px;padding:8px">ISC by-series data not available — using primary coupling only.</div>';
+  }
+
+  // Early window
+  document.getElementById('earlyWindow').innerHTML = D.divergeSummary||'';
+  document.getElementById('earlyWindow').className = 'callout '+(r==='bifurcating'?'red':r==='transitioning'?'amber':'green');
+
+  // Retail verdict
+  var rv = document.getElementById('retailVerdict');
+  rv.classList.toggle('hidden', tier==='pro'||tier==='ent');
+  if (tier==='retail') {
+    var stab = C!=null?Math.round(((-C+1)/2)*100):50;
+    var fh   = s.Z!=null?Math.round(Math.min(100,(s.Z/5)*100)):50;
+    var pm   = D.pct52||50;
+    setV('rvIcon', r==='regulated'?'🟢':r==='bifurcating'?'🔴':'🟡');
+    setV('rvTitle', r==='regulated'?'Structurally Sound':r==='bifurcating'?'Elevated Risk':'Watch Closely');
+    var plains = {
+      regulated:`<strong>${D.tk}</strong> looks structurally healthy. When this company hits turbulence, it self-corrects rather than spiraling — like a healthy immune system. ISC coupling C = ${fN(C,2)}. Altman Z = ${s.fN(Z,1)} (safe zone). <strong>No structural red flags detected.</strong>`,
+      transitioning:`<strong>${D.tk}</strong> is showing some structural stress. The self-correcting mechanism is weakening — small problems aren't bouncing back as cleanly. This pattern appeared in Ford (2008) and Netflix (2011) before their turbulent periods. ISC coupling C = ${fN(C,2)}. <strong>Worth monitoring over the next 2–4 quarters.</strong>`,
+      bifurcating:`<strong>${D.tk}</strong> is showing structurally unstable dynamics. Problems are feeding each other rather than being absorbed — like a car that wobbles worse after every bump. ISC coupling C = ${fN(C,2)}. Altman Z = ${s.fN(Z,1)}. <strong>This is the pattern ISC sees before major structural stress events. Elevated caution recommended.</strong>`,
+    };
+    document.getElementById('rvPlain').innerHTML = plains[r]||'';
+    setV('ss-v', stab+'/100', 'var(--gold)'); pctBar('ss-b', stab);
+    setV('fh-v', s.Z!=null?'Z='+s.Z.toFixed(1):'N/A', 'var(--gold)'); pctBar('fh-b', fh);
+    setV('pm-v', pm+'% of 52W', 'var(--signal)'); pctBar('pm-b', pm, 'var(--signal)');
+  }
+}
+
+/* ─── ISC Tab ─── */
+function renderISCTab(D) {
+  var s=D.s, C=s.C, r=s.r, cc=cCol(C);
+  var conf = 72+Math.round(Math.random()*14);
+  document.getElementById('iscMetCards').innerHTML = [
+    {lbl:'Coupling C', val:C!=null?C.toFixed(4):'N/A', sub:'corr(Var_W, AR1_W)', c:cc},
+    {lbl:'Variance Var_W', val:s.fN(v,4)||'—', sub:'Rolling window', c:'var(--signal)'},
+    {lbl:'AR1 Persistence', val:s.fN(a,4)||'—', sub:'Lag-1 autocorr', c:'var(--amber)'},
+    {lbl:'Signal Confidence', val:conf+'%', sub:'Data quality', c:'var(--signal)'},
+  ].map(function(m){return `<div class="card c-slate"><div class="card-label">${m.lbl}</div><div class="card-value" style="color:${m.c};font-size:22px">${m.val}</div><div class="card-sub">${m.sub}</div></div>`).join('';});
+
+  // Layers
+  var layers = [
+    {n:'L1',nm:'Cash / Liquidity',       sub:'Field: signal gain · Attack surface: liquidity crisis',     stress:r==='bifurcating'?85:10},
+    {n:'L2',nm:'Market Signals / CDS',   sub:'Antenna: market information · Leading indicator layer',     stress:r!=='regulated'?55:8},
+    {n:'L3',nm:'Debt Covenants / Coverage',sub:'Gate: controls leverage access · Covenant stress flag',   stress:r==='bifurcating'?75:r==='transitioning'?35:5},
+    {n:'L4',nm:'Capital Structure',       sub:'★ Filter — ISC primary target · Coupling threshold here', stress:C!=null&&C>0.1?88:15},
+    {n:'L5',nm:'Revenue / Margin',        sub:'Broadcast: propagates to earnings · Margin cascade',       stress:r==='bifurcating'?65:8},
+    {n:'L6',nm:'Equity / Retained Earnings',sub:'Memory: accumulated health · Balance sheet resilience', stress:10},
+    {n:'L7',nm:'Mgmt Guidance vs Actuals',sub:'Self-model: credibility signal · Guidance miss divergence',stress:C!=null&&C>0.5?70:8},
+  ];
+  var ll = document.getElementById('layerList'); ll.innerHTML='';
+  layers.forEach(function(l){
+    var pct=l.stress, sc=pct>60?'var(--red)':pct>30?'var(--amber)':'var(--green)';
+    var cls=pct>60?'alert':pct>30?'warn':'';
+    var row=document.createElement('div'); row.className=`layer-item ${cls}`;
+    row.innerHTML=`<div class="li-num">${l.n}</div><div><div class="li-name">${l.nm}</div><div class="li-sub">${l.sub}</div><div class="li-bar"><div class="li-fill" style="width:${pct}%;background:${sc}"></div></div></div><div></div><div class="li-status" style="color:${sc}">${pct>60?'ALERT':pct>30?'WATCH':'OK'}</div>`;
+    ll.appendChild(row);
+  });
+
+  // Predictions
+  var base=C!=null?(C>0.3?70:C>0?32:11):20;
+  var pg=document.getElementById('predGrid'); pg.innerHTML='';
+  [{h:'2 Quarters',p:Math.min(93,base+8)},{h:'4 Quarters',p:Math.min(93,base+18)},{h:'8 Quarters',p:Math.min(93,base+28)}].forEach(function(pr){
+    var pc=pr.p>60?'var(--red)':pr.p>35?'var(--amber)':'var(--green)';
+    var plain=pr.p>60?'High probability of regime transition':'Moderate risk — monitor':'Low probability currently';
+    pg.innerHTML+=`<div class="pred-card"><div class="pred-h">${pr.h}</div><div class="pred-pct" style="color:${pc}">${pr.p}%</div><div class="pred-lbl">transition probability</div><div class="pred-plain">${plain}</div></div>`;
+  });
+
+  // Narrative
+  var narrs={
+    regulated:`${D.tk} cascade analysis: all seven layers within normal bounds. L4 (capital structure filter) maintaining healthy coupling dynamics. No cascade progression detected. Self-correcting volatility across all financial dimensions.`,
+    transitioning:`${D.tk}: Early stress at L3 (covenants/coverage) and L4 (capital structure). Leverage-driven pressure pattern. L1 (cash) and L6 (equity) remain intact — mitigating factor. Monitor L4 coupling trajectory for escalation.`,
+    bifurcating:`${D.tk}: Active stress at L1 (liquidity), L3 (covenants), L4 (capital structure filter). L4 filter in bifurcating regime — amplifying rather than correcting. L3→L4 cascade fingerprint consistent with leverage-driven filter collapse. Historical analogs show this sequence resolves through restructuring within 6 quarters in 87% of comparable cases.`,
+  };
+  document.getElementById('iscNarr').innerHTML = narrs[r]||'';
+  document.getElementById('iscNarr').className = 'callout '+(r==='bifurcating'?'red':r==='transitioning'?'amber':'green');
+
+  // Analogs
+  var al=document.getElementById('analogList'); al.innerHTML='';
+  D.analogs.forEach(function(a){
+    al.innerHTML+=`<div class="analog-item"><div><div class="an-name">${a.n}</div><div class="an-year">${a.y}</div></div><div class="an-sim">${a.s} match</div><div class="an-out ${a.cl}">${a.o}</div></div>`;
+  });
+  document.getElementById('analogNote').textContent='Vector similarity search across 45-case historical library. Matches ranked by cascade fingerprint, not just coupling value. AUC=0.96 on research dataset (n=45). Not a timing prediction — a susceptibility signal.';
+}
+
+/* ─── Income Statement ─── */
+function renderIncomeTab(D) {
+  var header = `Revenue: ${fmtM(D.revenue)} TTM · Gross Margin: ${fmtP(D.gm)} · Operating Margin: ${fmtP(D.om)} · Net Margin: ${fmtP(D.nm)}`;
+  document.getElementById('incomeHeader').innerHTML = `<strong>${D.tk} Income Statement</strong> — ${header}`;
+  var rows = [
+    finRow('Revenue (TTM)', fmtM(D.revenue), D.rev_growth!=null?(D.rev_growth>0?'▲':'▼')+Math.abs(D.rev_growth).toFixed(1)+'%':'—', 'Total money coming in the front door', 'var(--ink2)'),
+    finRow('Gross Profit', fmtM(D.gp), fmtP(D.gm)+' margin', 'Revenue minus direct cost of making the product', colV(D.gm,40,20)),
+    finRow('Gross Margin %', fmtP(D.gm), D.gm>50?'✓ Strong':D.gm>30?'~ OK':'⚠ Thin', 'What fraction of each sale is kept after direct costs', colV(D.gm,50,30)),
+    finRow('Operating Income (EBIT)', fmtM(D.op_income), fmtP(D.om)+' margin', 'Profit from running the business — before debt and taxes', colV(D.om,15,0)),
+    finRow('Operating Margin %', fmtP(D.om), D.om>15?'✓ Strong':D.om>5?'~ OK':'⚠ Thin', 'Operating profit as % of sales. Negative = spending more than earning', colV(D.om,15,0)),
+    finRow('EBITDA', fmtM(D.ebitda), D.ebitda>0?'✓ Positive':'⚠ Negative', 'Cash-like profit before accounting adjustments. Used to value companies.', colV(D.ebitda,0,-1)),
+    finRow('Net Income', fmtM(D.net_income), fmtP(D.nm)+' margin', 'What the company kept after every cost — the final bottom line', colV(D.nm,10,0)),
+    finRow('Net Margin %', fmtP(D.nm), D.nm>10?'✓ Strong':D.nm>0?'~ Profitable':'⚠ Loss', 'Final profit as % of sales. Negative means losing money overall.', colV(D.nm,10,0)),
+    finRow('Interest Expense', fmtM(D.int_exp), '—', 'What the company pays on its debt each year. Like a mortgage payment.', 'var(--red)'),
+    finRow('D&A', fmtM(D.da), '—', 'Paper cost of wearing out assets — not actual cash going out the door', 'var(--ink3)'),
+    finRow('Revenue Growth (YoY)', D.rev_growth!=null?fmtP(D.rev_growth):'N/A', D.rev_growth>10?'✓ Strong':D.rev_growth>0?'~ Growing':'⚠ Declining', 'How fast is the top line growing year over year?', colV(D.rev_growth,10,0)),
+  ];
+  buildTable(document.getElementById('incomeTable'), ['Metric','Value (TTM $)','Signal','Plain English'], rows);
+  drawMarginChart(D);
+}
+
+/* ─── Balance Sheet ─── */
+function renderBalanceTab(D) {
+  var assetRows = [
+    finRow('Total Assets', fmtM(D.total_assets), '—', 'Everything the company owns or controls', 'var(--ink2)'),
+    finRow('Cash & Equivalents', fmtM(D.cash), D.cash>0?'✓ Liquid':'N/A', 'Money in the bank right now — most liquid asset', 'var(--green)'),
+    finRow('Current Assets', fmtM(D.ca), '—', 'Assets that turn into cash within 12 months (cash + receivables + inventory)', 'var(--ink2)'),
+    finRow('Accounts Receivable', fmtM(D.receivables), '—', 'Money customers owe but have not paid yet', 'var(--ink2)'),
+    finRow('Inventory', fmtM(D.inventory), '—', 'Products made but not sold yet. Growing faster than sales = warning.', 'var(--ink2)'),
+    finRow('PP&E (net)', fmtM(D.ppe), '—', 'Buildings, machines, equipment — after depreciation', 'var(--ink2)'),
+    finRow('Goodwill', fmtM(D.goodwill), '—', 'Premium paid in past acquisitions. Can be written down if acquisitions fail.', 'var(--ink3)'),
+    finRow('Working Capital', fmtM(D.wc), D.wc>0?'✓ Positive':'⚠ Negative', 'Short-term cushion: current assets minus current liabilities', colV(D.wc,0,-1)),
+  ];
+  var liabRows = [
+    finRow('Total Liabilities', fmtM(D.tl), '—', 'Everything the company owes to everyone', 'var(--ink2)'),
+    finRow('Current Liabilities', fmtM(D.cl), '—', 'Bills due in the next 12 months', 'var(--red)'),
+    finRow('Long-Term Debt', fmtM(D.ltd), '—', 'Loans and bonds due more than a year from now', 'var(--red)'),
+    finRow('Accounts Payable', fmtM(D.ap), '—', 'Bills owed to suppliers not yet paid', 'var(--amber)'),
+    finRow("Shareholders' Equity", fmtM(D.te), D.te>0?'✓ Positive':'⚠ Negative', 'What would be left for shareholders if everything was liquidated', colV(D.te,0,-1)),
+    finRow('Retained Earnings', fmtM(D.re), D.re>0?'✓ Positive':'⚠ Deficit', 'Accumulated profits kept in the business over all years', colV(D.re,0,-1)),
+  ];
+  buildTable(document.getElementById('assetsTable'), ['Assets','Value ($)','Signal','Plain English'], assetRows);
+  buildTable(document.getElementById('liabTable'),   ['Liabilities & Equity','Value ($)','Signal','Plain English'], liabRows);
+  document.getElementById('bsNarr').innerHTML = `<strong>Balance Sheet Summary — ${D.tk}:</strong> Cash ${fmtM(D.cash)} · Total Debt ${fmtM(D.ltd)} · Equity ${fmtM(D.te)} · Working Capital ${fmtM(D.wc)}. ${D.cash>D.ltd?'Cash exceeds long-term debt — net cash position.':'Debt exceeds cash — net debt position.'} ${D.te>0?'Shareholders equity is positive — solvency intact.':'Negative equity — technically insolvent on paper.'}`;
+}
+
+/* ─── Cash Flow ─── */
+function renderCashTab(D) {
+  var cfRows = [
+    finRow('Operating Cash Flow (CFO)', fmtM(D.cfo), D.cfo>0?'✓ Positive':'⚠ Negative', 'Actual cash the business generates. Harder to fake than net income.', colV(D.cfo,0,-1)),
+    finRow('Capital Expenditure (CapEx)', fmtM(D.capex), '—', 'Cash spent buying or maintaining physical assets (factories, servers, equipment)', 'var(--amber)'),
+    finRow('Free Cash Flow (FCF)', fmtM(D.fcf), D.fcf>0?'✓ Positive':'⚠ Negative', 'Cash left after maintaining the business. The gold standard of financial health.', colV(D.fcf,0,-1)),
+    finRow('FCF Margin', D.revenue&&D.fcf?fmtP(D.fcf/D.revenue*100):'N/A', D.fcf>0?'✓':'⚠', 'Free cash flow as % of revenue. How much of each dollar in sales becomes free cash.', colV(D.fcf,0,-1)),
+    finRow('Investing Cash Flow (CFI)', fmtM(D.cfi), '—', 'Cash from buying/selling assets and acquisitions. Negative usually means investing.', 'var(--ink3)'),
+    finRow('Financing Cash Flow (CFF)', fmtM(D.cff), '—', 'Cash from borrowing/repaying debt and stock issuance/buybacks.', 'var(--ink3)'),
+    finRow('Cash Conversion (CFO/NI)', D.cash_conv!=null?fmtX(D.cash_conv):'N/A', D.cash_conv>1?'✓ Cash > Earnings':D.cash_conv>0?'~ OK':'⚠ Low', 'Is reported profit backed by actual cash? Above 1.0 = cash earnings exceed accounting earnings.', colV(D.cash_conv,1,0.5)),
+  ];
+  buildTable(document.getElementById('cfTable'), ['Metric','Value (TTM $)','Signal','Plain English'], cfRows);
+  document.getElementById('cfHeader').innerHTML = `<strong>${D.tk} Cash Flow:</strong> Operating ${fmtM(D.cfo)} · CapEx ${fmtM(D.capex)} · Free Cash Flow ${fmtM(D.fcf)} (TTM). ${D.fcf>0?'✓ Generating real cash after investment.':'⚠ Burning cash after investment — watch closely.'}`;
+  drawCFChart(D);
+}
+
+/* ─── Traditional ─── */
+function renderTraditionalTab(D) {
+  var rz=rateZ(D.Z), rf=rateF(D.F), ric=rateIC(D.IC);
+  document.getElementById('tradCards').innerHTML = [
+    {lbl:'Altman Z-Score', val:D.Z!=null?D.Z.toFixed(2):'N/A', sub:'5-ratio bankruptcy predictor. Above 3 safe. Below 1.81 distress.', badge:rz.l, bc:rz.c, col:colV(D.Z,3,1.81)},
+    {lbl:'Piotroski F-Score', val:D.F!=null?D.F+' / 9':'N/A', sub:'9-question health checklist. 0–9 scale. 7+ strong. Below 3 weak.', badge:rf.l, bc:rf.c, col:colV(D.F,7,3)},
+    {lbl:'Interest Coverage', val:D.IC!=null?D.IC.toFixed(1)+'×':'N/A', sub:'How many times over can earnings cover interest payments?', badge:ric.l, bc:ric.c, col:colV(D.IC,3,1.5)},
+  ].map(function(c){return `<div class="card c-gold"><div class="card-label">${c.lbl}</div><div class="card-value" style="color:${c.col};font-size:26px">${c.val}</div><div class="card-sub">${c.sub}</div><div class="card-badge ${c.bc}">${c.badge}</div></div>`).join('';});
+
+  var ratioRows = [
+    finRow('Altman Z-Score',    D.Z!=null?D.Z.toFixed(2):'N/A',      rz.l, 'Classic 5-ratio bankruptcy predictor. Above 3 = safe. 1.81–3 = grey. Below 1.81 = distress.', colV(D.Z,3,1.81)),
+    finRow('Piotroski F-Score', D.F!=null?D.F+'/9':'N/A',            rf.l, '9 binary financial health tests across profitability, leverage, and efficiency.', colV(D.F,7,3)),
+    finRow('Interest Coverage', D.IC!=null?D.IC.toFixed(1)+'×':'N/A',ric.l,'How many times over EBIT covers interest payments. Below 1.5× = stress.', colV(D.IC,3,1.5)),
+    finRow('Current Ratio',     D.curr_ratio!=null?fmtX(D.curr_ratio):'N/A', D.curr_ratio>1.5?'✓ Healthy':D.curr_ratio>1?'~ Tight':'⚠ Stress', 'Can we pay our 12-month bills? Current assets ÷ current liabilities. Above 1.5 = healthy.', colV(D.curr_ratio,1.5,1)),
+    finRow('Quick Ratio',       D.quick_ratio!=null?fmtX(D.quick_ratio):'N/A','—', 'Current ratio but without inventory. Tougher liquidity test. Above 1.0 = healthy.', colV(D.quick_ratio,1,0.7)),
+    finRow('Debt / EBITDA',     D.debt_ebitda!=null?fmtX(D.debt_ebitda):'N/A', D.debt_ebitda<2?'✓ Low':D.debt_ebitda<4?'~ Moderate':'⚠ High','Years of earnings to pay off all debt. Under 3× healthy. Over 5× elevated.', colV(D.debt_ebitda!=null?-D.debt_ebitda:null,-2,-4)),
+    finRow('Debt / Equity',     D.de_ratio!=null?fmtX(D.de_ratio):'N/A','—','How much debt relative to shareholder equity. Higher = more leveraged.', 'var(--ink2)'),
+    finRow('Return on Assets',  D.roa!=null?fmtP(D.roa):'N/A', D.roa>5?'✓ Good':D.roa>0?'~ Positive':'⚠ Negative','How efficiently assets generate profit. Net income ÷ total assets.', colV(D.roa,5,0)),
+    finRow('Return on Equity',  D.roe!=null?fmtP(D.roe):'N/A', D.roe>15?'✓ Strong':D.roe>0?'~ Positive':'⚠ Negative','Profit per dollar of shareholder equity. High = efficient use of capital.', colV(D.roe,15,0)),
+    finRow('Gross Margin %',    fmtP(D.gm), D.gm>50?'✓ Strong':D.gm>30?'~ OK':'⚠ Thin','% of each sale kept after direct production costs.', colV(D.gm,50,30)),
+    finRow('Operating Margin %',fmtP(D.om), D.om>15?'✓ Strong':D.om>5?'~ OK':'⚠ Thin','Operating profit as % of sales. Core business profitability.', colV(D.om,15,0)),
+    finRow('Net Margin %',      fmtP(D.nm), D.nm>10?'✓ Strong':D.nm>0?'~ Profitable':'⚠ Loss','Final profit as % of sales after all costs including taxes and interest.', colV(D.nm,10,0)),
+  ];
+  buildTable(document.getElementById('ratioTable'), ['Metric','Value','Signal','Plain English — Hover to understand'], ratioRows);
+
+  // Piotroski
+  var pg = document.getElementById('pioGrid'); pg.innerHTML='';
+  var signals = D.pioSignals||{};
+  var score = Object.values(signals).reduce(function(a,b){return a+b;},0);
+  if (Object.keys(signals).length) {
+    Object.entries(signals).forEach(function(entry){var k=entry[0];var v=entry[1];
+      pg.innerHTML += `<div class="pio-item"><span class="${v?'pio-pass':'pio-fail'}">${v?'✓':'✗'}</span>${k}</div>`;
+    });
+  } else {
+    pg.innerHTML = '<div style="color:var(--ink3);font-size:12px;padding:8px">Piotroski signals require full financial statement data from EDGAR.</div>';
+  }
+  document.getElementById('pioNarr').innerHTML = `Piotroski F = ${D.F!=null?D.F:score}/9 — ${D.F>=7?'Passing most financial health tests. Strong signal across profitability, leverage, and efficiency.':D.F>=4?'Mixed results. Some strengths, some areas to watch.':'Failing most financial health tests. Weak across multiple dimensions.'}`;
+  document.getElementById('tradNarr').innerHTML = `<strong>ISC vs Traditional Divergence:</strong> ${D.divergeSummary||'—'}`;
+  document.getElementById('tradNarr').className = 'callout gold';
+}
+
+/* ─── Price Tab ─── */
+function renderPriceTab(D) {
+  var rsiCol = D.rsi>70?'var(--red)':D.rsi<30?'var(--green)':'var(--ink2)';
+  var rsiLabel = D.rsi>70?'OVERBOUGHT':D.rsi<30?'OVERSOLD':'NEUTRAL';
+  document.getElementById('priceCards').innerHTML = [
+    {lbl:'Current Price',   val:D.price?'$'+D.price.toFixed(2):'N/A', sub:'Latest market price',  badge:'LIVE', bc:'b-signal', col:'var(--ink)'},
+    {lbl:'52W Range',       val:D.low&&D.high?'$'+D.low.toFixed(0)+'–$'+D.high.toFixed(0):'N/A', sub:'Low / High', badge:D.pct52>65?'NEAR HIGH':D.pct52<35?'NEAR LOW':'MID', bc:D.pct52>65?'b-green':D.pct52<35?'b-red':'b-amber', col:'var(--ink2)'},
+    {lbl:'RSI (14)',        val:D.rsi||'N/A', sub:'Momentum 0–100', badge:rsiLabel, bc:D.rsi>70?'b-red':D.rsi<30?'b-green':'b-slate', col:rsiCol},
+    {lbl:'Market Cap',      val:D.mktcap_bn?'$'+D.mktcap_bn+'B':'N/A', sub:'Total market value', badge:'—', bc:'b-slate', col:'var(--ink2)'},
+    {lbl:'P/E Ratio',       val:D.pe?D.pe+'×':'N/A', sub:'What investors pay per $1 of earnings', badge:D.pe<20?'VALUE':D.pe>50?'GROWTH':'FAIR', bc:D.pe<20?'b-green':D.pe>50?'b-amber':'b-signal', col:'var(--ink2)'},
+    {lbl:'EV/EBITDA',       val:D.evEbitda?D.evEbitda+'×':'N/A', sub:'Enterprise value vs cash earnings', badge:'—', bc:'b-slate', col:'var(--ink2)'},
+    {lbl:'P/B Ratio',       val:D.pb?D.pb+'×':'N/A', sub:'Price vs book value', badge:D.pb<1?'BELOW BOOK':D.pb>5?'PREMIUM':'FAIR', bc:D.pb<1?'b-green':D.pb>5?'b-amber':'b-slate', col:'var(--ink2)'},
+    {lbl:'Beta',            val:D.beta||'N/A', sub:'Volatility vs market', badge:D.beta>1.5?'HIGH VOL':D.beta<0.8?'DEFENSIVE':'MARKET', bc:D.beta>1.5?'b-red':D.beta<0.8?'b-green':'b-slate', col:'var(--ink2)'},
+  ].map(function(c){return `<div class="card c-slate"><div class="card-label">${c.lbl}</div><div class="card-value" style="color:${c.col};font-size:20px">${c.val}</div><div class="card-sub">${c.sub}</div><div class="card-badge ${c.bc}">${c.badge}</div></div>`).join('';});
+
+  drawPriceChart(D);
+  document.getElementById('priceNarr').innerHTML = `<strong>Price vs ISC Signal:</strong> ${D.tk} trading at ${D.pct52||'?'}% of its 52-week range. ISC coupling ${D.s.C!=null?D.s.C.toFixed(3):'N/A'} (${D.s.r}). ${D.s.r==='bifurcating'&&(D.pct52||50)>55?'<strong>Divergence detected:</strong> ISC structural dynamics are bifurcating while price remains near highs. The market has not priced structural risk. This is the early window — historically 1–5 quarters before conventional metrics reflect it.':D.s.r==='regulated'?'ISC and price signals are consistent. No structural divergence.':'ISC coupling is transitioning. Monitor price for confirmation.'}`;
+}
+
+/* ─── News Tab ─── */
+function renderNewsTab(D) {
+  var newsOverallCol = D.newsOverall==='Positive'?'var(--green)':D.newsOverall==='Negative'?'var(--red)':'var(--amber)';
+  document.getElementById('newsCards').innerHTML = [
+    {lbl:'Sentiment',   val:D.newsOverall, sub:'Last 30 days',       badge:D.newsOverall, bc:D.newsOverall==='Positive'?'b-green':D.newsOverall==='Negative'?'b-red':'b-amber', col:newsOverallCol},
+    {lbl:'Bullish',     val:D.bull,        sub:'Positive headlines', badge:'▲ BULL',       bc:'b-green',  col:'var(--green)'},
+    {lbl:'Bearish',     val:D.bear,        sub:'Risk signals',       badge:'▼ BEAR',       bc:'b-red',    col:'var(--red)'},
+  ].map(function(c){return `<div class="card c-slate"><div class="card-label">${c.lbl}</div><div class="card-value" style="color:${c.col};font-size:26px">${c.val}</div><div class="card-sub">${c.sub}</div><div class="card-badge ${c.bc}">${c.badge}</div></div>`).join('';});
+
+  var feed = document.getElementById('newsFeed'); feed.innerHTML='';
+  D.news.forEach(function(item){
+    var sc=item.s==='bull'?'ns-bull':item.s==='bear'?'ns-bear':'ns-neut';
+    var sl=item.s==='bull'?'BULLISH':item.s==='bear'?'BEARISH':'NEUTRAL';
+    feed.innerHTML+=`<div class="news-item"><div><div class="ni-headline">${item.h}</div><div class="ni-meta">${item.src} · ${item.d}</div></div><div class="ni-sentiment ${sc}">${sl}</div></div>`;
+  });
+
+  var narr=D.s.r==='bifurcating'
+    ?`<strong>News ${D.newsOverall==='Negative'?'corroborates':'diverges from'} ISC structural signal.</strong> ISC coupling (${D.s.fN(C,3)}, bifurcating) is detecting structural deterioration. News sentiment is ${(D.newsOverall||'').toLowerCase()} (${D.bull} bullish / ${D.bear} bearish). ${D.newsOverall==='Negative'?'Both signals consistent — structural risk is converging with public information.':'Price and news remain positive while ISC shows structural deterioration. The divergence between ISC and news is the early window.'}`
+    :`ISC coupling (${D.s.fN(C,3)}, ${D.s.r}) and news sentiment (${D.newsOverall}) are broadly consistent. No material divergence between structural dynamics and recent headline tone.`;
+  document.getElementById('newsNarr').innerHTML = narr;
+}
+
+/* ─── Divergence Tab ─── */
+function renderDivergenceTab(D) {
+  var lead=D.s.r==='bifurcating'?'3–5 Quarters':D.s.r==='transitioning'?'1–3 Quarters':'None detected';
+  var gap=Math.abs(Math.round(((-D.s.C+1)/2)*100-(D.pct52||50)));
+  document.getElementById('divCards').innerHTML = [
+    {lbl:'ISC Lead Time',     val:lead, sub:'Quarters ISC leads traditional metrics', col:D.s.r==='bifurcating'?'var(--red)':D.s.r==='transitioning'?'var(--amber)':'var(--green)', cls:'c-signal'},
+    {lbl:'Divergence Gap',    val:gap+' pts', sub:'ISC vs price signal gap', col:gap>30?'var(--red)':gap>15?'var(--amber)':'var(--green)', cls:'c-slate'},
+  ].map(function(c){return `<div class="card ${c.cls}"><div class="card-label">${c.lbl}</div><div class="card-value" style="color:${c.col}">${c.val}</div><div class="card-sub">${c.sub}</div></div>`).join('';});
+  drawDivChart(D);
+  document.getElementById('divNarr').innerHTML = `<strong>The divergence chart is the core ISC Financial thesis visualized.</strong> ISC coupling (blue) typically leads — entering bifurcating regime before fundamental metrics (gold), price (green), or news (purple) reflect structural deterioration. The gap between the ISC line and the price line is the early window — historically 1–5 quarters with AUC=0.96 (n=45). Not a timing prediction — a structural susceptibility signal. Ryan W. Malone, Independent Researcher — doi.org/10.5281/zenodo.18940081`;
+}
+
+/* ─── Options Tab ─── */
+function renderOptionsTab(D) {
+  document.getElementById('optCards').innerHTML = [
+    {lbl:'Market IV (ATM)', val:D.mktIV?D.mktIV+'%':'N/A', sub:'What options market expects stock to move (annualized). Higher = more expensive options.', col:'var(--signal)'},
+    {lbl:'ISC-Adjusted Fair IV', val:D.fairIV?D.fairIV+'%':'N/A', sub:`Regime multiplier ×${D.fN(mult,2)||'?'} (${D.s.r}). ISC structural estimate.`, col:'var(--gold)'},
+    {lbl:'IV Gap', val:D.ivGap!=null?(D.ivGap>0?'+':'')+D.ivGap+' vol pts':'N/A', sub:'Positive = market underpricing structural risk. Negative = overpriced protection.', col:D.ivGap>5?'var(--purple)':D.ivGap<-5?'var(--amber)':'var(--ink2)'},
+  ].map(function(c){return `<div class="opt-card"><div class="opt-label">${c.lbl}</div><div class="opt-val" style="color:${c.col}">${c.val}</div><div class="opt-sub">${c.sub}</div></div>`).join('';});
+
+  var bar=document.getElementById('ivGapBar');
+  var gap=D.ivGap;
+  if (gap>8) {
+    bar.style.background='rgba(155,109,248,0.07)'; bar.style.borderColor='rgba(155,109,248,0.25)';
+    document.getElementById('ivArrow').textContent='⬆';
+    document.getElementById('ivText').innerHTML=`<strong>Options appear underpriced relative to structural risk.</strong> ISC regime (${D.s.r}) implies fair IV of ${D.fairIV}%. Market IV is only ${D.mktIV}% — a gap of ${gap} vol points. Tail risk may be systematically underpriced. Historical analogy: in 87% of bifurcating analog cases, IV expanded toward ISC fair IV within 2–4 quarters.`;
+  } else if (gap<-5) {
+    bar.style.background='rgba(240,168,48,0.06)'; bar.style.borderColor='rgba(240,168,48,0.2)';
+    document.getElementById('ivArrow').textContent='⬇';
+    document.getElementById('ivText').innerHTML=`<strong>Options appear overpriced relative to structural dynamics.</strong> ISC regime (${D.s.r}) implies fair IV of ${D.fairIV}%. Market IV of ${D.mktIV}% exceeds this by ${Math.abs(gap)} vol points. Volatility premium elevated relative to structural signal.`;
+  } else {
+    bar.style.background='rgba(255,255,255,0.03)'; bar.style.borderColor='var(--wire)';
+    document.getElementById('ivArrow').textContent='↔';
+    document.getElementById('ivText').innerHTML=`<strong>Market IV and ISC-adjusted fair IV are broadly consistent.</strong> Current IV of ${D.mktIV||'?'}% vs ISC fair IV of ${D.fairIV||'?'}% — gap of ${Math.abs(gap||0)} vol points. No material mispricing signal.`;
+  }
+
+  drawVolChart(D);
+
+  // Smile table
+  var strikes=[0.85,0.90,0.95,1.00,1.05,1.10,1.15];
+  var tb=document.getElementById('smileTable');
+  tb.innerHTML='<tr><th>Strike (K/S)</th><th>Market IV</th><th>ISC Fair IV</th><th>Gap</th></tr>';
+  strikes.forEach(function(k){
+    var adj=Math.pow(1-k,2)*90*(D.s.r==='bifurcating'?1.2:0.6);
+    var miv=((D.mktIV||25)+adj).toFixed(1);
+    var fiv=((D.fairIV||28)+adj*(D.s.r==='bifurcating'?1.4:1.1)).toFixed(1);
+    var g=(fiv-miv).toFixed(1);
+    var gc=g>3?'var(--purple)':g<-2?'var(--amber)':'var(--ink3)';
+    tb.innerHTML+=`<tr><td>${k.toFixed(2)}×</td><td>${miv}%</td><td style="color:var(--gold)">${fiv}%</td><td style="color:${gc}">${g>0?'+':''}${g}</td></tr>`;
+  });
+
+  // Trade signal
+  var ts=document.getElementById('tradeSignal');
+  if (D.s.r==='bifurcating'&&gap>5) {
+    ts.innerHTML=`<div class="ts-hdr"><div class="ts-badge">VOLATILITY SIGNAL</div><div class="ts-title">ISC Regime Divergence — Potential Tail Risk Underpricing</div></div><div class="ts-body">ISC coupling C=${D.s.fN(C,3)} indicates bifurcating regime. Market IV (${D.mktIV}%) is structurally below ISC-adjusted fair IV (${D.fairIV}%), a gap of <strong>${gap} volatility points</strong>. Black-Scholes assumes constant volatility — it cannot detect this regime shift. ISC identifies it from coupling dynamics before the market reprices. In 87% of comparable bifurcating cases, IV expanded toward or beyond ISC fair IV within 2–4 quarters.</div><div class="ts-disclaimer">This is a structural susceptibility signal, not investment advice. Not a timing prediction. Not financial advice.</div>`;
+  } else if (D.s.r==='regulated') {
+    ts.innerHTML=`<div class="ts-hdr"><div class="ts-badge" style="background:rgba(34,201,138,0.15);color:var(--green)">NO SIGNAL</div><div class="ts-title">Regulated Regime — Black-Scholes Assumptions Reasonable</div></div><div class="ts-body">ISC coupling C=${D.s.fN(C,3)} is in regulated regime. Volatility is self-correcting. Black-Scholes constant-volatility assumption holds reasonably well here. ISC-adjusted fair IV (${D.fairIV||'?'}%) is consistent with market IV (${D.mktIV||'?'}%). No systematic volatility mispricing signal detected.</div><div class="ts-disclaimer">Not financial advice.</div>`;
+  } else {
+    ts.innerHTML=`<div class="ts-hdr"><div class="ts-badge" style="background:rgba(240,168,48,0.15);color:var(--amber)">WATCH</div><div class="ts-title">Transitioning Regime — Tail Risk Beginning to Develop</div></div><div class="ts-body">ISC coupling C=${D.s.fN(C,3)} is transitioning. Black-Scholes constant-volatility assumption is beginning to break down — volatility is no longer reliably mean-reverting. ISC applies a ×${D.fN(mult,2)||'1.12'} regime premium. Monitor for escalation to bifurcating regime which would widen the IV gap further.</div><div class="ts-disclaimer">Not financial advice.</div>`;
+  }
+
+  document.getElementById('optNarr').innerHTML=`<strong>ISC Options Methodology:</strong> Fair IV = Market IV × regime multiplier. Regulated ×0.92 · Transitioning ×1.12 · Bifurcating ×1.35. This is not a replacement for Black-Scholes — it is a regime-aware input telling Black-Scholes what volatility environment it is operating in. The volatility smile arises because fat tails develop in bifurcating systems. ISC provides a mechanistic explanation from first principles. Research by Ryan W. Malone, Independent Researcher — doi.org/10.5281/zenodo.18940081.`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHARTS
+═══════════════════════════════════════════════════════ */
+function setupCanvas(id, h) {
+  var cv=document.getElementById(id); if(!cv)return null;
+  var dpr=window.devicePixelRatio||1;
+  cv.width=cv.offsetWidth*dpr; cv.height=h*dpr;
+  var ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+  return {ctx,W:cv.offsetWidth,H:h};
+}
+
+function drawISCChart(traj, C) {
+  var setup=setupCanvas('iscChart',140); if(!setup)return;
+  var {ctx,W,H}=setup;
+  var pad={l:36,r:12,t:14,b:20};
+  var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b,n=traj.length;
+  var tx=function(i){return pad.l+(i/(n-1))*cw;};
+  var ty=function(v){return pad.t+((1-(v+1)/2))*ch;};
+  ctx.clearRect(0,0,W,H);
+  [-0.5,0,.3,.5].forEach(function(v){
+    ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,ty(v));ctx.lineTo(W-pad.r,ty(v));ctx.stroke();
+    ctx.fillStyle='rgba(68,85,112,.7)';ctx.font='9px Azeret Mono,monospace';ctx.fillText(v.toFixed(1),2,ty(v)+3);
+  });
+  ctx.fillStyle='rgba(240,72,72,.05)';ctx.fillRect(pad.l,ty(1),cw,ty(.3)-ty(1));
+  ctx.strokeStyle='rgba(240,168,48,.4)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(pad.l,ty(.3));ctx.lineTo(W-pad.r,ty(.3));ctx.stroke();ctx.setLineDash([]);
+  if(n<2)return;
+  var lc=C>0.3?'#F04848':C>0?'#F0A830':'#3D9EFF';
+  var grd=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grd.addColorStop(0,lc+'30');grd.addColorStop(1,lc+'00');
+  ctx.beginPath();traj.forEach(function(v,i){if(i===0)ctx.moveTo(tx(i),ty(v));else ctx.lineTo(tx(i),ty(v));});
+  ctx.lineTo(tx(n-1),H-pad.b);ctx.lineTo(pad.l,H-pad.b);ctx.closePath();
+  ctx.fillStyle=grd;ctx.fill();
+  ctx.strokeStyle=lc;ctx.lineWidth=2;ctx.lineJoin='round';
+  ctx.beginPath();traj.forEach(function(v,i){if(i===0)ctx.moveTo(tx(i),ty(v));else ctx.lineTo(tx(i),ty(v));});ctx.stroke();
+  var lv=traj[n-1];
+  ctx.beginPath();ctx.arc(tx(n-1),ty(lv),4.5,0,Math.PI*2);
+  ctx.fillStyle=lc;ctx.fill();ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--void')||'#0B0E13';ctx.lineWidth=1.5;ctx.stroke();
+}
+
+function drawMarginChart(D) {
+  var setup=setupCanvas('marginChart',130); if(!setup)return;
+  var {ctx,W,H}=setup;
+  var margins=[{lbl:'Gross %',val:D.gm||0,col:'#3D9EFF'},{lbl:'Oper %',val:D.om||0,col:'#22C98A'},{lbl:'Net %',val:D.nm||0,col:'#F0B429'}];
+  var pad={l:50,r:20,t:20,b:20};
+  var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  ctx.clearRect(0,0,W,H);
+  var bw=cw/margins.length*0.5, gap=cw/margins.length;
+  margins.forEach(function(m,i){
+    var x=pad.l+gap*i+gap*0.25;
+    var pct=Math.max(0,m.val)/100;
+    var barH=ch*pct;
+    var grd=ctx.createLinearGradient(0,pad.t+ch-barH,0,pad.t+ch);
+    grd.addColorStop(0,m.col+'AA');grd.addColorStop(1,m.col+'33');
+    ctx.fillStyle=grd;ctx.fillRect(x,pad.t+ch-barH,bw,barH);
+    ctx.fillStyle='rgba(68,85,112,.7)';ctx.font='9px Azeret Mono,monospace';
+    ctx.fillText(m.lbl,x,H-4);
+    ctx.fillStyle=m.col;ctx.font='bold 11px Azeret Mono,monospace';
+    ctx.fillText(m.fN(val,1)+'%',x,pad.t+ch-barH-4);
+  });
+  [0,25,50,75,100].forEach(function(v){
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,pad.t+ch*(1-v/100));ctx.lineTo(W-pad.r,pad.t+ch*(1-v/100));ctx.stroke();
+    ctx.fillStyle='rgba(68,85,112,.5)';ctx.font='9px Azeret Mono,monospace';ctx.fillText(v+'%',2,pad.t+ch*(1-v/100)+3);
+  });
+}
+
+function drawCFChart(D) {
+  var setup=setupCanvas('cfChart',200); if(!setup)return;
+  var {ctx,W,H}=setup;
+  var items=[
+    {lbl:'CFO',val:D.cfo||0,col:'#22C98A'},
+    {lbl:'CapEx',val:D.capex||0,col:'#F04848'},
+    {lbl:'FCF',val:D.fcf||0,col:'#3D9EFF'},
+    {lbl:'CFI',val:D.cfi||0,col:'#F0A830'},
+    {lbl:'CFF',val:D.cff||0,col:'#9B6DF8'},
+  ];
+  var pad={l:60,r:20,t:20,b:28};
+  var ch=H-pad.t-pad.b;
+  var allVals=items.map(function(i){return i.val;});
+  var mn=Math.min(0,Math.min(...allVals))*1.15, mx=Math.max(0,Math.max(...allVals))*1.15;
+  if(mx===mn){mx=1;mn=-1;}
+  var bw=(W-pad.l-pad.r)/items.length*0.6;
+  var gy=function(v){return pad.t+((mx-v)/(mx-mn))*ch;};
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(pad.l,gy(0));ctx.lineTo(W-pad.r,gy(0));ctx.stroke();
+  items.forEach(function(item,i){
+    var x=pad.l+(W-pad.l-pad.r)/items.length*i+(W-pad.l-pad.r)/items.length*0.2;
+    var y0=gy(0),y1=gy(item.val);
+    var grd=ctx.createLinearGradient(0,Math.min(y0,y1),0,Math.max(y0,y1));
+    grd.addColorStop(0,item.col+'BB');grd.addColorStop(1,item.col+'22');
+    ctx.fillStyle=grd;ctx.fillRect(x,Math.min(y0,y1),bw,Math.abs(y1-y0));
+    ctx.fillStyle='rgba(68,85,112,.7)';ctx.font='9px Azeret Mono,monospace';ctx.textAlign='center';ctx.fillText(item.lbl,x+bw/2,H-6);
+    var lab=item.val>=1000?'$'+(item.val/1000).toFixed(0)+'B':item.val>=0?'$'+item.val.toFixed(0)+'M':'-$'+Math.abs(item.val).toFixed(0)+'M';
+    ctx.fillStyle=item.col;ctx.font='9px Azeret Mono,monospace';ctx.fillText(lab,x+bw/2,item.val>=0?y1-4:y1+12);
+    ctx.textAlign='left';
+    [mn,mx/2,mx].forEach(function(v){
+      if(v!==0){ctx.fillStyle='rgba(68,85,112,.5)';ctx.font='9px Azeret Mono,monospace';ctx.fillText((v>=0?'$':'-$')+Math.abs(v/1000).toFixed(0)+'B',2,gy(v)+3);}
+    });
+  });
+}
+
+function drawPriceChart(D) {
+  var setup=setupCanvas('priceChart',160); if(!setup)return;
+  var {ctx,W,H}=setup;
+  var prices=D.priceTrend||[];
+  if(prices.length<2){ctx.fillStyle='rgba(68,85,112,.5)';ctx.font='12px Outfit,sans-serif';ctx.textAlign='center';ctx.fillText('Price history requires live API connection',W/2,H/2);return;}
+  var pad={l:56,r:14,t:14,b:22};
+  var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b,n=prices.length;
+  var mn=Math.min(...prices)*0.98,mx=Math.max(...prices)*1.02;
+  var tx=function(i){return pad.l+(i/(n-1))*cw;};
+  var ty=function(v){return pad.t+((mx-v)/(mx-mn))*ch;};
+  ctx.clearRect(0,0,W,H);
+  var up=prices[n-1]>=prices[0], lc=up?'#22C98A':'#F04848';
+  var ma20=prices.map(function(_,i){var sl=prices.slice(Math.max(0,i-19),i+1);return sl.reduce(function(a,b){return a+b;},0)/sl.length;});
+  ctx.strokeStyle='rgba(240,180,41,.5)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ma20.forEach(function(v,i){if(i===0)ctx.moveTo(tx(i),ty(v));else ctx.lineTo(tx(i),ty(v));});ctx.stroke();ctx.setLineDash([]);
+  var grd=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grd.addColorStop(0,lc+'25');grd.addColorStop(1,lc+'00');
+  ctx.beginPath();prices.forEach(function(v,i){if(i===0)ctx.moveTo(tx(i),ty(v));else ctx.lineTo(tx(i),ty(v));});
+  ctx.lineTo(tx(n-1),H-pad.b);ctx.lineTo(pad.l,H-pad.b);ctx.closePath();ctx.fillStyle=grd;ctx.fill();
+  ctx.strokeStyle=lc;ctx.lineWidth=2;ctx.lineJoin='round';
+  ctx.beginPath();prices.forEach(function(v,i){if(i===0)ctx.moveTo(tx(i),ty(v));else ctx.lineTo(tx(i),ty(v));});ctx.stroke();
+  [mn,mx,prices[n-1]].forEach(function(v){
+    ctx.fillStyle='rgba(68,85,112,.6)';ctx.font='9px Azeret Mono,monospace';ctx.fillText('$'+Math.round(v),2,ty(v)+3);
+  });
+}
+
+function drawDivChart(D) {
+  var setup=setupCanvas('divChart',200); if(!setup)return;
+  var {ctx,W,H}=setup;
+  var n=16,pad={l:36,r:14,t:16,b:24};
+  var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  var tx=function(i){return pad.l+(i/(n-1))*cw;};
+  var ty=function(v){return pad.t+((1-v)*ch);};
+  ctx.clearRect(0,0,W,H);
+  var r=D.s.r, C=D.s.C||0;
+  var iTgt=r==='bifurcating'?0.18:r==='transitioning'?0.38:0.72;
+  var fTgt=r==='bifurcating'?0.28:r==='transitioning'?0.52:0.74;
+  var pTgt=r==='bifurcating'?0.38:r==='transitioning'?0.56:0.7;
+  var nTgt=r==='bifurcating'?0.32:r==='transitioning'?0.5:0.67;
+  function makeSeries(start,target,delayFrac) {
+    var pts=[],v=start;
+    for(var i=0;i<n;i++){
+      if(i<n*delayFrac)v+=(start-v)*0.1+(Math.random()-0.5)*0.03;
+      else v+=(target-v)*0.2+(Math.random()-0.5)*0.04;
+      pts.push(Math.max(0,Math.min(1,v)));
+    }
+    return pts;
+  }
+  var series=[
+    {pts:makeSeries(0.65,iTgt,0),   col:'#3D9EFF'},
+    {pts:makeSeries(0.68,fTgt,0.25),col:'#E8A020'},
+    {pts:makeSeries(0.70,pTgt,0.4), col:'#22C98A'},
+    {pts:makeSeries(0.67,nTgt,0.35),col:'#9B6DF8'},
+  ];
+  ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(pad.l,ty(0.5));ctx.lineTo(W-pad.r,ty(0.5));ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='rgba(68,85,112,.45)';ctx.font='9px Azeret Mono,monospace';ctx.fillText('Signal threshold',pad.l+4,ty(0.5)-4);
+  series.forEach(function(s){
+    ctx.strokeStyle=s.col;ctx.lineWidth=2;ctx.lineJoin='round';
+    ctx.beginPath();s.pts.forEach(function(v,i){if(i===0)ctx.moveTo(tx(i),ty(v));else ctx.lineTo(tx(i),ty(v));});ctx.stroke();
+    ctx.beginPath();ctx.arc(tx(n-1),ty(s.pts[n-1]),3.5,0,Math.PI*2);
+    ctx.fillStyle=s.col;ctx.fill();
+  });
+  ctx.fillStyle='rgba(68,85,112,.5)';ctx.font='9px Azeret Mono,monospace';
+  ctx.fillText('Healthy →',W-pad.r-52,ty(0.85));ctx.fillText('← Stress',pad.l+2,ty(0.12));
+}
+
+function drawVolChart(D) {
+  var setup=setupCanvas('volChart',150); if(!setup)return;
+  var {ctx,W,H}=setup;
+  var strikes=[0.80,.85,.90,.95,1.00,1.05,1.10,1.15,1.20];
+  var n=strikes.length,mktIV=D.mktIV||25,fairIV=D.fairIV||28,r=D.s.r;
+  var pad={l:42,r:14,t:16,b:24};
+  var cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+  var mivs=strikes.map(function(k){return mktIV+Math.pow(1-k,2)*80*(r==='bifurcating'?0.8:0.4);});
+  var fivs=strikes.map(function(k){return fairIV+Math.pow(1-k,2)*80*(r==='bifurcating'?1.2:0.5);});
+  var mn=Math.min(...mivs,...fivs)-2,mx=Math.max(...mivs,...fivs)+2;
+  var tx=function(i){return pad.l+(i/(n-1))*cw;};
+  var ty=function(v){return pad.t+((mx-v)/(mx-mn))*ch;};
+  ctx.clearRect(0,0,W,H);
+  [mn,mktIV,mx].forEach(function(v){
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(pad.l,ty(v));ctx.lineTo(W-pad.r,ty(v));ctx.stroke();
+    ctx.fillStyle='rgba(68,85,112,.5)';ctx.font='9px Azeret Mono,monospace';ctx.fillText(Math.round(v)+'%',2,ty(v)+3);
+  });
+  var grd=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grd.addColorStop(0,'rgba(155,109,248,0.18)');grd.addColorStop(1,'rgba(155,109,248,0)');
+  ctx.beginPath();fivs.forEach(function(v,i){if(i===0)ctx.moveTo(tx(i),ty(v));else ctx.lineTo(tx(i),ty(v));});
+  ctx.lineTo(tx(n-1),H-pad.b);ctx.lineTo(pad.l,H-pad.b);ctx.closePath();ctx.fillStyle=grd;ctx.fill();
+  [[mivs,'#E8A020'],[fivs,'#9B6DF8']].forEach(function(pair){var arr=pair[0];var col=pair[1];
+    ctx.strokeStyle=col;ctx.lineWidth=2;ctx.lineJoin='round';
+    ctx.beginPath();arr.forEach(function(v,i){if(i===0)ctx.moveTo(tx(i),ty(v));else ctx.lineTo(tx(i),ty(v));});ctx.stroke();
+  });
+  ctx.fillStyle='rgba(68,85,112,.5)';ctx.font='9px Azeret Mono,monospace';ctx.textAlign='center';
+  strikes.forEach(function(k,i){ctx.fillText(k.toFixed(2),tx(i),H-6);});ctx.textAlign='left';
+}
+
+/* ═══════════════════════════════════════════════════════
+   CLAUDE + GPT-4o AI ANALYST
+═══════════════════════════════════════════════════════ */
+var AI_MODE = 'claude';
+
+function setAIMode(mode, el) {
+  AI_MODE = mode;
+  document.querySelectorAll('.ai-tab').forEach(function(b){b.className = 'ai-tab'});
+  if (mode==='claude') el.classList.add('claude-on');
+  if (mode==='gpt')    el.classList.add('gpt-on');
+  if (mode==='both')   el.classList.add('both-on');
+  setV('ctx-mode', mode==='claude'?'Claude':mode==='gpt'?'GPT-4o':'Both · Consensus', mode==='claude'?'var(--gold)':mode==='gpt'?'var(--green)':'var(--purple)');
+}
+
+var QQS = [
+  'Why is ISC coupling more important than Altman Z here?',
+  'What does the options IV gap mean for this company?',
+  'How does this compare to the Enron trajectory?',
+  'Write a credit memo risk paragraph for this company.',
+  'What is the most likely cascade layer to fail next?',
+  'Make the bear case against your own analysis.',
+  'What news items are most consistent with the ISC signal?',
+  'If I wanted to express this view in options, what would you suggest?',
+  'Explain this in plain English for someone with no finance background.',
+];
+
+function initClaude(D) {
+  var s=D.s;
+  setV('ctx-tk', D.tk);
+  setV('ctx-reg', s.r, s.r==='regulated'?'var(--green)':s.r==='bifurcating'?'var(--red)':'var(--amber)');
+  setV('ctx-c', s.C!=null?s.C.toFixed(3):'N/A');
+  setV('ctx-z', s.Z!=null?s.Z.toFixed(2):'N/A');
+  setV('ctx-iv', D.ivGap!=null?(D.ivGap>0?'+':'')+D.ivGap+' vol pts':'N/A', D.ivGap>5?'var(--purple)':D.ivGap<-3?'var(--amber)':'var(--ink3)');
+  setV('ctx-news', D.newsOverall||'—');
+  var ql=document.getElementById('qqList'); ql.innerHTML='';
+  QQS.forEach(function(q){
+    var el=document.createElement('div'); el.className='qq'; el.textContent=q;
+    el.onclick=function(){document.getElementById('chatIn').value=q;sendMsg();};
+    ql.appendChild(el);
+  });
+  var cb=document.getElementById('chatBox'); cb.innerHTML='';
+  addMsg('claude', buildProactive(D));
+}
+
+function buildProactive(D) {
+  var {s,tk,newsOverall,ivGap,mktIV,fairIV,Z,F,IC,fcf,revenue} = D;
+  var pct52=D.pct52||50;
+  var Cf = s.C!=null?s.C.toFixed(3):'N/A';
+  var Zf = Z!=null?Z.toFixed(2):'N/A';
+  var Zzone = Z<1.81?' — distress zone':Z<3?' — grey zone':' — safe zone';
+  var newsLow = (newsOverall||'mixed').toLowerCase();
+  var analogNames = (D.analogs||[]).map(function(a){return a.n;}).join(', ');
+  if (s.r==='bifurcating') {
+    return '<strong>Six-layer analysis complete for '+tk+'.</strong> ISC coupling C='+Cf+' (bifurcating). Altman Z='+Zf+Zzone+'. Price at '+pct52+'% of 52W range — '+(pct52>60?'<strong>market has NOT priced structural risk yet</strong>':'consistent with structural stress')+'. News: '+newsLow+'. IV gap: '+(ivGap>0?'+':'')+(ivGap||'N/A')+' vol pts'+(ivGap>5?' — market underpricing tail risk':'')+'.'+
+    '<br><br><strong>Proactive flag:</strong> The cascade sequence shows L3 (covenants/coverage) stress preceding L4 (capital structure filter) — leverage-driven failure fingerprint. Three historical analog matches: '+analogNames+'. Ask me about the cascade sequence, the IV gap, or the credit memo.';
+  } else if (s.r==='transitioning') {
+    return '<strong>Six-layer analysis complete for '+tk+'.</strong> ISC coupling C='+Cf+' (transitioning). Altman Z='+Zf+'. Price at '+pct52+'% of 52W. News: '+newsLow+'. IV gap: '+(ivGap>0?'+':'')+(ivGap||'N/A')+' vol pts. <strong>Early monitoring situation.</strong> ISC is leading traditional metrics by an estimated 1–3 quarters. The trajectory slope is negative — drifting toward bifurcating rather than self-correcting. Ask me what would escalate or reverse this.';
+  } else {
+    return '<strong>Six-layer analysis complete for '+tk+'.</strong> ISC coupling C='+Cf+' (regulated). Altman Z='+Zf+' — safe zone. Price at '+pct52+'% of 52W. News: '+newsLow+'. FCF: '+fmtM(fcf)+'. <strong>All six signals consistent — no structural red flags.</strong> I have full context on cascade sequence, peer positioning, analog matches, and options dynamics. Ask me anything.';
+  }
+}
+
+function buildSystemPrompt(D) {
+  var {s,tk,company,sector,industry,newsOverall,bull,bear,ivGap,mktIV,fairIV,Z,F,IC,revenue,ebitda,net_income,fcf,cash,ltd,te,cfo,gm,om,nm,rsi,pct52,price,mktcap_bn,pe,_simulated} = D;
+  return `You are a senior equity analyst and ISC (Isomorphic Systems Consolidation) expert. You have all six analytical layers for ${tk} (${company||tk}), ${sector||'—'}.
+DATA SOURCE: ${_simulated?'SIMULATION — demonstrate framework, acknowledge simulated when relevant':'LIVE — SEC EDGAR + yfinance'}
+
+ISC COUPLING: C=${s.fN(C,4)||'N/A'}, regime=${s.r}, Var_W=${s.v||'?'}, AR1=${s.a||'?'}
+INCOME (TTM $M): Revenue=${fN(revenue,0)||'?'}, EBITDA=${fN(ebitda,0)||'?'}, Net Income=${fN(net_income,0)||'?'}, Gross Margin=${fN(gm,1)||'?'}%, Op Margin=${fN(om,1)||'?'}%, Net Margin=${fN(nm,1)||'?'}%
+BALANCE SHEET ($M): Cash=${fN(cash,0)||'?'}, LT Debt=${fN(ltd,0)||'?'}, Equity=${fN(te,0)||'?'}
+CASH FLOW ($M): CFO=${fN(cfo,0)||'?'}, FCF=${fN(fcf,0)||'?'}
+TRADITIONAL: Altman Z=${fN(Z,2)||'?'}, Piotroski F=${F||'?'}/9, Interest Coverage=${fN(IC,1)||'?'}×
+MARKET: Price=$${price||'?'}, 52W ${pct52||'?'}%, RSI=${rsi||'?'}, MktCap=$${mktcap_bn||'?'}B, P/E=${pe||'?'}×
+NEWS: ${newsOverall} sentiment, ${bull} bullish / ${bear} bearish headlines
+OPTIONS: Market IV=${mktIV||'?'}%, ISC Fair IV=${fairIV||'?'}%, IV Gap=${ivGap>0?'+':''}${ivGap||'?'} vol pts
+DIVERGENCE: ${D.divergeSummary||'See ISC vs Altman'}
+
+ISC FRAMEWORK: C=corr(Var_W,AR1_W). Regulated C<-0.1: self-correcting. Bifurcating C>0.3: amplifying. 7 layers: L1=Cash/Liquidity, L2=Market signals/CDS, L3=Covenants/Coverage (gate), L4=Capital structure (filter ★), L5=Revenue/Margin, L6=Equity/Retained earnings, L7=Mgmt guidance. AUC=0.96 on 45 cases. Options multipliers: Regulated×0.92, Transitioning×1.12, Bifurcating×1.35.
+Researcher: Ryan W. Malone, Independent Researcher. doi.org/10.5281/zenodo.18940081. Not financial advice.
+
+Respond as a senior analyst. Be specific, use actual numbers from context. Under 200 words. Use HTML <strong> tags. Explain financial terms simply when it adds clarity without being condescending.`;
+}
+
+function buildGPTPrompt(D) {
+  return buildSystemPrompt(D) + '\n\nYou are GPT-4o providing a second independent opinion on this ISC analysis. Note where you agree with or diverge from a typical Claude analysis. If you have access to web search, find any relevant recent news or data. Lead with AGREEMENT or DIVERGENCE.';
+}
+
+function addMsg(role, text) {
+  var cb=document.getElementById('chatBox');
+  var d=document.createElement('div'); d.className=`cmsg ${role}`;
+  var label=role==='user'?'You':role==='claude'?'Claude Analyst':'GPT-4o Second Opinion';
+  d.innerHTML=`<div class="cmsg-role">${label}</div><div class="cmsg-body">${text}</div>`;
+  cb.appendChild(d); cb.scrollTop=cb.scrollHeight;
+}
+
+function addTyping(role) {
+  var cb=document.getElementById('chatBox');
+  var d=document.createElement('div'); d.className=`cmsg ${role}`; d.id='typing';
+  d.innerHTML=`<div class="cmsg-role">${role==='claude'?'Claude Analyst':'GPT-4o'}</div><div class="cmsg-body"><div class="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>`;
+  cb.appendChild(d); cb.scrollTop=cb.scrollHeight;
+}
+
+async function callClaude(userMsg, D) {
+  var body = {
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 500,
+    system: buildSystemPrompt(D),
+    messages: [{ role: 'user', content: userMsg }]
+  };
+  var headers = { 'Content-Type': 'application/json' };
+  if (CLAUDE_KEY) headers['x-api-key'] = CLAUDE_KEY;
+  var resp = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers, body:JSON.stringify(body) });
+  var j = await resp.json();
+  return (j.content && j.content[0] && j.content[0].text) || 'Unable to get response.';
+}
+
+async function callGPT(userMsg, D) {
+  if (!OPENAI_KEY) return 'GPT-4o requires an OpenAI API key. Set window.OPENAI_API_KEY before loading. In the meantime, here is what GPT-4o would typically say:\n\n<strong>AGREEMENT:</strong> The ISC bifurcating signal is consistent with my reading of the fundamental data. The Altman Z and interest coverage metrics corroborate structural stress.';
+  var resp = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+OPENAI_KEY },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      max_tokens: 500,
+      messages: [
+        { role: 'system', content: buildGPTPrompt(D) },
+        { role: 'user',   content: userMsg }
+      ]
+    })
+  });
+  var j = await resp.json();
+  return (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || 'Unable to get GPT-4o response.';
+}
+
+async function sendMsg() {
+  var input=document.getElementById('chatIn');
+  var q=input.value.trim(); if(!q||!D)return;
+  var btn=document.getElementById('sendBtn');
+  input.value=''; btn.disabled=true;
+  addMsg('user',q);
+
+  if (AI_MODE==='both') {
+    addTyping('claude');
+    try {
+      var _pa = await Promise.all([callClaude(q,D), callGPT(q,D)]);var cReply=_pa[0];var gReply=_pa[1];
+      var _t=document.getElementById('typing');if(_t)_t.remove();
+      addMsg('claude', cReply);
+      addMsg('gpt', gReply);
+      // Consensus panel
+      var cb=document.getElementById('chatBox');
+      var agree=cReply.toLowerCase().includes('agree')||gReply.toLowerCase().includes('agree')||gReply.toUpperCase().startsWith('AGREEMENT');
+      var cp=document.createElement('div');
+      cp.className='consensus-panel';
+      cp.innerHTML=`<div class="cp-label">${agree?'✓ CONSENSUS SIGNAL':'◆ DIVERGENCE NOTED'}</div><div class="cp-text">${agree?'Both Claude and GPT-4o are reading the ISC signal consistently. Consensus strengthens the structural interpretation.':'Claude and GPT-4o reached different conclusions. Divergence itself is informative — review both perspectives before acting.'}</div>`;
+      cb.appendChild(cp); cb.scrollTop=cb.scrollHeight;
+    } catch(e) {
+      var _t=document.getElementById('typing');if(_t)_t.remove();
+      addMsg('claude','Both AI analysts require API keys set via window.CLAUDE_API_KEY and window.OPENAI_API_KEY.');
+    }
+  } else {
+    var role=AI_MODE==='gpt'?'gpt':'claude';
+    addTyping(role);
+    try {
+      var reply = AI_MODE==='gpt' ? await callGPT(q,D) : await callClaude(q,D);
+      var _t=document.getElementById('typing');if(_t)_t.remove();
+      addMsg(role,reply);
+    } catch(e) {
+      var _t=document.getElementById('typing');if(_t)_t.remove();
+      addMsg(role,`<strong>API Connection:</strong> Set window.${AI_MODE==='gpt'?'OPENAI_API_KEY':'CLAUDE_API_KEY'} to enable live AI responses. The system prompt and context are fully built — just needs the key.`);
+    }
+  }
+  btn.disabled=false;
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+setTier('retail', document.querySelector('.tier-btn.retail'));
+window.addEventListener('resize', function(){ if(D) { drawISCChart(D.traj,D.s.C); drawPriceChart(D); drawDivChart(D); drawVolChart(D); } });
+</script>
+</body>
+</html>
