@@ -1134,8 +1134,8 @@ function renderAll(d) {
     +'<div class="verdict-grid" style="margin-top:14px">'
     +'<div class="verdict-stat"><div class="vs-label">Coupling C</div><div class="vs-val" style="color:'+col+'">'+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'</div></div>'
     +'<div class="verdict-stat"><div class="vs-label">Stability</div><div class="vs-val" style="color:'+col+'">'+(stab!=null?stab+'/100':'N/A')+'</div></div>'
-    +'<div class="verdict-stat"><div class="vs-label">Altman Z</div><div class="vs-val" style="color:'+(altZ!=null?altZ>3?'var(--green)':altZ>1.81?'var(--amber)':'var(--red)':'var(--dim)')+"'>">'+(altZ!=null?altZ.toFixed(2):'N/A')+'</div></div>'
-    +'<div class="verdict-stat"><div class="vs-label">Piotroski F</div><div class="vs-val" style="color:'+(piF!=null?piF>=7?'var(--green)':piF>=4?'var(--amber)':'var(--red)':'var(--dim)')+"'>">'+(piF!=null?piF+'/9':'N/A')+'</div></div>'
+    +'<div class="verdict-stat"><div class="vs-label">Altman Z</div><div class="vs-val" style="color:'+(altZ!=null?altZ>3?'var(--green)':altZ>1.81?'var(--amber)':'var(--red)':'var(--dim))+'">'+(altZ!=null?altZ.toFixed(2):'N/A')+'</div></div>'
+    +'<div class="verdict-stat"><div class="vs-label">Piotroski F</div><div class="vs-val" style="color:'+(piF!=null?piF>=7?'var(--green)':piF>=4?'var(--amber)':'var(--red)':'var(--dim))+'">'+(piF!=null?piF+'/9':'N/A')+'</div></div>'
     +'</div>';
 
   // ── Gauge ──
