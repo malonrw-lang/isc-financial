@@ -1317,7 +1317,16 @@ function rPlain(r,C,name,financials){
   var financiallyStrong = (fcf!=null&&fcf>50000)||(intCov!=null&&intCov>10)||(fcfM!=null&&fcfM>20);
   var financiallyWeak = (fcf!=null&&fcf<0)||(intCov!=null&&intCov<1.5)||(fcfM!=null&&fcfM<0);
   
-  if(!r||r.includes('insufficient'))return name+' does not have enough quarterly EDGAR data to compute ISC coupling. Try a longer ticker history or switch to Price History mode.';
+  if(!r||r.includes('insufficient')){
+    var tk=(typeof D!=='undefined'&&D&&D.ticker)?String(D.ticker).toUpperCase():'';
+    var demoKey=DEMO_REDIRECT_MAP[tk];
+    if(demoKey){
+      var lbl=DEMO_LABELS[demoKey]||demoKey;
+      var blurb=DEMO_BLURBS[demoKey]||'';
+      return '<strong style="color:var(--amber)">' + String.fromCharCode(9888) + ' Limited EDGAR data for '+tk+'.</strong> '+name+' does not have enough recent quarterly filings for live ISC analysis.<br><br><span style="color:var(--dim)">ISC was designed to flag exactly these cases.</span> '+blurb+'<br><br><button onclick="runDemo(\''+demoKey+'\')" style="background:var(--purple);color:#fff;border:none;border-radius:6px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">' + String.fromCharCode(9658) + ' View Historical Demo ' + EMDASH + ' '+lbl+'</button>';
+    }
+    return name+' does not have enough quarterly EDGAR data to compute ISC coupling. Try a longer ticker history or switch to Price History mode.';
+  }
   
   if(r.includes('bifurcating')) {
     var d_hg_proxy = {income_statement:{revenue_growth:{val:financials.revG},operating_income:{val:financials.oi}},cash_flow:{fcf_margin:{val:financials.fcfM},fcf:{val:financials.fcf}},traditional:{altman_z:{val:financials.altZ},interest_coverage:{val:financials.intCov}}};
@@ -1401,6 +1410,26 @@ async function runAnal() {
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 var KNOWN={AAPL:{C:-0.985,n:'Apple Inc',s:'Technology',i:'Consumer Electronics'},TSLA:{C:0.312,n:'Tesla Inc',s:'Consumer Discretionary',i:'Auto Manufacturers'},NVDA:{C:-0.445,n:'NVIDIA Corporation',s:'Technology',i:'Semiconductors'},GME:{C:0.671,n:'GameStop Corp',s:'Consumer Cyclical',i:'Specialty Retail'},META:{C:-0.221,n:'Meta Platforms',s:'Communication Services',i:'Internet Content'},AMZN:{C:-0.387,n:'Amazon.com Inc',s:'Consumer Cyclical',i:'Internet Retail'},MSFT:{C:-0.512,n:'Microsoft Corporation',s:'Technology',i:'Software'},NFLX:{C:-0.108,n:'Netflix Inc',s:'Communication Services',i:'Entertainment'},BAC:{C:0.18,n:'Bank of America',s:'Financial Services',i:'Banks'},HAL:{C:-0.352,n:'Halliburton Co',s:'Energy',i:'Oil & Gas Services'}};
 
+var DEMO_REDIRECT_MAP = {ENR:'enron',ENRN:'enron',ENRNQ:'enron',WCOM:'worldcom',WCOEQ:'worldcom',SAVE:'spirit',SAVEQ:'spirit'};
+var DEMO_LABELS = {enron:'Enron Corporation (Q3 2001)',worldcom:'WorldCom Inc (Q1 2002)',spirit:'Spirit Airlines (FY 2022)'};
+var DEMO_BLURBS = {
+  enron:'ISC detected structural deterioration approximately 4 quarters before the October 2001 scandal broke and 5 quarters before the December 2001 bankruptcy.',
+  worldcom:'ISC was signaling structural breakdown 4-5 quarters before the $11B accounting fraud was disclosed in June 2002.',
+  spirit:'ISC was flagging this pattern 3-4 years before Spirit ceased operations on May 2, 2026.'
+};
+function isHistoricalDemo(d){
+  if(!d||!d.analysis_date)return false;
+  var ad=String(d.analysis_date);
+  return ad==='2001-Q3'||ad==='2002-Q1'||ad==='2022-FY';
+}
+function getHistoricalDemoKey(d){
+  if(!isHistoricalDemo(d))return null;
+  var ad=String(d.analysis_date);
+  if(ad==='2001-Q3')return 'enron';
+  if(ad==='2002-Q1')return 'worldcom';
+  if(ad==='2022-FY')return 'spirit';
+  return null;
+}
 function mkSim(tk){
   var k=KNOWN[tk]||{C:(Math.random()-.5)*1.2};
   var C=k.C;
@@ -1429,6 +1458,22 @@ function renderAll(d){
   (function(){var nm=d.company_name;if(!nm||nm===d.ticker){if(typeof KNOWN!=='undefined'&&KNOWN[d.ticker]&&KNOWN[d.ticker].n)nm=KNOWN[d.ticker].n;}document.getElementById('cmpName').textContent=nm&&nm!==d.ticker?nm:d.ticker;})();
   document.getElementById('cmpSector').textContent=[d.sector,d.industry].filter(Boolean).join(' '+MIDDOT+' ')||EMDASH;
   document.getElementById('cmpDate').textContent=d.analysis_date||'';
+  (function(){
+    var existingBanner=document.getElementById('demoBanner');
+    if(existingBanner)existingBanner.remove();
+    var demoKey=getHistoricalDemoKey(d);
+    if(!demoKey)return;
+    var lbl=DEMO_LABELS[demoKey]||demoKey;
+    var blurb=DEMO_BLURBS[demoKey]||'';
+    var banner=document.createElement('div');
+    banner.id='demoBanner';
+    banner.style.cssText='background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;line-height:1.6';
+    banner.innerHTML='<div style="display:flex;align-items:flex-start;gap:12px"><div style="font-size:18px;line-height:1.2">' + String.fromCharCode(128202) + '</div><div style="flex:1"><div style="color:var(--purple);font-weight:700;margin-bottom:4px">Historical demo ' + EMDASH + ' '+lbl+'</div><div style="color:#A0B8D0">'+blurb+' Click "Run Full Analysis" to fetch live EDGAR data instead.</div></div></div>';
+    var verdictCard=document.getElementById('verdictCard');
+    if(verdictCard&&verdictCard.parentNode){
+      verdictCard.parentNode.insertBefore(banner,verdictCard);
+    }
+  })();
   var desc=document.getElementById('cmpDesc');
   if(d.description&&d.description.length>10){desc.textContent=d.description.substring(0,200)+(d.description.length>200?'...':'');desc.style.display='block';}else{desc.style.display='none';}
   var db=document.getElementById('dsrcBadge');
