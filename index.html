@@ -784,6 +784,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">How to read the income statement:</strong> Follow the money from the top (Revenue) down to the bottom (Net Income). Each layer subtracts another type of cost. A healthy company should have strong margins at each layer. Watch for gross margin vs operating margin &#8212; a big gap means high overhead costs.</div>
             </div>
             <div class="card-hi"><div class="sb-lbl" style="margin-bottom:4px">Income Statement &#8212; Trailing Twelve Months</div><div style="font-size:12px;color:var(--dim);margin-bottom:14px">Source: SEC EDGAR 10-K / 10-Q &#183; All figures in millions USD</div><div id="incomeContent"></div></div>
+            <div id="incomeCommentary" class="card" style="display:none"></div>
           </div>
 
           <!-- BALANCE SHEET -->
@@ -793,6 +794,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">How to read the balance sheet:</strong> Assets = Liabilities + Equity. Always. Think of it as a snapshot of what the company owns vs what it owes on a single day. High debt relative to equity means the company is leveraged &#8212; manageable when profitable, dangerous when earnings fall.</div>
             </div>
             <div class="card-hi"><div class="sb-lbl" style="margin-bottom:4px">Balance Sheet &#8212; Most Recent Quarter</div><div style="font-size:12px;color:var(--dim);margin-bottom:14px">Source: SEC EDGAR</div><div id="balanceContent"></div></div>
+            <div id="balanceCommentary" class="card" style="display:none"></div>
           </div>
 
           <!-- CASH FLOW -->
@@ -802,6 +804,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Cash flow is the most honest financial signal.</strong> Net income can be manipulated by accounting choices &#8212; depreciation schedules, revenue recognition timing, write-offs. Cash flow is much harder to fake. A company that consistently generates more cash than it reports in earnings is almost always high quality.</div>
             </div>
             <div class="card-hi"><div class="sb-lbl" style="margin-bottom:4px">Cash Flow Statement &#8212; Trailing Twelve Months</div><div style="font-size:12px;color:var(--dim);margin-bottom:14px">Source: SEC EDGAR</div><div id="cashContent"></div></div>
+            <div id="cashCommentary" class="card" style="display:none"></div>
           </div>
 
           <!-- TRADITIONAL -->
@@ -1954,6 +1957,120 @@ function destroyCharts(){
   Object.keys(charts).forEach(function(k){if(charts[k]){charts[k].destroy();charts[k]=null;}});
 }
 
+function renderTabCommentaries(d){
+  var IS=d.income_statement||{}, BS=d.balance_sheet||{}, CF=d.cash_flow||{}, TM=d.traditional||{}, isc=d.isc||{};
+  var r=(isc.regime||'').toLowerCase();
+  var C=isc.C;
+  var hg=detectHyperGrowth(d,r,C);
+  // Helpers
+  function fmt(v){if(v==null||isNaN(v))return 'N/A';var a=Math.abs(v);if(a>=1000)return (v<0?'-':'')+'$'+(a/1000).toFixed(1)+'B';return (v<0?'-':'')+'$'+a.toFixed(0)+'M';}
+  function pctF(v){if(v==null||isNaN(v))return 'N/A';return (v>=0?'+':'')+v.toFixed(1)+'%';}
+  function tone(){if(hg)return 'var(--purple)';if(r.includes('bifurcating'))return 'var(--red)';if(r.includes('trans'))return 'var(--amber)';if(r.includes('regulated'))return 'var(--green)';return 'var(--dim)';}
+  function header(label,color){return '<div class="sb-lbl" style="margin-bottom:10px;color:'+color+'">'+label+'</div>';}
+  function bullet(text){return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;line-height:1.7;font-size:13px;color:#A0B8D0"><span style="color:'+tone()+';margin-top:1px">' + String.fromCharCode(8226) + '</span><div>'+text+'</div></div>';}
+  // -------------------- INCOME STATEMENT --------------------
+  var icEl=document.getElementById('incomeCommentary');
+  if(icEl){
+    var rev=gv(IS,'revenue'); var gm=gv(IS,'gross_margin'); var om=gv(IS,'operating_margin'); var nm=gv(IS,'net_margin'); var rg=gv(IS,'revenue_growth'); var oi=gv(IS,'operating_income'); var ni=gv(IS,'net_income'); var ic=gv(TM,'interest_coverage');
+    if(rev==null && oi==null){icEl.style.display='none';}
+    else{
+      var icHtml='';
+      if(hg){
+        icHtml+=header(String.fromCharCode(9650)+' Hyper-Growth Phase Transition','var(--purple)');
+        icHtml+=bullet('Revenue of '+fmt(rev)+' growing '+pctF(rg)+' YoY is in the territory where regime change is the rule, not the exception '+EMDASH+' the math itself flips.');
+        if(gm!=null && gm>50)icHtml+=bullet('Gross margin of '+gm.toFixed(1)+'% is the moat. Watch this number, not revenue. If it holds as scale increases, the bifurcation resolves positively.');
+        if(om!=null)icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% means the business is already profitable at scale. The phase transition is operational, not financial.');
+      }else if(r.includes('bifurcating')){
+        icHtml+=header(String.fromCharCode(9888)+' Structural Stress in the Income Statement','var(--red)');
+        if(rg!=null && rg>20 && oi!=null && oi<0){
+          icHtml+=bullet('Revenue grew '+pctF(rg)+' YoY but operating income is '+fmt(oi)+' '+EMDASH+' the Spirit Airlines fingerprint. The company is buying revenue at a loss. Each new dollar of sales costs more to produce than it brings in.');
+        }else if(om!=null && om<0){
+          icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% means the core business cannot cover its own costs '+EMDASH+' before considering interest, taxes, or one-time items.');
+        }
+        if(ic!=null && ic<2){icHtml+=bullet('Interest coverage of '+ic.toFixed(2)+'x is in the danger zone. Below 1.5x means earnings cannot reliably cover the interest bill '+EMDASH+' a structural debt-service problem.');}
+        if(gm!=null && om!=null && (gm-om)>40)icHtml+=bullet('Gross margin '+gm.toFixed(1)+'% vs operating margin '+om.toFixed(1)+'% '+EMDASH+' the '+(gm-om).toFixed(1)+'-point gap means SG&A and R&amp;D are eating the company alive.');
+      }else if(r.includes('trans')){
+        icHtml+=header(String.fromCharCode(9678)+' Margin Pressure Building','var(--amber)');
+        if(om!=null)icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% is below historical. Watch the next 2'+ENDASH+'3 quarters '+EMDASH+' if margins keep slipping while revenue holds, ISC will likely cross into bifurcating territory.');
+        if(rg!=null && rg<5)icHtml+=bullet('Revenue growth of '+pctF(rg)+' is decelerating. The transitioning regime often precedes either a margin reset or a structural break.');
+      }else if(r.includes('regulated')){
+        icHtml+=header(String.fromCharCode(10003)+' Healthy Income Statement Profile','var(--green)');
+        if(om!=null && om>15)icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% reflects pricing power and operational efficiency. The hallmark of a high-quality business.');
+        if(rg!=null && rg>=5 && rg<30)icHtml+=bullet('Revenue growing '+pctF(rg)+' is sustainable territory '+EMDASH+' fast enough to compound, slow enough that the structure does not break.');
+        if(gm!=null && om!=null && (gm-om)<25)icHtml+=bullet('Gross margin '+gm.toFixed(1)+'% to operating margin '+om.toFixed(1)+'% is a tight gap '+EMDASH+' suggests disciplined SG&amp;A spending.');
+      }else{
+        icHtml+=header(String.fromCharCode(9678)+' Insufficient Data','var(--dim)');
+        icHtml+=bullet('Cannot compute regime-aware income statement commentary without sufficient quarterly data. Try a longer ticker history or load a historical demo.');
+      }
+      if(icHtml.length>200){icEl.innerHTML=icHtml;icEl.style.display='block';}else{icEl.style.display='none';}
+    }
+  }
+  // -------------------- BALANCE SHEET --------------------
+  var bcEl=document.getElementById('balanceCommentary');
+  if(bcEl){
+    var ta=gv(BS,'total_assets'); var gw=gv(BS,'goodwill'); var ltd=gv(BS,'long_term_debt'); var eq=gv(BS,'total_equity'); var wc=gv(BS,'working_capital'); var cash=gv(BS,'cash'); var de=gv(TM,'debt_to_equity'); var altz=gv(TM,'altman_z'); var re=gv(BS,'retained_earnings');
+    if(ta==null && eq==null){bcEl.style.display='none';}
+    else{
+      var bcHtml='';
+      if(hg){
+        bcHtml+=header(String.fromCharCode(9650)+' Balance Sheet During Phase Transition','var(--purple)');
+        if(cash!=null && cash>10000)bcHtml+=bullet('Cash position of '+fmt(cash)+' is the resilience buffer. Phase transitions are turbulent '+EMDASH+' a strong cash position lets the business absorb the volatility.');
+        if(de!=null && de<1)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' means the balance sheet has room to lever up if needed. The phase transition is being financed organically, not by debt.');
+      }else if(r.includes('bifurcating')){
+        bcHtml+=header(String.fromCharCode(9888)+' Balance Sheet Stress Markers','var(--red)');
+        if(wc!=null && wc<0)bcHtml+=bullet('Working capital of '+fmt(wc)+' is NEGATIVE '+EMDASH+' current liabilities exceed current assets. A short-term liquidity squeeze is the L1 cascade signal.');
+        if(gw!=null && ta!=null && (gw/ta)>0.30)bcHtml+=bullet('Goodwill of '+fmt(gw)+' is '+((gw/ta)*100).toFixed(0)+'% of total assets '+EMDASH+' acquired growth. If those acquisitions impair, equity collapses overnight (the WorldCom pattern).');
+        if(re!=null && re<0)bcHtml+=bullet('Retained earnings of '+fmt(re)+' is NEGATIVE '+EMDASH+' cumulative losses have wiped out years of prior earnings. Equity is being eaten from within.');
+        if(de!=null && de>2)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' is severely elevated. With operating stress visible elsewhere, debt service capacity is the next thing to fail.');
+        if(altz!=null && altz<1.81)bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is in the distress zone. Historically associated with bankruptcy within 2 years.');
+      }else if(r.includes('trans')){
+        bcHtml+=header(String.fromCharCode(9678)+' Balance Sheet Drift Points','var(--amber)');
+        if(de!=null && de>1)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' is rising into territory that limits flexibility. Watch for further increases as a regime confirmation signal.');
+        if(altz!=null && altz>=1.81 && altz<3)bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is in the grey zone '+EMDASH+' between distress and safe. Mixed signals.');
+      }else if(r.includes('regulated')){
+        bcHtml+=header(String.fromCharCode(10003)+' Strong Balance Sheet Profile','var(--green)');
+        if(altz!=null && altz>=3)bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is comfortably in the safe zone. Multi-factor financial health composite confirms structural soundness.');
+        if(de!=null && de<0.5)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' means the balance sheet is conservatively financed. Crisis resilience is built in.');
+        if(cash!=null && ltd!=null && cash>ltd)bcHtml+=bullet('Cash of '+fmt(cash)+' exceeds long-term debt of '+fmt(ltd)+' '+EMDASH+' the company could pay off all long-term debt today and still have cash on hand.');
+      }else{
+        bcHtml+=header(String.fromCharCode(9678)+' Insufficient Data','var(--dim)');
+        bcHtml+=bullet('Cannot compute balance sheet commentary without sufficient data.');
+      }
+      if(bcHtml.length>200){bcEl.innerHTML=bcHtml;bcEl.style.display='block';}else{bcEl.style.display='none';}
+    }
+  }
+  // -------------------- CASH FLOW --------------------
+  var ccEl=document.getElementById('cashCommentary');
+  if(ccEl){
+    var cfo=gv(CF,'cfo'); var fcf=gv(CF,'fcf'); var capex=gv(CF,'capex'); var fcfM=gv(CF,'fcf_margin'); var ni2=gv(IS,'net_income'); var rev2=gv(IS,'revenue');
+    if(cfo==null && fcf==null){ccEl.style.display='none';}
+    else{
+      var ccHtml='';
+      if(hg){
+        ccHtml+=header(String.fromCharCode(9650)+' Cash Flow Profile of a Hyper-Growth Phase','var(--purple)');
+        if(fcf!=null && fcf>10000)ccHtml+=bullet('Free cash flow of '+fmt(fcf)+' is the unmistakable signal that the phase transition is real. Loss-making hyper-growth is one thing; profitable hyper-growth is another category entirely.');
+        if(fcfM!=null && fcfM>20)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% is in the very top decile of public companies. Each dollar of revenue is producing real cash.');
+      }else if(r.includes('bifurcating')){
+        ccHtml+=header(String.fromCharCode(9888)+' Cash Flow Stress Indicators','var(--red)');
+        if(cfo!=null && cfo<0)ccHtml+=bullet('Operating cash flow of '+fmt(cfo)+' is NEGATIVE '+EMDASH+' the core business is consuming cash, not generating it. Without external funding, this trajectory ends in bankruptcy.');
+        if(fcf!=null && fcf<0)ccHtml+=bullet('Free cash flow of '+fmt(fcf)+' confirms the L1 stress. Even if accounting earnings look acceptable, the cash story is unambiguous.');
+        if(cfo!=null && fcf!=null && ni2!=null && ni2>0 && cfo>0 && fcf<(cfo*0.2)){ccHtml+=bullet('CFO of '+fmt(cfo)+' but FCF of only '+fmt(fcf)+' '+EMDASH+' the gap is going into capital expenditure that may include misclassified operating expenses (the WorldCom $3.8B capitalization fingerprint).');}
+        if(fcf!=null && ni2!=null && ni2>0 && (fcf/ni2)<0.3)ccHtml+=bullet('FCF/Net Income ratio of '+(fcf/ni2).toFixed(2)+' '+EMDASH+' reported earnings are not converting to cash. Healthy companies typically run 0.7'+ENDASH+'1.2x.');
+      }else if(r.includes('trans')){
+        ccHtml+=header(String.fromCharCode(9678)+' Cash Flow Trends Worth Watching','var(--amber)');
+        if(fcfM!=null && fcfM<10 && fcfM>0)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% is positive but thin. Below the 15% quality threshold. Compression here often precedes a regime break.');
+      }else if(r.includes('regulated')){
+        ccHtml+=header(String.fromCharCode(10003)+' High-Quality Cash Generation','var(--green)');
+        if(fcfM!=null && fcfM>15)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% places this firmly in the high-quality business category. Compounding free cash flow is the closest thing to a financial superpower.');
+        if(fcf!=null && ni2!=null && ni2>0 && (fcf/ni2)>=0.7)ccHtml+=bullet('FCF/Net Income of '+(fcf/ni2).toFixed(2)+' confirms reported earnings are real economic earnings '+EMDASH+' clean accounting, no manipulation.');
+      }else{
+        ccHtml+=header(String.fromCharCode(9678)+' Insufficient Data','var(--dim)');
+        ccHtml+=bullet('Cannot compute cash flow commentary without sufficient data.');
+      }
+      if(ccHtml.length>200){ccEl.innerHTML=ccHtml;ccEl.style.display='block';}else{ccEl.style.display='none';}
+    }
+  }
+}
 function renderCharts(d){
   destroyCharts();
   var isc=d.isc||{},IS=d.income_statement||{},CF=d.cash_flow||{},MKT=d.market||{};
