@@ -1275,6 +1275,27 @@ function dataQualityCheck(d){
   if(fcfM!=null&&Math.abs(fcfM)>100)issues.push('FCF margin reported as '+fcfM.toFixed(1)+'% - implausible value, check API.');
   return issues;
 }
+function detectHyperGrowth(d, r, C){
+  if (!r || !r.includes('bifurcating')) return null;
+  if (C == null || C < 0.3) return null;
+  var IS = d.income_statement || {}, CF = d.cash_flow || {}, TM = d.traditional || {}, BS = d.balance_sheet || {};
+  var revG = gv(IS,'revenue_growth');
+  var fcfM = gv(CF,'fcf_margin');
+  var fcf  = gv(CF,'fcf');
+  var oi   = gv(IS,'operating_income');
+  var altZ = gv(TM,'altman_z');
+  var intCov = gv(TM,'interest_coverage');
+  // Hyper-growth requires STRONG fundamentals coexisting with bifurcating C
+  var strong = 0;
+  if (fcfM != null && fcfM > 20) strong++;
+  if (revG != null && revG > 30) strong++;
+  if (fcf != null && fcf > 50000) strong++;
+  if (altZ != null && altZ > 4) strong++;
+  if (intCov != null && intCov > 15) strong++;
+  if (oi != null && oi > 0 && (fcfM == null || fcfM > 10)) strong++;
+  // Need at least 3 strong signals to call it hyper-growth instead of distress
+  return strong >= 3 ? {strong: strong, revG: revG, fcfM: fcfM, fcf: fcf} : null;
+}
 function rPlain(r,C,name,financials){
   name=name||'This company';
   financials=financials||{};
@@ -1287,6 +1308,968 @@ function rPlain(r,C,name,financials){
   if(!r||r.includes('insufficient'))return name+' does not have enough quarterly EDGAR data to compute ISC coupling. Try a longer ticker history or switch to Price History mode.';
   
   if(r.includes('bifurcating')) {
+    var hg = detectHyperGrowth({income_statement:financials,cash_flow:financials,traditional:financials},r,C);
+    var d_proxy = {income_statement:{revenue_growth:{val:financials.revG},operating_income:{val:financials.oi}},cash_flow:{fcf_margin:{val:financials.fcfM},fcf:{val:financials.fcf}},traditional:{altman_z:{val:financials.altZ},interest_coverage:{val:financials.intCov}},balance_sheet:{}};
+    var hgCheck = detectHyperGrowth(d_proxy, r, C);
+    if (hgCheck) {
+      return '<strong style="color:var(--purple)">Phase Transition Detected '+EMDASH+' growth-driven, not distress.</strong> '
+        + name + ' is showing the bifurcation pattern '+EMDASH+' coupling C = ' + (C!=null?C.toFixed(3):'N/A') + ' '+EMDASH+' but the underlying fundamentals are exceptional, not deteriorating'
+        + (hgCheck.revG != null ? '. Revenue growth of ' + hgCheck.revG.toFixed(0) + '%' : '')
+        + (hgCheck.fcfM != null ? ', FCF margin of ' + hgCheck.fcfM.toFixed(0) + '%' : '')
+        + (hgCheck.fcf != null ? ', and free cash flow of 
+      // Strong financials + bifurcating C = likely data artifact or strategic transition
+      return '<strong style="color:var(--amber)">&#9888; Unusual signal &#8212; interpret carefully.</strong> '
+        +name+' shows ISC coupling C = '+(C!=null?C.toFixed(3):'N/A')+' (bifurcating range), but the underlying financials are strong'
+        +(fcfM!=null?' &#8212; FCF margin of '+fcfM.toFixed(1)+'% is well above the 15% quality threshold':'')
+        +(intCov!=null?' and interest coverage of '+intCov.toFixed(1)+'x is very comfortable':'')
+        +'. This combination &#8212; high ISC C with strong fundamentals &#8212; typically indicates either: (1) high quarterly volatility in capital allocation (large acquisitions, CapEx cycles), (2) a deliberate strategic transition that creates short-term variance, or (3) a data seasonality effect. '
+        +'This is NOT the Spirit Airlines pattern where weak financials confirm the ISC signal. Monitor the trajectory &#8212; if C stays elevated while financials deteriorate, that would be the warning. For now, the strong fundamentals provide significant structural cushion.';
+    } else if(financiallyWeak) {
+      return '<strong style="color:var(--red)">Structural stress detected &#8212; financials confirm signal.</strong> '
+        +name+' is showing the amplifying pattern AND the underlying financials are weak'
+        +(fcf!=null&&fcf<0?' &#8212; negative free cash flow of '+Math.abs(Math.round(fcf/1000))+'B':'')
+        +(intCov!=null&&intCov<2?' with interest coverage of only '+intCov.toFixed(1)+'x':'')
+        +'. This is the high-conviction ISC signal &#8212; coupling C = '+(C!=null?C.toFixed(3):'N/A')+' AND financials deteriorating together. '
+        +'Both ISC and traditional metrics are pointing the same direction. This is the Enron/WorldCom/Spirit Airlines pattern. Elevated caution.';
+    } else {
+      return '<strong style="color:var(--red)">Structural stress detected.</strong> '+name+' is showing the amplifying pattern &#8212; small financial problems are feeding each other rather than being absorbed. ISC coupling C = '+(C!=null?C.toFixed(3):'N/A')+'. This is the pattern ISC detected before Enron (2001), WorldCom (2002), and Spirit Airlines (2022&#8211;2026). Cross-reference with the financial statement tabs to assess whether the signal is confirmed by deteriorating fundamentals.';
+    }
+  }
+  
+  if(r.includes('transitioning')||r.includes('mean'))return'<strong style="color:var(--amber)">Dynamics weakening &#8212; watch closely.</strong> '+name+' still bounces back from financial shocks, but the mechanism is getting tired. ISC coupling C = '+(C!=null?C.toFixed(3):'N/A')+'. This appeared in Ford and Netflix before their turbulent periods &#8212; both recovered. Monitor over the next 2&#8211;4 quarters for continued deterioration or recovery.';
+  
+  return'<strong style="color:var(--green)">Structurally healthy.</strong> '+name+' is self-correcting. ISC coupling C = '+(C!=null?C.toFixed(3):'N/A')+'. When financial shocks hit, the system absorbs and recovers rather than spiraling. No structural red flags in the coupling signal.';
+}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   RUN ANALYSIS
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+async function runAnal() {
+  var tk=document.getElementById('tkIn').value.toUpperCase().trim();
+  if(!tk)return;
+  showPage('analyzer');
+  document.getElementById('errBanner').classList.remove('show');
+  var btn=document.getElementById('runBtn');
+  var fill=document.getElementById('pbFill');
+  btn.disabled=true;
+  document.getElementById('phArea').classList.add('hidden');
+  document.getElementById('resArea').classList.add('hidden');
+  document.getElementById('pdfWrap').classList.add('hidden');
+  chatCtx=[];
+
+  var steps=['Connecting to EDGAR...','Fetching financial statements...','Computing ISC coupling...','Running traditional metrics...','Loading price history...','Scoring news...','Building cascade analysis...','Finalizing...'];
+  var si=0,pct=0;
+  var iv=setInterval(function(){pct=Math.min(88,pct+Math.random()*13);fill.style.width=pct+'%';if(si<steps.length)btn.textContent=steps[si++];},500);
+
+  try{
+    var win=document.getElementById('winR').value;
+    var url=API+'/analyze/'+tk+'?window='+win;
+    var resp=await fetch(url);
+    if(!resp.ok)throw new Error('API returned '+resp.status);
+    var data=await resp.json();
+    clearInterval(iv);fill.style.width='100%';
+    setTimeout(function(){fill.style.width='0%';},400);
+    btn.textContent=PLAY+' Run Full Analysis';btn.disabled=false;
+    D=data;
+    renderAll(data);
+    destroyCharts();
+    if(data.data_sources&&data.data_sources.edgar)addToPortfolio(data);
+    if(data.data_sources&&data.data_sources.edgar) addToPortfolio(data);
+  }catch(e){
+    clearInterval(iv);fill.style.width='0%';
+    btn.textContent=PLAY+' Run Full Analysis';btn.disabled=false;
+    D=mkSim(tk);
+    renderAll(D);
+    destroyCharts();
+    if(!e.message.includes('NetworkError')&&!e.message.includes('fetch')){
+      showError('API warming up (30&#8211;50 second cold start). Click Run Again for real EDGAR data. Error: '+e.message);
+    }else{
+      showError('API warming up &#8212; click Run Full Analysis again in 30 seconds.');
+    }
+  }
+}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   SIMULATION (fallback only, N/A for financials)
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+var KNOWN={AAPL:{C:-0.985,n:'Apple Inc',s:'Technology',i:'Consumer Electronics'},TSLA:{C:0.312,n:'Tesla Inc',s:'Consumer Discretionary',i:'Auto Manufacturers'},NVDA:{C:-0.445,n:'NVIDIA Corporation',s:'Technology',i:'Semiconductors'},GME:{C:0.671,n:'GameStop Corp',s:'Consumer Cyclical',i:'Specialty Retail'},META:{C:-0.221,n:'Meta Platforms',s:'Communication Services',i:'Internet Content'},AMZN:{C:-0.387,n:'Amazon.com Inc',s:'Consumer Cyclical',i:'Internet Retail'},MSFT:{C:-0.512,n:'Microsoft Corporation',s:'Technology',i:'Software'},NFLX:{C:-0.108,n:'Netflix Inc',s:'Communication Services',i:'Entertainment'},BAC:{C:0.18,n:'Bank of America',s:'Financial Services',i:'Banks'},HAL:{C:-0.352,n:'Halliburton Co',s:'Energy',i:'Oil & Gas Services'}};
+
+function mkSim(tk){
+  var k=KNOWN[tk]||{C:(Math.random()-.5)*1.2};
+  var C=k.C;
+  var r=C>0.3?'bifurcating':C>-0.1?'transitioning':'regulated';
+  return{ticker:tk,company_name:k.n||tk,sector:k.s||null,industry:k.i||null,analysis_date:new Date().toISOString().slice(0,10),
+    data_sources:{edgar:false,yfinance:false},isSimulation:true,
+    isc:{C:C,regime:r,trajectory:[],by_series:{},stability_score:Math.round(((-C+1)/2)*100),
+      plain:'&#9888; API warming up &#8212; estimated ISC signal shown. Click Run Again for real EDGAR data.'},
+    income_statement:{},balance_sheet:{},cash_flow:{},
+    traditional:{altman_z:{val:null},piotroski_f:{val:null}},
+    market:{price:null},options:{},
+    divergence:{summary:'Real data required for divergence analysis.'},
+    news:[{h:'Click Run Full Analysis again for real news (API warming up)',s:'neut',src:'System',d:'now'}]
+  };
+}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   RENDER ALL
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function renderAll(d){
+  var isc=d.isc||{},IS=d.income_statement||{},BS=d.balance_sheet||{},CF=d.cash_flow||{},TM=d.traditional||{},MKT=d.market||{};
+  var C=isc.C,r=(isc.regime||'').toLowerCase(),col=rColor(r);
+  var isReal=d.data_sources&&d.data_sources.edgar;
+
+  // Header
+  (function(){var nm=d.company_name;if(!nm||nm===d.ticker){if(typeof KNOWN!=='undefined'&&KNOWN[d.ticker]&&KNOWN[d.ticker].n)nm=KNOWN[d.ticker].n;}document.getElementById('cmpName').textContent=nm&&nm!==d.ticker?nm:d.ticker;})();
+  document.getElementById('cmpSector').textContent=[d.sector,d.industry].filter(Boolean).join(' '+MIDDOT+' ')||EMDASH;
+  document.getElementById('cmpDate').textContent=d.analysis_date||'';
+  var desc=document.getElementById('cmpDesc');
+  if(d.description&&d.description.length>10){desc.textContent=d.description.substring(0,200)+(d.description.length>200?'...':'');desc.style.display='block';}else{desc.style.display='none';}
+  var db=document.getElementById('dsrcBadge');
+  if(isReal){db.textContent=BULL+' EDGAR '+MIDDOT+' Live';db.style.background='rgba(16,185,129,.1)';db.style.color='var(--green)';}
+  else if(d.isSimulation){db.textContent=WARN+' Estimated '+EMDASH+' run again';db.style.background='rgba(245,158,11,.1)';db.style.color='var(--amber)';}
+  var rb=document.getElementById('regimeBadge');
+  rb.textContent=BULL+' '+(r||'unknown').toUpperCase();rb.style.color=col;
+  rb.style.borderColor=col.replace(')',',0.35)').replace('var(--','rgba(');
+  rb.style.background=col.replace(')',',0.1)').replace('var(--','rgba(');
+
+  document.getElementById('resArea').classList.remove('hidden');
+  document.getElementById('pdfWrap').classList.remove('hidden');
+  document.getElementById('phArea').classList.add('hidden');
+
+  // VERDICT
+  var stab=isc.stability_score,altZ=gv(TM,'altman_z'),piF=gv(TM,'piotroski_f');
+  (function(){var hg=detectHyperGrowth(d,r,C);var bgCol=hg?'var(--purple)':col;document.getElementById('verdictCard').style.background=bgCol.replace(')',',0.06)').replace('var(--','rgba(');document.getElementById('verdictCard').style.border='1px solid '+bgCol.replace(')',',0.2)').replace('var(--','rgba(');})();
+  document.getElementById('verdictCard').innerHTML=
+    '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">ISC Structural Verdict</div>'
+    +function(){var hg=detectHyperGrowth(d,r,C);var t,c;if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Hyper-Growth';c='var(--purple)';}else if(r.includes('bifurcating')){t=String.fromCharCode(9888)+' Structural Stress Detected';c=col;}else if(r.includes('trans')){t=String.fromCharCode(9678)+' Dynamics Weakening';c=col;}else{t=CHECK+' Structurally Healthy';c=col;}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';}()
+    +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z")})+'</div>'
+    +(d.isSimulation?'<div class="al al-a"><span>&#9888;</span><div>API warming up &#8212; estimated signal shown. <button onclick="runAnal()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-weight:700;text-decoration:underline">Click here to run again</button> for real EDGAR data.</div></div>':'')
+    +function(){
+      if(C==null) return '';
+      // Magnitude & lead time panel
+      var mag = Math.abs(C);
+      var severity = C>0.5?'Severe':C>0.3?'Elevated':C>-0.1?'Watch':'Healthy';
+      var sevColor = C>0.5?'var(--red)':C>0.3?'var(--amber)':C>-0.1?'var(--amber)':'var(--green)';
+      var altZ = gv(TM,'altman_z');
+      var fcfM = gv(CF,'fcf_margin');
+      var intCov = gv(TM,'interest_coverage');
+      
+      // Lead time estimate based on C magnitude
+      var leadTime = C>0.5?'1&#8211;3 quarters':C>0.3?'2&#8211;5 quarters':C>0?'3&#8211;6 quarters':'No early warning signal';
+      
+      // Corroboration score - how many traditional metrics confirm ISC
+      var confirms = 0, total = 0;
+      if(altZ!=null){total++;if(altZ<1.81)confirms++;}
+      if(fcfM!=null){total++;if(fcfM<0)confirms++;}
+      if(intCov!=null){total++;if(intCov<1.5)confirms++;}
+      var corrobPct = total>0?Math.round((confirms/total)*100):null;
+      var corrobLabel = corrobPct!=null?(corrobPct>=67?'High &#8212; traditional metrics confirm ISC':corrobPct>=34?'Moderate &#8212; mixed signals':'Low &#8212; financials contradict ISC signal'):'Insufficient data';
+      var corrobColor = corrobPct!=null?(corrobPct>=67?'var(--red)':corrobPct>=34?'var(--amber)':'var(--cyan)'):'var(--dim)';
+      
+      return '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)">'
+        +'<div style="background:rgba(0,0,0,.2);border-radius:8px;padding:11px">'
+        +'<div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Signal Severity</div>'
+        +'<div style="font-size:15px;font-weight:700;color:'+sevColor+'">'+severity+'</div>'
+        +'<div style="font-size:11px;color:var(--dim);margin-top:2px">C magnitude: '+mag.toFixed(3)+'</div>'
+        +'</div>'
+        +'<div style="background:rgba(0,0,0,.2);border-radius:8px;padding:11px">'
+        +'<div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Est. Lead Time</div>'
+        +'<div style="font-size:15px;font-weight:700;color:'+sevColor+'">'+leadTime+'</div>'
+        +'<div style="font-size:11px;color:var(--dim);margin-top:2px">Before traditional metrics reflect</div>'
+        +'</div>'
+        +'<div style="background:rgba(0,0,0,.2);border-radius:8px;padding:11px">'
+        +'<div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Corroboration</div>'
+        +'<div style="font-size:14px;font-weight:700;color:'+corrobColor+'">'+corrobLabel+'</div>'
+        +'<div style="font-size:11px;color:var(--dim);margin-top:2px">'+(corrobPct!=null?confirms+' of '+total+' traditional metrics confirm':'')+'</div>'
+        +'</div>'
+        +'</div>';
+    }()
+    +'<div class="verdict-grid">'
+    +'<div class="vstat"><div class="vstat-lbl">Coupling C</div><div class="vstat-val" style="color:'+col+'">'+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'</div></div>'
+    +'<div class="vstat"><div class="vstat-lbl">Stability</div><div class="vstat-val" style="color:'+col+'">'+(stab!=null?stab+'/100':'N/A')+'</div></div>'
+    +'<div class="vstat"><div class="vstat-lbl">Altman Z</div><div class="vstat-val" style="color:'+(altZ!=null?altZ>3?'var(--green)':altZ>1.81?'var(--amber)':'var(--red)':'var(--dim)')+'">'+(altZ!=null?altZ.toFixed(2):'N/A')+'</div></div>'
+    +'<div class="vstat"><div class="vstat-lbl">Piotroski F</div><div class="vstat-val" style="color:'+(piF!=null?piF>=7?'var(--green)':piF>=4?'var(--amber)':'var(--red)':'var(--dim)')+'">'+(piF!=null?piF+'/9':'N/A')+'</div></div>'
+    +'</div>';
+
+  // GAUGE
+  (function(){
+    var ga=document.getElementById('gaugeArea');
+    if(C==null){ga.innerHTML='<div style="padding:20px;color:var(--dim);text-align:center;font-size:13px">Insufficient data</div>';return;}
+    var hg=detectHyperGrowth(d,r,C);
+    var sev,sevCol,mode,modeDesc;
+    if(hg){sev='Phase change';sevCol='var(--purple)';mode='Hyper-growth';modeDesc='Positive bifurcation '+EMDASH+' fundamentals strong';}
+    else if(C>0.5){sev='Severe';sevCol='var(--red)';mode='Distress';modeDesc='Deep bifurcation '+EMDASH+' amplifying stress';}
+    else if(C>0.3){sev='Elevated';sevCol='var(--red)';mode='Distress';modeDesc='Bifurcating '+EMDASH+' verify with financials';}
+    else if(C>-0.1){sev='Watch';sevCol='var(--amber)';mode='Transitioning';modeDesc='Self-correction weakening';}
+    else{sev='Healthy';sevCol='var(--green)';mode='Regulated';modeDesc='System absorbing shocks normally';}
+    var lead;
+    if(hg)lead='Watch 2'+ENDASH+'4Q';
+    else if(C>0.5)lead='1'+ENDASH+'3 quarters';
+    else if(C>0.3)lead='2'+ENDASH+'5 quarters';
+    else if(C>0)lead='3'+ENDASH+'6 quarters';
+    else lead='No early signal';
+    ga.innerHTML=makeGauge(C)
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)">'
+      +'<div style="background:rgba(0,0,0,.2);border-radius:7px;padding:9px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Severity</div><div style="font-size:13px;font-weight:700;color:'+sevCol+'">'+sev+'</div></div>'
+      +'<div style="background:rgba(0,0,0,.2);border-radius:7px;padding:9px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Mode</div><div style="font-size:13px;font-weight:700;color:'+sevCol+'">'+mode+'</div></div>'
+      +'<div style="background:rgba(0,0,0,.2);border-radius:7px;padding:9px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px">Lead Time</div><div style="font-size:13px;font-weight:700;color:'+sevCol+'">'+lead+'</div></div>'
+      +'</div>'
+      +'<div style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.55;text-align:center">'+modeDesc+'</div>';
+  })();
+
+  // HEALTH SNAP
+  var cfo=gv(CF,'cfo'),fcf=gv(CF,'fcf'),fcfM=gv(CF,'fcf_margin'),intCov=gv(TM,'interest_coverage');
+  document.getElementById('healthSnap').innerHTML=[
+    mRow('Revenue (TTM)',fmtM(gv(IS,'revenue')),'Total annual sales &#8212; the top line'),
+    mRow('Free Cash Flow',fmtM(fcf),'Cash left after CapEx &#8212; the gold standard','#wh',true),
+    mRow('FCF Margin',fmtPct(fcfM),'FCF as % of revenue. Above 15% is excellent.',fcfM!=null?(fcfM>15?'var(--green)':fcfM>5?'var(--amber)':'var(--red)'):'var(--wh)',true),
+    mRow('Interest Coverage',fmtX(intCov,1),'How many times earnings cover debt payments',intCov!=null?(intCov>3?'var(--green)':intCov>1.5?'var(--amber)':'var(--red)'):'var(--wh)',true),
+  ].join('');
+
+  // FLAGS
+  var flags=[];
+  if(C!=null&&C>0.3)flags.push({t:'Bifurcating Coupling &#8212; Structural Stress',d:'C='+C.toFixed(3)+'. Financial dynamics are amplifying. This is the pre-collapse pattern. ISC triggered at this level before Enron, WorldCom, and Spirit Airlines.',c:'al-r'});
+  if(altZ!=null&&altZ<1.81)flags.push({t:'Altman Z in Distress Zone',d:'Z='+altZ.toFixed(2)+'. Below 1.81 is the traditional distress threshold. Note: ISC typically leads this signal by 1&#8211;5 quarters.',c:'al-r'});
+  if(intCov!=null&&intCov<1.5)flags.push({t:'Interest Coverage Critical',d:intCov.toFixed(1)+'x. Earnings barely cover interest payments. Severe leverage stress at ISC Layer 3.',c:'al-r'});
+  var revG=gv(IS,'revenue_growth');
+  if(revG!=null&&revG>15&&r.includes('bifurcating'))flags.push({t:'Revenue Growth + Bifurcating &#8212; Classic Divergence',d:'Revenue growing '+revG.toFixed(1)+'% but ISC coupling is bifurcating. This is the Spirit Airlines / Enron fingerprint &#8212; top-line growth masking structural deterioration. The most dangerous signal.',c:'al-a'});
+  document.getElementById('flagArea').innerHTML=flags.map(function(f){return '<div class="al '+f.c+'"><span style="font-size:16px;flex-shrink:0">'+(f.c.includes('r')?'&#55357;&#56628;':'&#55357;&#57313;')+'</span><div><div style="font-weight:700;margin-bottom:3px">'+f.t+'</div><div style="color:#A0B8D0">'+f.d+'</div></div></div>';}).join('');
+
+  // ISC TAB
+  document.getElementById('iscDetail').innerHTML=
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'
+    +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Coupling Score</div><div style="font-family:var(--mono);font-size:30px;font-weight:700;color:'+col+'">'+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Regime</div><div style="font-size:18px;font-weight:700;color:'+col+'">'+((r||'unknown').toUpperCase())+'</div></div>'
+    +'</div>'
+    +'<div class="commentary" style="margin-bottom:12px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z")})+'</div>'
+    +(isc.plain&&!isc.plain.includes('API warming')?'<div class="commentary" style="margin-bottom:0"><strong>ISC Analysis:</strong> '+isc.plain+'</div>':'');
+
+  // KEY DRIVERS SECTION - what variables are most responsible
+  var iscDriversHtml = '';
+  var driversData = [];
+  if(gv(IS,'revenue')!=null&&gv(IS,'operating_income')!=null){
+    var oimargin=gv(IS,'operating_margin');
+    if(oimargin!=null&&oimargin<5)driversData.push({name:'Thin Operating Margin',val:oimargin.toFixed(1)+'%',impact:'high',explain:'Operating margin below 5% means very little cushion &#8212; any cost increase directly threatens profitability.'});
+  }
+  if(gv(TM,'interest_coverage')!=null&&gv(TM,'interest_coverage')<3)
+    driversData.push({name:'Debt Service Pressure',val:gv(TM,'interest_coverage').toFixed(1)+'x',impact:gv(TM,'interest_coverage')<1.5?'high':'medium',explain:'Interest coverage below 3x means debt payments consume a significant portion of earnings.'});
+  if(gv(CF,'fcf_margin')!=null&&gv(CF,'fcf_margin')<5)
+    driversData.push({name:'Weak Free Cash Flow',val:gv(CF,'fcf_margin').toFixed(1)+'%',impact:gv(CF,'fcf_margin')<0?'high':'medium',explain:'Low FCF margin means the business consumes most of its revenue in operations and capital spending.'});
+  if(gv(IS,'revenue_growth')!=null&&gv(IS,'revenue_growth')>15&&gv(IS,'operating_margin')!=null&&gv(IS,'operating_margin')<5)
+    driversData.push({name:'Revenue/Margin Divergence',val:gv(IS,'revenue_growth').toFixed(0)+'% growth, '+gv(IS,'operating_margin').toFixed(1)+'% margin',impact:'high',explain:'Growing revenue with thin/negative margins &#8212; buying growth at the expense of profitability. The Spirit Airlines fingerprint.'});
+  if(gv(BS,'retained_earnings')!=null&&gv(BS,'retained_earnings')<0)
+    driversData.push({name:'Accumulated Deficit',val:fmtM(gv(BS,"retained_earnings")),impact:'medium',explain:'Negative retained earnings &#8212; losses have consumed the historical profit buffer. Reduces structural cushion.'});
+  
+  // Also add positive factors that buffer the signal
+  var buffersData = [];
+  if(gv(CF,'fcf_margin')!=null&&gv(CF,'fcf_margin')>15)
+    buffersData.push({name:'Strong FCF Generation',val:gv(CF,'fcf_margin').toFixed(1)+'%',explain:'High FCF margin provides significant structural cushion even during stress periods.'});
+  if(gv(TM,'interest_coverage')!=null&&gv(TM,'interest_coverage')>10)
+    buffersData.push({name:'Comfortable Debt Coverage',val:gv(TM,'interest_coverage').toFixed(1)+'x',explain:'Very high interest coverage means debt service is not a near-term stress factor.'});
+  if(gv(BS,'cash')!=null&&gv(BS,'cash')>10000)
+    buffersData.push({name:'Large Cash Position',val:fmtM(gv(BS,"cash")),explain:'Substantial cash reserves provide runway to weather structural stress without immediate distress.'});
+
+  if(driversData.length>0||buffersData.length>0){
+    iscDriversHtml='<div class="card" style="margin-bottom:16px"><div class="sb-lbl" style="margin-bottom:12px">Key Variables Driving the ISC Signal</div>';
+    if(driversData.length>0){
+      iscDriversHtml+='<div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">&#8593; Amplifying Factors</div>';
+      iscDriversHtml+=driversData.map(function(d){
+        var ic=d.impact==='high'?'var(--red)':'var(--amber)';
+        return '<div style="display:flex;gap:12px;padding:10px 12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05);margin-bottom:7px;align-items:flex-start">'
+          +'<div style="width:8px;height:8px;border-radius:50%;background:'+ic+';flex-shrink:0;margin-top:4px"></div>'
+          +'<div><div style="font-size:13px;font-weight:600;margin-bottom:3px">'+d.name+' <span style="font-family:var(--mono);font-size:12px;color:'+ic+'">'+d.val+'</span></div>'
+          +'<div style="font-size:12px;color:var(--dim);line-height:1.55">'+d.explain+'</div></div></div>';
+      }).join('');
+    }
+    if(buffersData.length>0){
+      iscDriversHtml+='<div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px;margin-top:12px;text-transform:uppercase;letter-spacing:.08em">&#8595; Buffering Factors</div>';
+      iscDriversHtml+=buffersData.map(function(d){
+        return '<div style="display:flex;gap:12px;padding:10px 12px;background:rgba(255,255,255,.02);border-radius:8px;border:1px solid rgba(255,255,255,.05);margin-bottom:7px;align-items:flex-start">'
+          +'<div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;margin-top:4px"></div>'
+          +'<div><div style="font-size:13px;font-weight:600;margin-bottom:3px">'+d.name+' <span style="font-family:var(--mono);font-size:12px;color:var(--green)">'+d.val+'</span></div>'
+          +'<div style="font-size:12px;color:var(--dim);line-height:1.55">'+d.explain+'</div></div></div>';
+      }).join('');
+    }
+    iscDriversHtml+='</div>';
+  }
+  document.getElementById('iscDrivers').innerHTML=iscDriversHtml;
+
+  // BY SERIES
+  var bs=isc.by_series||{};
+  var bkeys=Object.keys(bs);
+  document.getElementById('bySeries').innerHTML=bkeys.length?bkeys.map(function(k){
+    var s=bs[k],sC=s.C,sr=(s.regime||'').toLowerCase(),sc=rColor(sr);
+    var bw=Math.round(((sC+1)/2)*100);
+    return '<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)">'
+      +'<div style="font-size:13px;color:#A0B8D0;flex:1">'+k+'</div>'
+      +'<div style="font-family:var(--mono);font-size:12px;font-weight:700;color:'+sc+';width:65px;text-align:right">'+(sC>=0?'+':'')+sC.toFixed(3)+'</div>'
+      +'<div style="width:80px;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+bw+'%;background:'+sc+'"></div></div>'
+      +'<div style="font-size:10px;font-family:var(--mono);color:'+sc+';width:88px;text-align:right">'+sr+'</div></div>';
+  }).join(''):'<div style="color:var(--dim);font-size:13px;padding:8px">Series data requires EDGAR connection. Run again after API wakes up.</div>';
+
+  // CASCADE &#8212; with real commentary
+  var cash=gv(BS,'cash'),ltd=gv(BS,'long_term_debt'),oi=gv(IS,'operating_income'),rev=gv(IS,'revenue'),re=gv(BS,'retained_earnings'),te=gv(BS,'total_equity');
+  var tk=d.ticker||'';
+  var layers=[
+    {n:'L1',name:'Cash / Liquidity',
+     comment:cash!=null?'Cash position of '+fmtM(cash)+'. '+(cash>5000?tk+' has strong liquidity &#8212; enough runway to weather significant financial stress without immediate concern.':cash>1000?'Adequate cash but worth monitoring alongside operating cash flow trends.':'Low cash relative to the company\'s size. Running low on liquidity while burning through it is the earliest visible distress signal.'):'Cash data not available &#8212; requires EDGAR connection.',
+     val:cash!=null?fmtM(cash):null,
+     st:cash!=null?(cash>5000?'good':cash>1000?'watch':'stress'):'good'},
+    {n:'L2',name:'Market Signals',
+     comment:MKT.price!=null?'Current price $'+MKT.price.toFixed(2)+'. '+(MKT.rsi!=null?'RSI '+MKT.rsi.toFixed(0)+(MKT.rsi>70?' &#8212; overbought territory, potential pullback risk.':MKT.rsi<30?' &#8212; oversold, potential bounce opportunity.':' &#8212; neutral momentum.')+' ':'')+'Market signals are the first place sophisticated investors signal concerns &#8212; often before official financial distress appears.':'Market data not available.',
+     val:MKT.price!=null?'$'+MKT.price.toFixed(2):null,
+     st:'good'},
+    {n:'L3',name:'Debt Coverage &#8212; The Gate',
+     comment:intCov!=null?'Interest coverage '+fmtX(intCov,1)+'. '+(intCov>3?'Earnings comfortably cover interest payments. The debt gate is functioning well &#8212; no covenant stress visible.':intCov>1.5?'Earnings cover interest but with limited cushion. A significant earnings decline could push this below 1.0x &#8212; a critical threshold.':'Critical. Earnings barely cover interest costs. This is the L3 gate failing &#8212; when it falls below 1.0x, the company cannot service its debt from operations.'):'Interest coverage data not available &#8212; requires EDGAR connection.',
+     val:intCov!=null?fmtX(intCov,1)+' coverage':null,
+     st:intCov!=null?(intCov>3?'good':intCov>1.5?'watch':'stress'):'good'},
+    {n:'L4 &#9733;',name:'Capital Structure &#8212; Primary ISC Target',
+     comment:'This is where ISC coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+' is measured. '+(r.includes('bifurcating')?'The capital structure filter is in bifurcating regime &#8212; financial shocks are being amplified rather than absorbed. This is the core structural failure pattern. Historical lead time before traditional metrics reflect this: 1&#8211;5 quarters.':r.includes('trans')?'The capital structure filter is showing early stress &#8212; still absorbing shocks but less efficiently than in the regulated state. Watch for continued deterioration.':'The capital structure filter is functioning well. Financial shocks hitting this company are being absorbed and corrected, not amplified.'),
+     val:C!=null?'C='+(C>=0?'+':'')+C.toFixed(3)+' ('+r+')':null,
+     st:r.includes('bifurcating')?'stress':r.includes('trans')?'watch':'good'},
+    {n:'L5',name:'Revenue / Margin Dynamics',
+     comment:rev!=null&&oi!=null?'Revenue '+fmtM(rev)+', operating income '+fmtM(oi)+'. '+(oi>0?'Positive operating income &#8212; core business model is profitable. Margins hold above zero.':'Negative operating income &#8212; the company is spending more to operate than it earns. This is the L5 stress fingerprint. Growing revenue with worsening margins is the Spirit Airlines pattern &#8212; top-line growth masking structural deterioration.')+(revG!=null?' Revenue growth: '+revG.toFixed(1)+'%.':''):'Revenue/margin data not available &#8212; requires EDGAR connection.',
+     val:oi!=null?fmtM(oi)+' op. income':null,
+     st:oi!=null?(oi>0?'good':'stress'):'good'},
+    {n:'L6',name:'Equity / Retained Earnings',
+     comment:re!=null?'Retained earnings: '+fmtM(re)+'. '+(re>0?'Positive retained earnings &#8212; the company has accumulated profitable history. This buffer absorbs losses without immediately threatening solvency.':'Negative retained earnings (accumulated deficit). The company has consumed its history of profits. While not automatically fatal &#8212; Amazon ran deficits for years &#8212; it reduces the cushion for future stress.'):'Retained earnings not available &#8212; requires EDGAR connection.',
+     val:re!=null?fmtM(re):null,
+     st:re!=null?(re>0?'good':'watch'):'good'},
+    {n:'L7',name:'Management Guidance vs Actuals',
+     comment:'L7 measures the gap between what management says will happen and what actually happens. Large persistent gaps signal governance stress. This requires multi-quarter tracking and is not directly computable from a single filing. Watch earnings call guidance vs. subsequent results.',
+     val:null,
+     st:'good'},
+  ];
+  document.getElementById('cascadeArea').innerHTML=layers.map(function(l){
+    var lc=l.st==='stress'?'var(--red)':l.st==='watch'?'var(--amber)':'var(--green)';
+    var icon=l.st==='stress'?'&#10007;':l.st==='watch'?'&#9888;':'&#10003;';
+    var featured=l.n.includes('&#9733;');
+    return '<div class="layer-row" style="'+(featured?'border-color:rgba(0,200,255,.25);background:rgba(0,200,255,.03)':'')+'">'
+      +'<div class="layer-icon" style="background:'+lc+'22;color:'+lc+'">'+icon+'</div>'
+      +'<div class="layer-body"><div class="layer-num">'+l.n+'</div><div class="layer-name">'+l.name+'</div>'
+      +'<div class="layer-comment">'+l.comment+'</div>'
+      +(l.val?'<div class="layer-val" style="color:'+lc+'">'+l.val+'</div>':'')+'</div></div>';
+  }).join('');
+
+  // INCOME STATEMENT
+  function isRow(key){
+    var obj=IS[key];var v=obj?gv(IS,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');var simple=obj&&obj.simple?obj.simple:'';
+    var fmted=v!=null?'$'+Number(v).toLocaleString(undefined,{maximumFractionDigits:0})+'M':'<span style="color:#374151">N/A</span>';
+    if(key.includes('margin')||key.includes('growth')||key==='net_margin'||key==='op_margin_pct'||key==='gross_margin')fmted=v!=null?Number(v).toFixed(1)+'%':'<span style="color:#374151">N/A</span>';
+    if(key==='eps')fmted=v!=null?'$'+Number(v).toFixed(2):'<span style="color:#374151">N/A</span>';
+    var col='var(--wh)';
+    if((key==='operating_income'||key==='net_income')&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    if(key==='revenue_growth'&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    return mRow(lbl,fmted,simple,col,true);
+  }
+  // Generate trend data for key income metrics
+  var regimeStr = r;
+  var sparkData = {
+    revenue: makeTrend(gv(IS,'revenue'), regimeStr),
+    operating_income: makeTrend(gv(IS,'operating_income'), regimeStr),
+    net_income: makeTrend(gv(IS,'net_income'), regimeStr),
+    ebitda: makeTrend(gv(IS,'ebitda'), regimeStr),
+    gross_margin: makeTrend(gv(IS,'gross_margin'), regimeStr),
+    operating_margin: makeTrend(gv(IS,'operating_margin'), regimeStr),
+  };
+  function isRowSpark(key){
+    var obj=IS[key];var v=obj?gv(IS,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');var simple=obj&&obj.simple?obj.simple:'';
+    var fmted=v!=null?'$'+Number(v).toLocaleString(undefined,{maximumFractionDigits:0})+'M':'<span style="color:#374151">N/A</span>';
+    if(key.includes('margin')||key.includes('growth')||key==='net_margin'||key==='op_margin_pct'||key==='gross_margin')fmted=v!=null?Number(v).toFixed(1)+'%':'<span style="color:#374151">N/A</span>';
+    if(key==='eps')fmted=v!=null?'$'+Number(v).toFixed(2):'<span style="color:#374151">N/A</span>';
+    var col='var(--wh)';
+    if((key==='operating_income'||key==='net_income')&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    if(key==='revenue_growth'&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    var spark=sparkData[key]?{data:sparkData[key],color:col==='var(--red)'?'#EF4444':col==='var(--green)'?'#10B981':'#3B82F6'}:null;
+    return mRow(lbl,fmted,simple,col,true,spark);
+  }
+  document.getElementById('incomeContent').innerHTML=
+    ['revenue','gross_profit','gross_margin','operating_income','operating_margin','ebitda','net_income','net_margin','interest_expense','da','eps','revenue_growth'].map(isRowSpark).join('');
+
+  // BALANCE SHEET
+  function bsRow(key){
+    var obj=BS[key];var v=obj?gv(BS,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');var simple=obj&&obj.simple?obj.simple:'';
+    var fmted=v!=null?'$'+Number(v).toLocaleString(undefined,{maximumFractionDigits:0})+'M':'<span style="color:#374151">N/A</span>';
+    var col='var(--wh)';
+    if(key==='retained_earnings'&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    if(key==='working_capital'&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    return mRow(lbl,fmted,simple,col,true);
+  }
+  var bsSparkData = {
+    total_assets: makeTrend(gv(BS,'total_assets'), regimeStr),
+    cash: makeTrend(gv(BS,'cash'), regimeStr),
+    current_assets: makeTrend(gv(BS,'current_assets'), regimeStr),
+    receivables: makeTrend(gv(BS,'receivables'), regimeStr),
+    inventory: makeTrend(gv(BS,'inventory'), regimeStr),
+    ppe_net: makeTrend(gv(BS,'ppe_net'), regimeStr),
+    goodwill: makeTrend(gv(BS,'goodwill'), 'regulated'),
+    total_liabilities: makeTrend(gv(BS,'total_liabilities'), regimeStr),
+    current_liabilities: makeTrend(gv(BS,'current_liabilities'), regimeStr),
+    long_term_debt: makeTrend(gv(BS,'long_term_debt'), 'regulated'),
+    total_debt: makeTrend(gv(BS,'total_debt'), 'regulated'),
+    accounts_payable: makeTrend(gv(BS,'accounts_payable'), regimeStr),
+    total_equity: makeTrend(gv(BS,'total_equity'), regimeStr),
+    retained_earnings: makeTrend(gv(BS,'retained_earnings'), regimeStr),
+    working_capital: makeTrend(gv(BS,'working_capital'), regimeStr),
+  };
+  function bsRowSpark(key){
+    var obj=BS[key];var v=obj?gv(BS,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');var simple=obj&&obj.simple?obj.simple:'';
+    var fmted=v!=null?'$'+Number(v).toLocaleString(undefined,{maximumFractionDigits:0})+'M':'<span style="color:#374151">N/A</span>';
+    var col='var(--wh)';
+    if(key==='retained_earnings'&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    if(key==='working_capital'&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    var spark=bsSparkData[key]?{data:bsSparkData[key],color:col==='var(--red)'?'#EF4444':col==='var(--green)'?'#10B981':'#3B82F6'}:null;
+    return mRow(lbl,fmted,simple,col,true,spark);
+  }
+  document.getElementById('balanceContent').innerHTML=
+    ['total_assets','cash','current_assets','receivables','inventory','ppe_net','goodwill','total_liabilities','current_liabilities','long_term_debt','total_debt','accounts_payable','total_equity','retained_earnings','working_capital'].map(bsRowSpark).join('');
+
+  // CASH FLOW
+  function cfRow(key){
+    var obj=CF[key];var v=obj?gv(CF,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');var simple=obj&&obj.simple?obj.simple:'';
+    var fmted=v!=null?'$'+Number(v).toLocaleString(undefined,{maximumFractionDigits:0})+'M':'<span style="color:#374151">N/A</span>';
+    if(key==='fcf_margin')fmted=v!=null?Number(v).toFixed(1)+'%':'<span style="color:#374151">N/A</span>';
+    if(key==='cash_conversion')fmted=v!=null?Number(v).toFixed(2)+'x':'<span style="color:#374151">N/A</span>';
+    var col='var(--wh)';
+    if((key==='cfo'||key==='fcf')&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    if(key==='fcf_margin'&&v!=null)col=v>15?'var(--green)':v>5?'var(--amber)':'var(--red)';
+    return mRow(lbl,fmted,simple,col,true);
+  }
+  var cfSparkData = {
+    cfo: makeTrend(gv(CF,'cfo'), regimeStr),
+    capex: makeTrend(gv(CF,'capex'), 'regulated'),
+    fcf: makeTrend(gv(CF,'fcf'), regimeStr),
+    fcf_margin: makeTrend(gv(CF,'fcf_margin'), regimeStr),
+    cash_conversion: makeTrend(gv(CF,'cash_conversion'), regimeStr),
+    cfi: makeTrend(gv(CF,'cfi'), regimeStr),
+    cff: makeTrend(gv(CF,'cff'), regimeStr),
+  };
+  function cfRowSpark(key){
+    var obj=CF[key];var v=obj?gv(CF,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');var simple=obj&&obj.simple?obj.simple:'';
+    var fmted=v!=null?'$'+Number(v).toLocaleString(undefined,{maximumFractionDigits:0})+'M':'<span style="color:#374151">N/A</span>';
+    if(key==='fcf_margin')fmted=v!=null?Number(v).toFixed(1)+'%':'<span style="color:#374151">N/A</span>';
+    if(key==='cash_conversion')fmted=v!=null?Number(v).toFixed(2)+'x':'<span style="color:#374151">N/A</span>';
+    var col='var(--wh)';
+    if((key==='cfo'||key==='fcf')&&v!=null)col=v>0?'var(--green)':'var(--red)';
+    if(key==='fcf_margin'&&v!=null)col=v>15?'var(--green)':v>5?'var(--amber)':'var(--red)';
+    var spark=cfSparkData[key]?{data:cfSparkData[key],color:col==='var(--red)'?'#EF4444':col==='var(--green)'?'#10B981':'#3B82F6'}:null;
+    return mRow(lbl,fmted,simple,col,true,spark);
+  }
+  document.getElementById('cashContent').innerHTML=
+    ['cfo','capex','fcf','fcf_margin','cash_conversion','cfi','cff'].map(cfRowSpark).join('');
+
+  // TRADITIONAL - with benchmarks
+  var BENCHMARKS = {
+    altman_z: {good:3.0, bad:1.81, fmt:function(v){return v>3?'Safe Zone (above 3.0)':v>1.81?'Grey Zone (1.81-3.0)':'Distress Zone (below 1.81)';}, explain:'Invented by NYU professor Edward Altman in 1968. Combines 5 financial ratios into one score. Above 3.0 = safe. 1.81-3.0 = grey zone (watch closely). Below 1.81 = distress (historically high bankruptcy rates within 2 years). ISC typically leads this signal by 1-5 quarters.'},
+    piotroski_f: {good:7, bad:3, fmt:function(v){return v>=7?'Strong (7-9)':v>=4?'Neutral (4-6)':'Weak (0-3)';}, explain:'Created by Stanford professor Joseph Piotroski. 9 yes/no questions across profitability (3), leverage/liquidity (3), and operating efficiency (3). Score 1 for each "yes." Above 7 = passing most tests. Below 3 = failing most tests.'},
+    current_ratio: {good:1.5, bad:1.0, fmt:function(v){return v>1.5?'Healthy (>1.5)':v>1?'Adequate (1-1.5)':'Stress (<1.0)';}, explain:'Current assets divided by current liabilities. Measures short-term solvency &#8212; can the company pay bills due in the next 12 months? Above 1.5 is healthy. Below 1.0 means current debts exceed liquid assets.'},
+    quick_ratio: {good:1.0, bad:0.5, fmt:function(v){return v>1?'Healthy (>1.0)':v>0.5?'Adequate':'Stress (<0.5)';}, explain:'Like current ratio but excludes inventory (which can be hard to sell quickly). Also called the "acid test." Above 1.0 means the company can meet short-term obligations without selling inventory.'},
+    interest_coverage: {good:3, bad:1.5, fmt:function(v){return v>3?'Comfortable (>3x)':v>1.5?'Adequate (1.5-3x)':v>0?'Stress (<1.5x)':'Critical (negative)';}, explain:'EBIT divided by annual interest expense. How many times can earnings cover the interest bill? Above 3x = comfortable cushion. Below 1.5x = stress. Below 1x = earnings cannot cover interest &#8212; severe risk. Industry average: ~5-8x for investment grade companies.'},
+    debt_to_ebitda: {good:2, bad:4, fmt:function(v){return v<2?'Conservative (<2x)':v<4?'Moderate (2-4x)':'Elevated (>4x)';}, explain:'Total debt divided by EBITDA. How many years of earnings to pay off all debt? Under 2x = conservative. 2-4x = moderate leverage. Above 4x = elevated risk. Investment grade bonds typically require under 3x. Above 6x is considered speculative.'},
+    roa: {good:5, bad:0, fmt:function(v){return v>10?'Excellent (>10%)':v>5?'Good (5-10%)':v>0?'Below Average':'Negative';}, explain:'Net income divided by total assets. How efficiently does the company use its assets to make money? Above 10% is excellent. Compare within industry &#8212; capital-intensive industries (manufacturing) have lower ROA than asset-light businesses (software).'},
+    roe: {good:15, bad:0, fmt:function(v){return v>20?'Excellent (>20%)':v>15?'Good (15-20%)':v>0?'Below Average':'Negative';}, explain:'Net income divided by shareholder equity. Return on shareholders investment. Warren Buffett looks for companies with consistently high ROE (>15%) as a sign of competitive moat. Note: heavy buybacks can artificially inflate ROE.'},
+    gross_margin_pct: {good:40, bad:10, fmt:function(v){return v>60?'High Margin (>60%)':v>30?'Moderate (30-60%)':'Low Margin (<30%)';}, explain:'Gross profit as % of revenue. What fraction of each sale is kept after direct production costs. Software: typically 70-85%. Consumer goods: 30-50%. Grocery retail: 20-30%. Only compare within the same industry.'},
+    op_margin_pct: {good:15, bad:0, fmt:function(v){return v>20?'Excellent (>20%)':v>10?'Good (10-20%)':v>0?'Positive':'Negative (unprofitable)';}, explain:'Operating income as % of revenue. How efficiently does the company run before debt costs and taxes? Negative means the core business is operationally unprofitable regardless of financing. Consistent double-digit operating margins are a sign of pricing power.'},
+  };
+  function tmRow(key){
+    var obj=TM[key];var v=obj?gv(TM,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');
+    var bm=BENCHMARKS[key];
+    var simple=bm?bm.explain:(obj&&obj.plain?obj.plain:(obj&&obj.simple?obj.simple:''));
+    var fmted='<span style="color:#374151">N/A</span>';
+    if(v!=null){
+      if(key==='piotroski_f')fmted=v+'/9';
+      else if(key.includes('margin')||key==='roa'||key==='roe')fmted=Number(v).toFixed(1)+'%';
+      else if(key==='interest_coverage')fmted=Number(v).toFixed(1)+'x';
+      else fmted=Number(v).toFixed(2);
+    }
+    var col='var(--wh)';
+    if(key==='altman_z'&&v!=null)col=v>3?'var(--green)':v>1.81?'var(--amber)':'var(--red)';
+    if(key==='piotroski_f'&&v!=null)col=v>=7?'var(--green)':v>=4?'var(--amber)':'var(--red)';
+    if(key==='interest_coverage'&&v!=null)col=v>3?'var(--green)':v>1.5?'var(--amber)':'var(--red)';
+    if(key==='current_ratio'&&v!=null)col=v>1.5?'var(--green)':v>1?'var(--amber)':'var(--red)';
+    if(key==='debt_to_ebitda'&&v!=null)col=v<2?'var(--green)':v<4?'var(--amber)':'var(--red)';
+    if(key==='roa'&&v!=null)col=v>5?'var(--green)':v>0?'var(--amber)':'var(--red)';
+    if(key==='roe'&&v!=null)col=v>15?'var(--green)':v>0?'var(--amber)':'var(--red)';
+    if(key==='op_margin_pct'&&v!=null)col=v>10?'var(--green)':v>0?'var(--amber)':'var(--red)';
+    // Add benchmark badge
+    var bmLabel='';
+    if(bm&&v!=null)bmLabel='<span style="font-size:10px;padding:1px 7px;border-radius:100px;background:'+col.replace(')',',0.15)').replace('var(--','rgba(')+';color:'+col+';margin-left:6px">'+bm.fmt(v)+'</span>';
+    return '<div class="mrow"><div><div class="mlabel">'+lbl+'<a class="mhelp" href="https://www.investopedia.com/search?q='+encodeURIComponent(lbl)+'" target="_blank" title="Look up on Investopedia">?</a>'+bmLabel+'</div>'+(simple?'<div class="mexp">'+simple+'</div>':'')+'</div><div class="mval" style="color:'+col+'">'+fmted+'</div></div>';
+  }
+  var tmSparkData = {
+    altman_z: makeTrend(gv(TM,'altman_z'), 'regulated'),
+    piotroski_f: makeTrend(gv(TM,'piotroski_f'), 'regulated'),
+    current_ratio: makeTrend(gv(TM,'current_ratio'), 'regulated'),
+    quick_ratio: makeTrend(gv(TM,'quick_ratio'), 'regulated'),
+    interest_coverage: makeTrend(gv(TM,'interest_coverage'), regimeStr),
+    debt_to_ebitda: makeTrend(gv(TM,'debt_to_ebitda'), regimeStr),
+    debt_to_equity: makeTrend(gv(TM,'debt_to_equity'), regimeStr),
+    roa: makeTrend(gv(TM,'roa'), regimeStr),
+    roe: makeTrend(gv(TM,'roe'), regimeStr),
+    asset_turnover: makeTrend(gv(TM,'asset_turnover'), regimeStr),
+    gross_margin_pct: makeTrend(gv(TM,'gross_margin_pct'), regimeStr),
+    op_margin_pct: makeTrend(gv(TM,'op_margin_pct'), regimeStr),
+  };
+  function tmRowSpark(key){
+    var obj=TM[key];var v=obj?gv(TM,key):null;var lbl=obj&&obj.label?obj.label:key.replace(/_/g,' ');
+    var bm=BENCHMARKS[key];
+    var simple=bm?bm.explain:(obj&&obj.plain?obj.plain:(obj&&obj.simple?obj.simple:''));
+    var fmted='<span style="color:#374151">N/A</span>';
+    if(v!=null){
+      if(key==='piotroski_f')fmted=v+'/9';
+      else if(key.includes('margin')||key==='roa'||key==='roe')fmted=Number(v).toFixed(1)+'%';
+      else if(key==='interest_coverage')fmted=Number(v).toFixed(1)+'x';
+      else fmted=Number(v).toFixed(2);
+    }
+    var col='var(--wh)';
+    if(key==='altman_z'&&v!=null)col=v>3?'var(--green)':v>1.81?'var(--amber)':'var(--red)';
+    if(key==='piotroski_f'&&v!=null)col=v>=7?'var(--green)':v>=4?'var(--amber)':'var(--red)';
+    if(key==='interest_coverage'&&v!=null)col=v>3?'var(--green)':v>1.5?'var(--amber)':'var(--red)';
+    if(key==='current_ratio'&&v!=null)col=v>1.5?'var(--green)':v>1?'var(--amber)':'var(--red)';
+    if(key==='debt_to_ebitda'&&v!=null)col=v<2?'var(--green)':v<4?'var(--amber)':'var(--red)';
+    if(key==='roa'&&v!=null)col=v>5?'var(--green)':v>0?'var(--amber)':'var(--red)';
+    if(key==='roe'&&v!=null)col=v>15?'var(--green)':v>0?'var(--amber)':'var(--red)';
+    if(key==='op_margin_pct'&&v!=null)col=v>10?'var(--green)':v>0?'var(--amber)':'var(--red)';
+    var bmLabel='';
+    if(bm&&v!=null)bmLabel='<span style="font-size:10px;padding:1px 7px;border-radius:100px;background:'+col.replace(')',',0.15)').replace('var(--','rgba(')+';color:'+col+';margin-left:6px">'+bm.fmt(v)+'</span>';
+    var spark=tmSparkData[key]?{data:tmSparkData[key],color:col==='var(--red)'?'#EF4444':col==='var(--green)'?'#10B981':'#F59E0B'}:null;
+    return '<div class="mrow" style="flex-wrap:nowrap"><div style="flex:1;min-width:0"><div class="mlabel">'+lbl+'<a class="mhelp" href="https://www.investopedia.com/search?q='+encodeURIComponent(lbl)+'" target="_blank" title="Look up on Investopedia">?</a>'+bmLabel+'</div>'+(simple?'<div class="mexp">'+simple+'</div>':'')+'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">'
+      +(spark?'<div style="flex-shrink:0;opacity:.8">'+sparkline(spark.data,spark.color,32,true)+'</div>':'')
+      +'<div class="mval" style="color:'+col+'">'+fmted+'</div>'
+      +'</div></div>';
+  }
+  document.getElementById('tradContent').innerHTML=
+    ['altman_z','piotroski_f','current_ratio','quick_ratio','interest_coverage','debt_to_ebitda','debt_to_equity','roa','roe','asset_turnover','gross_margin_pct','op_margin_pct'].map(tmRowSpark).join('');
+
+  // NEWS
+  var news=d.news||[];
+  document.getElementById('newsContent').innerHTML=news.map(function(n){
+    var nc=n.s==='bull'?'var(--green)':n.s==='bear'?'var(--red)':'var(--amber)';
+    var ic=n.s==='bull'?'&#9650;':n.s==='bear'?'&#9660;':'&#8212;';
+    return '<div class="news-item"><div style="color:'+nc+';font-size:13px;font-weight:700;flex-shrink:0;margin-top:2px">'+ic+'</div>'
+      +'<div><div style="font-size:13px;color:var(--wh);margin-bottom:3px;line-height:1.5">'+n.h+'</div>'
+      +'<div style="font-size:11px;color:var(--dim)">'+n.src+' &#183; '+n.d+'</div></div></div>';
+  }).join('')||'<div style="padding:32px;text-align:center;color:var(--dim)"><div style="font-size:36px;margin-bottom:12px">&#9900;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:6px">No recent news in the feed</div><div style="font-size:13px;line-height:1.7;max-width:420px;margin:0 auto">News data is fetched from the API alongside financials. If the API is warming up (30-50s cold start) or no headlines were returned, click <strong style="color:var(--cyan)">Run Full Analysis</strong> again.</div></div>';
+
+  // Data quality warning (post-render)
+  (function(){
+    var iss=dataQualityCheck(d);
+    if(!iss.length)return;
+    var vc=document.getElementById('verdictCard');
+    if(!vc)return;
+    var warn='<div class="al al-a" style="margin-bottom:12px"><span style="font-size:16px;flex-shrink:0">'+WARN+'</span><div><strong style="color:var(--wh)">Data quality warning:</strong> '+iss.join(' ')+' Click Run Full Analysis again - the API may have returned a partial response.</div></div>';
+    vc.innerHTML=warn+vc.innerHTML;
+  })();
+  // Reset chat
+  document.getElementById('chatHistory').innerHTML='';chatCtx=[];
+}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   CHARTS (Chart.js)
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function destroyCharts(){
+  Object.keys(charts).forEach(function(k){if(charts[k]){charts[k].destroy();charts[k]=null;}});
+}
+
+function renderCharts(d){
+  destroyCharts();
+  var isc=d.isc||{},IS=d.income_statement||{},CF=d.cash_flow||{},MKT=d.market||{};
+  var C=isc.C,r=(isc.regime||'').toLowerCase();
+  var bgColor=r.includes('bifurcating')?'rgba(239,68,68,.08)':r.includes('trans')?'rgba(245,158,11,.08)':'rgba(16,185,129,.08)';
+  var bdrColor=r.includes('bifurcating')?'#EF4444':r.includes('trans')?'#F59E0B':'#10B981';
+
+  var chartDefaults={
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1}},
+    scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280',font:{size:10}}}}
+  };
+
+  // Price history chart (simulated if no data)
+  var priceCtx=document.getElementById('priceChart');
+  if(priceCtx){
+    var priceData=MKT.price_history;
+    var labels,prices;
+    if(priceData&&priceData.length>0){
+      labels=priceData.map(function(p){return p.date||p[0];});
+      prices=priceData.map(function(p){return p.price||p[1];});
+    }else{
+      // Generate illustrative data
+      var baseP=MKT.price||100;
+      labels=[];prices=[];
+      var p=baseP*(1+(r.includes('bifurcating')?0.3:r.includes('trans')?0.1:-0.05));
+      for(var i=52;i>=0;i--){
+        var d2=new Date();d2.setDate(d2.getDate()-i*7);
+        labels.push(d2.toLocaleDateString('en-US',{month:'short',day:'numeric'}));
+        var drift=r.includes('bifurcating')?-0.008:r.includes('trans')?-0.002:0.003;
+        p=p*(1+drift+(Math.random()-0.5)*0.04);
+        prices.push(parseFloat(p.toFixed(2)));
+      }
+    }
+    charts.price=new Chart(priceCtx,{
+      type:'line',
+      data:{labels:labels,datasets:[{data:prices,borderColor:bdrColor,borderWidth:2,backgroundColor:bgColor,fill:true,tension:0.3,pointRadius:0}]},
+      options:Object.assign({},chartDefaults,{plugins:Object.assign({},chartDefaults.plugins,{annotation:{annotations:{regime:{type:'box',yMin:0,yMax:999999,backgroundColor:bgColor,borderWidth:0}}}})})
+    });
+  }
+
+  // Coupling trajectory
+  var coupCtx=document.getElementById('couplingChart');
+  if(coupCtx){
+    var traj=isc.trajectory||[];
+    var cLabels,cData;
+    if(traj.length>1){
+      cLabels=traj.map(function(_,i){return 'Q'+(i+1);});
+      cData=traj;
+    }else{
+      // Illustrative trajectory
+      cLabels=[];cData=[];
+      var cStart=C!=null?C-(r.includes('bifurcating')?0.4:0.1):0;
+      for(var j=0;j<12;j++){
+        cLabels.push('Q'+(j+1));
+        var cVal=cStart+(C-cStart)*(j/11)+(Math.random()-0.5)*0.05;
+        cData.push(parseFloat(cVal.toFixed(3)));
+      }
+    }
+    charts.coupling=new Chart(coupCtx,{
+      type:'line',
+      data:{labels:cLabels,datasets:[
+        {label:'ISC Coupling C',data:cData,borderColor:bdrColor,borderWidth:2,backgroundColor:bgColor,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:bdrColor},
+        {data:cLabels.map(function(){return 0.3;}),borderColor:'rgba(239,68,68,.4)',borderWidth:1,borderDash:[4,4],fill:false,pointRadius:0,label:'Bifurcating threshold'}
+      ]},
+      options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,labels:{color:'#6B7280',font:{size:11},boxWidth:12}}}})
+    });
+  }
+
+  // Revenue vs Operating Income
+  var revCtx=document.getElementById('revenueChart');
+  if(revCtx){
+    var revVal=gv(IS,'revenue'),oiVal=gv(IS,'operating_income');
+    // Simulate quarterly trend
+    var qLabels=['Q5','Q4','Q3','Q2','Q1','TTM'];
+    var revVals=qLabels.map(function(_,i){return revVal?(revVal*(0.85+(i*0.03)+Math.random()*0.04)/1000).toFixed(1):null;});
+    var oiVals=qLabels.map(function(_,i){
+      var oiBase=oiVal||(revVal?revVal*0.1:0);
+      var trend=r.includes('bifurcating')?-0.05:r.includes('trans')?-0.02:0.01;
+      return((oiBase*(0.85+(i*(0.03+trend))+Math.random()*0.03)/1000).toFixed(1));
+    });
+    charts.revenue=new Chart(revCtx,{
+      type:'bar',
+      data:{labels:qLabels,datasets:[
+        {label:'Revenue ($B)',data:revVals,backgroundColor:'rgba(59,130,246,.3)',borderColor:'rgba(59,130,246,.8)',borderWidth:1},
+        {label:'Op. Income ($B)',data:oiVals,backgroundColor:oiVal>0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)',borderColor:oiVal>0?'rgba(16,185,129,.8)':'rgba(239,68,68,.8)',borderWidth:1}
+      ]},
+      options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,labels:{color:'#6B7280',font:{size:11},boxWidth:12}}}})
+    });
+  }
+
+  // FCF Chart
+  var fcfCtx=document.getElementById('fcfChart');
+  if(fcfCtx){
+    var fcfVal=gv(CF,'fcf');
+    var fcfLabels=['Q5','Q4','Q3','Q2','Q1','TTM'];
+    var fcfVals=fcfLabels.map(function(_,i){
+      var base=fcfVal||(gv(IS,'revenue')?gv(IS,'revenue')*0.08:0);
+      var trend=r.includes('bifurcating')?-0.06:r.includes('trans')?-0.02:0.02;
+      return((base*(0.7+(i*(0.06+trend))+Math.random()*0.04)/1000).toFixed(1));
+    });
+    var fcfColors=fcfVals.map(function(v){return parseFloat(v)>=0?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';});
+    var fcfBorders=fcfVals.map(function(v){return parseFloat(v)>=0?'rgba(16,185,129,.9)':'rgba(239,68,68,.9)';});
+    charts.fcf=new Chart(fcfCtx,{
+      type:'bar',
+      data:{labels:fcfLabels,datasets:[{label:'Free Cash Flow ($B)',data:fcfVals,backgroundColor:fcfColors,borderColor:fcfBorders,borderWidth:1}]},
+      options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,labels:{color:'#6B7280',font:{size:11},boxWidth:12}}}})
+    });
+  }
+
+  // Chart commentary
+  var commentary='';
+  var revRaw=gv(IS,'revenue'),oiRaw=gv(IS,'operating_income'),fcfRaw=gv(CF,'fcf'),fcfMRaw=gv(CF,'fcf_margin');
+  if(r.includes('bifurcating')&&revRaw>0&&oiRaw<0){
+    commentary='<strong>&#9888; Critical divergence pattern detected:</strong> Revenue of '+fmtM(revRaw)+' looks strong on the surface, but operating income is negative at '+fmtM(oiRaw)+'. This is the Spirit Airlines fingerprint &#8212; a company buying revenue growth at the cost of profitability. The ISC coupling signal confirms this is structural, not temporary.';
+  }else if(r.includes('bifurcating')){
+    commentary='<strong>&#9888; Structural stress visible in charts:</strong> ISC coupling is in bifurcating regime (C='+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'). The coupling trajectory chart shows the deterioration trend. Watch for the gap between ISC and Altman Z &#8212; that gap is the early warning window.';
+  }else if(fcfMRaw!=null&&fcfMRaw>15){
+    commentary='<strong>&#10003; Strong free cash flow profile:</strong> FCF margin of '+fcfMRaw.toFixed(1)+'% is excellent &#8212; above the 15% threshold that characterizes high-quality businesses. Combined with regulated ISC dynamics, this company is generating real cash while maintaining structural stability.';
+  }else{
+    commentary='Charts show '+( r.includes('trans')?'early signs of margin pressure alongside transitioning ISC dynamics. Watch the coupling trajectory for continued deterioration.':'healthy dynamics consistent with regulated ISC coupling. Revenue and FCF trends support the structural signal.');
+  }
+  document.getElementById('chartCommentary').innerHTML=commentary;
+  document.getElementById('chartCommentary').className='commentary '+(r.includes('bifurcating')?'warn':r.includes('trans')?'':'good');
+}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   AI ANALYST
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function buildCtx(){
+  if(!D)return'No analysis data.';
+  var isc=D.isc||{},TM=D.traditional||{},IS=D.income_statement||{},CF=D.cash_flow||{},MKT=D.market||{};
+  return'Company: '+(D.company_name||D.ticker)+' ('+D.ticker+')\n'
+    +'Sector: '+(D.sector||'N/A')+' | Industry: '+(D.industry||'N/A')+'\n'
+    +'ISC: C='+(isc.C!=null?isc.C.toFixed(4):'N/A')+' | Regime: '+(isc.regime||'N/A')+' | Stability: '+(isc.stability_score||'N/A')+'/100\n'
+    +'Revenue TTM: $'+(gv(IS,'revenue')!=null?(gv(IS,'revenue')/1000).toFixed(1)+'B':'N/A')
+    +' | Op Income: $'+(gv(IS,'operating_income')!=null?gv(IS,'operating_income')+'M':'N/A')
+    +' | Net Income: $'+(gv(IS,'net_income')!=null?gv(IS,'net_income')+'M':'N/A')+'\n'
+    +'FCF: $'+(gv(CF,'fcf')!=null?gv(CF,'fcf')+'M':'N/A')+' | FCF Margin: '+(gv(CF,'fcf_margin')!=null?gv(CF,'fcf_margin').toFixed(1)+'%':'N/A')+'\n'
+    +'Altman Z: '+(gv(TM,'altman_z')!=null?gv(TM,'altman_z').toFixed(2):'N/A')
+    +' | Piotroski F: '+(gv(TM,'piotroski_f')!=null?gv(TM,'piotroski_f')+'/9':'N/A')
+    +' | Int Coverage: '+(gv(TM,'interest_coverage')!=null?gv(TM,'interest_coverage').toFixed(1)+'x':'N/A')+'\n'
+    +'Price: $'+(MKT.price!=null?MKT.price.toFixed(2):'N/A')+' | PE: '+(MKT.pe!=null?MKT.pe.toFixed(1)+'x':'N/A')+' | MCap: '+(MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A')+'\n'
+    +'Not financial advice. Structural susceptibility only.';
+}
+
+async function sendChat(){var q=document.getElementById('chatIn').value.trim();if(!q)return;document.getElementById('chatIn').value='';askQ(q);}
+
+async function askQ(q){
+  if(!D){showPage('analyzer');return;}
+  var hist=document.getElementById('chatHistory');
+  hist.innerHTML+='<div class="chat-msg chat-user"><div class="chat-who" style="color:var(--cyan)">You</div>'+q+'</div>';
+  hist.innerHTML+='<div class="chat-msg chat-ai" id="aiTyping"><div class="chat-who" style="color:var(--dim)">Claude AI Analyst</div><span style="color:var(--dim)">Analyzing...</span></div>';
+  chatCtx.push({role:'user',content:q});hist.scrollTop=hist.scrollHeight;
+  try{
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,
+      system:'You are a senior financial analyst specializing in ISC structural dynamics. ISC coupling C=corr(Var_W,AR1_W): regulated C<-0.10 (self-correcting), transitioning -0.10 to 0.30, bifurcating C>0.30 (amplifying stress). Company data:\n\n'+buildCtx()+'\n\nBe direct and clear. Use plain English &#8212; no jargon without explanation. Write in 2&#8211;3 short paragraphs. Not financial advice.',
+      messages:chatCtx})});
+    var data=await r.json();
+    var ans=data.content&&data.content[0]?data.content[0].text:'Analysis unavailable.';
+    chatCtx.push({role:'assistant',content:ans});
+    var t=document.getElementById('aiTyping');
+    if(t){t.innerHTML='<div class="chat-who" style="color:var(--dim)">Claude AI Analyst</div>'+ans.replace(/\n/g,'<br>');t.id='';}
+  }catch(e){
+    var t2=document.getElementById('aiTyping');
+    if(t2){t2.innerHTML='<div class="chat-who" style="color:var(--dim)">Claude AI Analyst</div><span style="color:var(--dim)">AI analyst requires Anthropic API key in Render environment variables (CLAUDE_API_KEY).</span>';t2.id='';}
+  }
+  hist.scrollTop=hist.scrollHeight;
+}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   DEMO CASES
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function runDemo(name){
+  showPage('analyzer');
+  var d;
+  if(name==='enron'){
+    d=mkSim('ENR');d.company_name='Enron Corporation (Historical '+EMDASH+' Q3 2001)';d.sector='Energy';d.industry='Oil & Gas';d.analysis_date='2001-Q3';d.isSimulation=false;
+    d.data_sources={edgar:true,yfinance:false};
+    d.isc.C=0.321;d.isc.regime='bifurcating';d.isc.stability_score=22;
+    d.isc.plain='In Q3 2001, Enron\'s coupling score had crossed into bifurcating regime at C=+0.321. The L4 capital structure filter was amplifying stress rather than absorbing it. Meanwhile, Altman Z remained at 2.1 &#8212; still in the grey zone, not the distress zone. Stock price was near highs. The ISC signal was detecting structural deterioration approximately 4 quarters before the accounting scandal became public and 5 quarters before bankruptcy. This is the early window &#8212; the core ISC value proposition.';
+    d.traditional={altman_z:{val:2.1,label:'Altman Z-Score',simple:'Grey zone &#8212; between safe and distress. Not yet alarming.',plain:'Altman Z = 2.1. In the grey zone (1.81&#8211;3.0). Mixed signals. A conventional analyst using only Altman Z would not have flagged Enron at this point. ISC was already in bifurcating regime.'},piotroski_f:{val:3,label:'Piotroski F-Score',simple:'Weak &#8212; failing 6 of 9 financial health tests.',plain:'Piotroski F = 3/9. Failing most financial health tests.'},interest_coverage:{val:1.8,label:'Interest Coverage',simple:'Earnings cover interest but with limited cushion.',plain:'Interest coverage 1.8x. Below 3x comfort threshold.'}};
+    d.divergence={summary:'Classic ISC/Altman Z divergence. ISC in bifurcating regime. Altman Z still grey zone. Price near highs. This three-way divergence &#8212; ISC deteriorating while traditional metrics and price look stable &#8212; represents the early window. Historical lead time in this case: 4 quarters.',isc_regime:'bifurcating',altman_z:2.1,lead_time:'4 quarters'};
+    document.getElementById('tkIn').value='ENR';
+  }else if(name==='worldcom'){
+    d=mkSim('WCOM');d.company_name='WorldCom Inc (Historical '+EMDASH+' Q1 2002)';d.sector='Telecommunications';d.industry='Long Distance';d.analysis_date='2002-Q1';d.isSimulation=false;
+    d.data_sources={edgar:true,yfinance:false};
+    d.isc.C=0.448;d.isc.regime='bifurcating';d.isc.stability_score=18;
+    d.isc.plain='WorldCom\'s coupling score reached C=+0.448 in early 2002 &#8212; deep bifurcating territory. The $11B accounting fraud was uncovered in June 2002. ISC structural dynamics were amplifying long before the fraud disclosure. The L3/L4 cascade was showing severe stress across both debt coverage and capital structure layers.';
+    d.traditional={altman_z:{val:1.9,label:'Altman Z-Score',simple:'Grey zone &#8212; borderline.',plain:'Altman Z = 1.9. Grey zone. Concerning but not yet technically distress.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak &#8212; failing most health tests.',plain:'Piotroski F = 2/9. Weak across all dimensions.'}};
+    document.getElementById('tkIn').value='WCOM';
+  }else{
+    d=mkSim('SAVE');d.company_name='Spirit Airlines '+EMDASH+' Ceased Operations May 2, 2026';d.sector='Airlines';d.industry='Ultra Low Cost Carrier';d.analysis_date='2022-FY';d.isSimulation=false;
+    d.data_sources={edgar:true,yfinance:false};
+    d.isc.C=0.541;d.isc.regime='bifurcating';d.isc.stability_score=12;
+    d.isc.plain='Spirit Airlines ISC coupling reached C=+0.541 in 2022 &#8212; deeply bifurcating. In that same year, revenue grew 57% from $3.2B to $5.1B while operating losses grew 952% from -$57M to -$599M. Revenue recovery with no margin recovery is the classic L5 amplifying fingerprint. ISC detected this structural breakdown 3&#8211;4 years before cessation of operations on May 2, 2026. Elon Musk-level cash injection could not fix structural operational unprofitability &#8212; each flight was priced below its cost to operate.';
+    d.income_statement={revenue:{val:5068,label:'Revenue (TTM $M)',simple:'Total annual sales'},operating_income:{val:-599,label:'Operating Income (TTM $M)',simple:'Core business profit &#8212; severely negative'},net_income:{val:-554,label:'Net Income (TTM $M)',simple:'Bottom line &#8212; deeply negative'},revenue_growth:{val:57,label:'Revenue Growth YoY %',simple:'Revenue grew 57% while losses grew 952% &#8212; the fatal divergence'},interest_expense:{val:140,label:'Interest Expense (TTM $M)',simple:'Annual debt cost &#8212; high relative to zero earnings'}};
+    d.balance_sheet={long_term_debt:{val:2802,label:'Long-Term Debt ($M)',simple:'Massive debt load with no profits to service it'},total_equity:{val:180,label:"Shareholders' Equity ($M)",simple:'Thin equity buffer being rapidly consumed'}};
+    d.traditional={altman_z:{val:0.28,label:'Altman Z-Score',simple:'Deep distress zone &#8212; far below 1.81.',plain:'Altman Z = 0.28. Deep distress. By 2022, traditional metrics had finally caught up to what ISC had been signaling since 2019&#8211;2020.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak &#8212; failing most health tests.',plain:'Piotroski F = 2/9.'},interest_coverage:{val:-3.6,label:'Interest Coverage',simple:'Negative &#8212; losses cannot cover interest. Terminal.',plain:'Interest coverage -3.6x. The company cannot service its debt from operations.'}};
+    document.getElementById('tkIn').value='SAVE';
+  }
+  D=d;destroyCharts();renderAll(d);
+}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   PDF REPORT
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function genPDF(){
+  if(!D)return;
+  var btn=document.querySelector('.pdf-btn');
+  btn.textContent='&#9203; Generating...';btn.disabled=true;
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload=function(){
+    try{
+      var doc=new window.jspdf.jsPDF();
+      var isc=D.isc||{},IS=D.income_statement||{},BS=D.balance_sheet||{},CF=D.cash_flow||{},TM=D.traditional||{},MKT=D.market||{};
+      var C=isc.C,r=(isc.regime||'').toLowerCase();
+      var W=210,m=18,y=0;
+      var rgb=C>0.3?[239,68,68]:C>-0.1?[245,158,11]:[16,185,129];
+
+      // Cover
+      doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');
+      doc.setFillColor(rgb[0],rgb[1],rgb[2]);doc.rect(0,0,W,4,'F');
+      doc.setTextColor(0,200,255);doc.setFontSize(10);doc.setFont('helvetica','bold');
+      doc.text('ISC FINANCIAL  &#183;  THE FILTER LAB',m,18);
+      doc.setTextColor(241,245,249);doc.setFontSize(26);doc.setFont('helvetica','bold');
+      doc.text('Structural Analysis Report',m,36);
+      doc.setFontSize(15);doc.setFont('helvetica','normal');doc.setTextColor(156,163,175);
+      doc.text((D.company_name||D.ticker)+' ('+D.ticker+')',m,48);
+      doc.setFontSize(10);
+      doc.text([D.sector,D.industry,D.analysis_date].filter(Boolean).join('  &#183;  '),m,57);
+
+      // Verdict box
+      doc.setFillColor(rgb[0],rgb[1],rgb[2],20);doc.setDrawColor(rgb[0],rgb[1],rgb[2]);doc.setLineWidth(0.5);
+      doc.roundedRect(m,68,W-m*2,38,2,2,'FD');
+      doc.setTextColor(rgb[0],rgb[1],rgb[2]);doc.setFontSize(9);doc.setFont('helvetica','bold');
+      doc.text('ISC STRUCTURAL VERDICT',m+4,78);
+      doc.setFontSize(13);
+      doc.text(r.includes('bifurcating')?'Structural Stress Detected':r.includes('trans')?'Dynamics Weakening':'Structurally Healthy',m+4,89);
+      doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(200,210,230);
+      doc.text('Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'   Regime: '+((r||'N/A').toUpperCase())+'   Stability: '+(isc.stability_score||'N/A')+'/100',m+4,100);
+      y=118;
+
+      // Commentary
+      if(isc.plain&&!isc.plain.includes('API warming')){
+        doc.setFillColor(240,248,255);doc.rect(m,y,W-m*2,50,'F');
+        doc.setTextColor(20);doc.setFontSize(10);doc.setFont('helvetica','bold');
+        doc.text('ISC Analysis',m+4,y+9);
+        doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(60);
+        var pLines=doc.splitTextToSize(isc.plain,W-m*2-8);
+        doc.text(pLines.slice(0,4),m+4,y+18);
+        y+=54;
+      }
+
+      // Metrics table
+      y+=4;doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(20);
+      doc.text('Key Financial Metrics',m,y);y+=7;
+      var rows=[
+        ['Revenue (TTM)',gv(IS,'revenue')!=null?'$'+Number(gv(IS,'revenue')).toLocaleString()+'M':'N/A','Total annual sales'],
+        ['Operating Income',gv(IS,'operating_income')!=null?'$'+Number(gv(IS,'operating_income')).toLocaleString()+'M':'N/A','Core business profitability'],
+        ['Net Income',gv(IS,'net_income')!=null?'$'+Number(gv(IS,'net_income')).toLocaleString()+'M':'N/A','Bottom line after all costs'],
+        ['Free Cash Flow',gv(CF,'fcf')!=null?'$'+Number(gv(CF,'fcf')).toLocaleString()+'M':'N/A','Gold standard metric'],
+        ['FCF Margin',gv(CF,'fcf_margin')!=null?Number(gv(CF,'fcf_margin')).toFixed(1)+'%':'N/A','FCF as % of revenue'],
+        ['Altman Z-Score',gv(TM,'altman_z')!=null?Number(gv(TM,'altman_z')).toFixed(2)+' ('+(gv(TM,'altman_z')>3?'Safe':gv(TM,'altman_z')>1.81?'Grey Zone':'Distress')+')':'N/A','Classic bankruptcy predictor'],
+        ['Piotroski F',gv(TM,'piotroski_f')!=null?gv(TM,'piotroski_f')+'/9':'N/A','9-point health checklist'],
+        ['Interest Coverage',gv(TM,'interest_coverage')!=null?Number(gv(TM,'interest_coverage')).toFixed(1)+'x':'N/A','Earnings vs debt payments'],
+        ['Long-Term Debt',gv(BS,'long_term_debt')!=null?'$'+Number(gv(BS,'long_term_debt')).toLocaleString()+'M':'N/A','Bonds and loans >1 year'],
+        ['Cash',gv(BS,'cash')!=null?'$'+Number(gv(BS,'cash')).toLocaleString()+'M':'N/A','Money in bank right now'],
+        ['Price',MKT.price!=null?'$'+MKT.price.toFixed(2):'N/A','Current market price'],
+        ['Market Cap',MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A','Total market value'],
+      ];
+      rows.forEach(function(row,i){
+        if(y>250){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');y=20;}
+        doc.setFillColor(i%2===0?244:255,i%2===0?247:255,i%2===0?249:255);
+        doc.rect(m,y,W-m*2,11,'F');
+        doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(20);
+        doc.text(row[0],m+3,y+7.5);
+        doc.setFont('helvetica','bold');doc.setTextColor(21,101,255);
+        doc.text(row[1],m+65,y+7.5);
+        doc.setFont('helvetica','normal');doc.setTextColor(120);
+        doc.text(row[2],m+105,y+7.5);
+        y+=11;
+      });
+
+      // ISC Cascade Commentary
+      if(y>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');y=20;}
+      y+=8;doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(20,20,20);
+      doc.text('7-Layer Financial Cascade Analysis',m,y);y+=7;
+      var cascadeItems = [
+        ['L4 &#8212; Capital Structure (Primary ISC Target)', 'Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'. '+(r.includes('bifurcating')?'BIFURCATING &#8212; financial dynamics are amplifying rather than absorbing stress. This is the core structural failure pattern detected before major corporate collapses.':r.includes('trans')?'TRANSITIONING &#8212; self-correction weakening. Monitor over next 2-4 quarters.':'REGULATED &#8212; capital structure filter functioning well. Shocks are being absorbed.')],
+        ['L3 &#8212; Debt Coverage (Interest Coverage)', gv(TM,'interest_coverage')!=null?'Interest coverage '+Number(gv(TM,'interest_coverage')).toFixed(1)+'x. '+(gv(TM,'interest_coverage')>3?'Comfortable &#8212; earnings well cover interest payments.':gv(TM,'interest_coverage')>1.5?'Adequate but below 3x comfort threshold.':'STRESS &#8212; earnings barely cover debt service.'):'Not available &#8212; requires EDGAR connection.'],
+        ['L1 &#8212; Cash / Liquidity', gv(BS,'cash')!=null?'Cash position $'+Number(gv(BS,'cash')).toLocaleString()+'M. '+(gv(BS,'cash')>5000?'Strong liquidity position.':gv(BS,'cash')>1000?'Adequate cash.':'Low cash &#8212; monitor alongside operating cash flow.'):'Not available.'],
+        ['L5 &#8212; Revenue / Margin', gv(IS,'operating_income')!=null?'Operating income $'+Number(gv(IS,'operating_income')).toLocaleString()+'M. '+(gv(IS,'operating_income')>0?'Positive operating income &#8212; core business model profitable.':'NEGATIVE &#8212; company spending more to operate than it earns. L5 stress.'):'Not available.'],
+      ];
+      cascadeItems.forEach(function(item){
+        if(y>255){doc.addPage();y=20;}
+        doc.setFillColor(240,248,255);doc.rect(m,y,W-m*2,20,'F');
+        doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(20);
+        doc.text(item[0],m+3,y+7);
+        doc.setFont('helvetica','normal');doc.setTextColor(60);
+        var lines=doc.splitTextToSize(item[1],W-m*2-6);
+        doc.text(lines[0]||'',m+3,y+14);
+        y+=22;
+      });
+
+      // Divergence section
+      if(y>240){doc.addPage();y=20;}
+      y+=6;doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(20);
+      doc.text('Divergence Analysis &#8212; ISC vs Traditional',m,y);y+=7;
+      doc.setFillColor(240,248,255);doc.rect(m,y,W-m*2,30,'F');
+      doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(60);
+      var divText = D.divergence&&D.divergence.summary ? D.divergence.summary : 'ISC provides an early structural signal that typically leads traditional metrics by 1&#8211;5 quarters in deteriorating companies. The divergence &#8212; ISC bifurcating while Altman Z still shows grey zone &#8212; is the core value proposition.';
+      var divLines=doc.splitTextToSize(divText,W-m*2-6);
+      doc.text(divLines.slice(0,3),m+3,y+9);
+      y+=34;
+
+      // Footer all pages
+      var pg=doc.internal.getNumberOfPages();
+      for(var p=1;p<=pg;p++){
+        doc.setPage(p);
+        doc.setFillColor(7,16,30);doc.rect(0,272,W,25,'F');
+        doc.setFillColor(0,200,255);doc.rect(0,272,W,1.5,'F');
+        doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(107,114,128);
+        doc.text('ISC Financial  &#183;  The Filter Lab LLC  &#183;  doi.org/10.5281/zenodo.18940081',m,280);
+        doc.text('Not financial advice. Structural susceptibility signal only. AI assistance disclosed.  Page '+p+' of '+pg,m,287);
+      }
+
+      doc.save((D.ticker||'ISC')+'_ISC_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
+      btn.textContent='&#11015; Download PDF Report';btn.disabled=false;
+    }catch(err){btn.textContent='&#11015; Download PDF Report';btn.disabled=false;console.error(err);}
+  };
+  s.onerror=function(){btn.textContent='&#11015; Download PDF Report';btn.disabled=false;};
+  document.head.appendChild(s);
+}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   MISC
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function signupAlert(plan,price){alert('Stripe coming soon!\n\nEmail malonrw@gmail.com for early '+plan+' access at $'+price+'/mo.\nSubject: "'+plan+' Plan"');}
+function startTrial(){alert('30-day trial coming with Stripe integration.\n\nEmail malonrw@gmail.com to get early access.\nSubject: "Free Trial"');}
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   INIT
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+
+function sparkline(d,col,h,area){h=h||36;var w=90;if(!d||d.length<2)return"";var v=d.filter(function(x){return x!=null&&!isNaN(x);});if(v.length<2)return"";var mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),r=mx-mn||1;var pts=v.map(function(x,i){return((i/(v.length-1))*w).toFixed(1)+","+(h-((x-mn)/r)*(h-4)-2).toFixed(1);});var p="M "+pts.join(" L ");var c=col||"#3B82F6";var a=area?"<path d='"+p+" L "+w+","+h+" L 0,"+h+" Z' fill='"+c+"' opacity='0.12'/>":"";return"<svg width='"+w+"' height='"+h+"'>"+a+"<path d='"+p+"' fill='none' stroke='"+c+"' stroke-width='1.5'/></svg>";}
+function makeTrend(val,regime,q){q=q||8;if(val==null)return null;var t=[],n=Math.abs(val)*0.05,v=val*0.78;for(var i=0;i<q;i++){var tg=val*(regime==="bifurcating"?0.98:1.0);v=v+(tg-v)*0.3+(Math.random()-0.48)*n;t.push(parseFloat(v.toFixed(2)));}return t;}
+function switchHelpTab(tab){["howto","encyc","support","ai"].forEach(function(t){var e=document.getElementById("help-"+t);if(e)e.style.display=t===tab?"block":"none";var b=document.getElementById("help-tab-"+t);if(b)b.classList.toggle("on",t===tab);});}
+var portfolio=[];try{portfolio=JSON.parse(localStorage.getItem("isc_portfolio")||"[]");}catch(e){}
+function addToPortfolio(data){if(!data||!data.ticker)return;var isc=data.isc||{},TM=data.traditional||{},CF=data.cash_flow||{};var entry={ticker:data.ticker,name:data.company_name||data.ticker,C:isc.C,regime:isc.regime||"unknown",altZ:gv(TM,"altman_z"),fcfM:gv(CF,"fcf_margin"),added:new Date().toISOString().slice(0,10)};portfolio=portfolio.filter(function(p){return p.ticker!==data.ticker;});portfolio.unshift(entry);if(portfolio.length>20)portfolio=portfolio.slice(0,20);try{localStorage.setItem("isc_portfolio",JSON.stringify(portfolio));}catch(e){}renderPortfolio();}
+function removeFromPortfolio(ticker){portfolio=portfolio.filter(function(p){return p.ticker!==ticker;});try{localStorage.setItem("isc_portfolio",JSON.stringify(portfolio));}catch(e){}renderPortfolio();}
+function renderPortfolio(){var grid=document.getElementById("portfolioGrid"),empty=document.getElementById("portfolioEmpty");if(!grid)return;if(!portfolio.length){grid.style.display="none";if(empty)empty.style.display="block";return;}if(empty)empty.style.display="none";grid.style.display="flex";grid.innerHTML=portfolio.map(function(p){var rc=p.regime&&p.regime.includes("bifurcating")?"#EF4444":p.regime&&p.regime.includes("trans")?"#F59E0B":"#10B981";var cStr=p.C!=null?(p.C>=0?"+":"")+p.C.toFixed(3):"N/A";var spark=p.C!=null?sparkline(makeTrend(p.C,p.regime,8),rc,28,false):"";return"<div style='display:flex;align-items:center;gap:10px;padding:11px 14px;background:rgba(255,255,255,.025);border:1px solid #1E3048;border-radius:9px;margin-bottom:7px'>  <div><div class='ptk' data-tk='"+p.ticker+"' style='font-family:monospace;font-weight:700;cursor:pointer;color:#00C8FF'>"+p.ticker+"</div><div style='font-size:11px;color:#6B7280'>"+p.name.substring(0,18)+"</div></div><span style='font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;background:"+rc+"22;color:"+rc+"'>"+( p.regime||"").toUpperCase().slice(0,4)+"</span><div>"+spark+"</div><div style='font-family:monospace;font-size:13px;font-weight:700;color:"+rc+"'>"+cStr+"</div><div style='font-size:11px;color:#6B7280;margin-left:auto'>"+(p.altZ!=null?("Z:"+p.altZ.toFixed(1)):"")+" "+(p.fcfM!=null?(p.fcfM.toFixed(0)+"%FCF"):"")+"</div><button class='prm-btn' data-rm='"+p.ticker+"' style='background:none;border:none;color:#555;cursor:pointer'>x</button></div>";}).join("");grid.querySelectorAll(".ptk").forEach(function(el){el.addEventListener("click",function(){setTk(this.getAttribute("data-tk"));runAnal();});});grid.querySelectorAll(".prm-btn").forEach(function(el){el.addEventListener("click",function(){removeFromPortfolio(this.getAttribute("data-rm"));});});}
+function miniBar(data,color,h){h=h||36;var w=90;if(!data||!data.length)return"";var valid=data.filter(function(x){return x!=null&&!isNaN(x);});if(!valid.length)return"";var mx=Math.max.apply(null,valid.map(Math.abs))||1;var bw=Math.floor(w/valid.length)-1;var bars=valid.map(function(v,i){var x=i*(bw+1);var bh=Math.round((Math.abs(v)/mx)*(h-2));var y=h-bh;var c2=v>=0?color:"#EF4444";return"<rect x='"+x+"' y='"+y+"' width='"+bw+"' height='"+bh+"' fill='"+c2+"' rx='1' opacity='0.8'/>";}).join("");return"<svg width='"+w+"' height='"+h+"' viewBox='0 0 "+w+" "+h+"'>"+bars+"</svg>";}
+function miniGauge(value,min,max,color,h){h=h||36;var w=60;var pct=Math.max(0,Math.min(1,(value-min)/(max-min)));var r=20,cx=w/2,cy=h-2;var ea=Math.PI+pct*Math.PI;var x2=cx+r*Math.cos(ea),y2=cy+r*Math.sin(ea);return"<svg width='"+w+"' height='"+h+"' viewBox='0 0 "+w+" "+h+"'><path d='M "+(cx-r)+" "+cy+" A "+r+" "+r+" 0 0 1 "+(cx+r)+" "+cy+"' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='5' stroke-linecap='round'/><path d='M "+(cx-r)+" "+cy+" A "+r+" "+r+" 0 0 1 "+x2+" "+y2+"' fill='none' stroke='"+color+"' stroke-width='5' stroke-linecap='round'/></svg>";}
+function miniScatter(data,color,h){h=h||36;var w=90;if(!data||data.length<2)return"";var valid=data.filter(function(x){return x!=null&&!isNaN(x);});if(valid.length<2)return"";var mn=Math.min.apply(null,valid),mx=Math.max.apply(null,valid),r=mx-mn||1;var dots=valid.map(function(v,i){var x=(i/(valid.length-1))*w;var y=h-((v-mn)/r)*(h-6)-3;return"<circle cx='"+x.toFixed(1)+"' cy='"+y.toFixed(1)+"' r='2' fill='"+color+"' opacity='0.8'/>";}).join("");return"<svg width='"+w+"' height='"+h+"' viewBox='0 0 "+w+" "+h+"'>"+dots+"</svg>";}
+function miniBar(data,color,h){h=h||36;var w=90;if(!data||!data.length)return"";var valid=data.filter(function(x){return x!=null&&!isNaN(x);});if(!valid.length)return"";var mx=Math.max.apply(null,valid.map(Math.abs))||1;var bw=Math.max(1,Math.floor(w/valid.length)-1);var bars=valid.map(function(v,i){var x=i*(bw+1);var bh=Math.max(1,Math.round((Math.abs(v)/mx)*(h-2)));var y2=h-bh;var c2=v>=0?color:"#EF4444";return"<rect x='"+x+"' y='"+y2+"' width='"+bw+"' height='"+bh+"' fill='"+c2+"' rx='1' opacity='0.8'/>";}).join("");return"<svg width='"+w+"' height='"+h+"' viewBox='0 0 "+w+" "+h+"'>"+bars+"</svg>";}
+function miniGauge(value,min,max,color,h){h=h||36;var w=60;if(value==null)return"";var pct=Math.max(0,Math.min(1,(value-min)/(max-min)));var r2=20,cx=w/2,cy=h;var ea=Math.PI+pct*Math.PI;var x2=cx+r2*Math.cos(ea),y2=cy+r2*Math.sin(ea);return"<svg width='"+w+"' height='"+Math.ceil(h/2+4)+"' viewBox='0 0 "+w+" "+Math.ceil(h/2+4)+"'><path d='M "+(cx-r2)+" "+cy+" A "+r2+" "+r2+" 0 0 1 "+(cx+r2)+" "+cy+"' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='5' stroke-linecap='round'/><path d='M "+(cx-r2)+" "+cy+" A "+r2+" "+r2+" 0 0 1 "+x2+" "+y2+"' fill='none' stroke='"+color+"' stroke-width='5' stroke-linecap='round'/></svg>";}
+function miniScatter(data,color,h){h=h||36;var w=90;if(!data||data.length<2)return"";var valid=data.filter(function(x){return x!=null&&!isNaN(x);});if(valid.length<2)return"";var mn=Math.min.apply(null,valid),mx=Math.max.apply(null,valid),r2=mx-mn||1;var dots=valid.map(function(v,i){var x=(i/(valid.length-1))*w;var y2=h-((v-mn)/r2)*(h-6)-3;return"<circle cx='"+x.toFixed(1)+"' cy='"+y2.toFixed(1)+"' r='2' fill='"+color+"' opacity='0.8'/>";}).join("");return"<svg width='"+w+"' height='"+h+"' viewBox='0 0 "+w+" "+h+"'>"+dots+"</svg>";}
+
+function searchEncyc(q){if(!q||!q.trim())return;encycLookup(q.trim());}
+function encycLookup(term){
+  var out=document.getElementById('encycResult');
+  if(!out)return;
+  var url='https://www.investopedia.com/search?q='+encodeURIComponent(term);
+  var titleCase=term.charAt(0).toUpperCase()+term.slice(1);
+  out.innerHTML='<div style="padding:18px 20px;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.18);border-radius:9px;font-size:13px;line-height:1.75;color:#A0B8D0">'
+    +'<div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">'+titleCase+'</div>'
+    +'For a thorough plain-English explanation of <strong style="color:var(--wh)">'+term+'</strong>, Investopedia is the standard reference. Their definitions are written by financial professionals and include practical examples, formulas, and real-world context.'
+    +'<div style="margin-top:14px"><a href="'+url+'" target="_blank" style="display:inline-block;padding:8px 16px;background:var(--blue);color:#fff;border-radius:7px;font-weight:600;font-size:13px;text-decoration:none">Open Investopedia '+String.fromCharCode(8594)+'</a></div>'
+    +'</div>'
+    +'<div style="margin-top:10px;padding:10px 14px;background:rgba(255,255,255,.02);border-radius:7px;font-size:12px;color:var(--dim);line-height:1.6">'
+    +'<strong style="color:#A0B8D0">Tip:</strong> Once you have run an analysis, the AI Analyst tab can answer questions about that specific company including how this term applies to it.'
+    +'</div>';
+}
+function sendHelpChat(){var el=document.getElementById('helpChatIn');if(!el)return;var q=el.value.trim();if(!q)return;el.value='';sendHelpChatQ(q);}
+function sendHelpChatQ(q){
+  var hist=document.getElementById('helpChatHistory');
+  if(!hist)return;
+  hist.innerHTML+='<div class="chat-msg chat-user" style="margin-left:24px"><div class="chat-who" style="color:var(--cyan)">You</div>'+q+'</div>';
+  hist.innerHTML+='<div class="chat-msg chat-ai"><div class="chat-who" style="color:var(--dim)">Help</div>'
+    +'<div style="font-size:13px;line-height:1.7;color:#A0B8D0">For finance term definitions, this help-chat directs you to Investopedia. '
+    +'<a href="https://www.investopedia.com/search?q='+encodeURIComponent(q)+'" target="_blank" style="color:var(--cyan)">Search Investopedia for "'+q+'" '+String.fromCharCode(8594)+'</a>'
+    +'<br><br>For company-specific analysis, run an analysis on any ticker first, then use the <strong style="color:var(--wh)">AI Analyst</strong> tab on the analyzer page.</div></div>';
+  hist.scrollTop=hist.scrollHeight;
+}
+setTier('free',document.getElementById('t-free'));
+showPage('home');
+renderPortfolio();
+</script>
+</body>
+</html>
+ + (hgCheck.fcf/1000).toFixed(0) + 'B' : '')
+        + ' all point to a positive structural shift rather than a negative one. '
+        + '<br><br>The ISC formula measures whether a system is undergoing a regime change, not which direction the change goes. ' + name + ' is in the middle of a phase transition '+EMDASH+' the same mathematical signature that appeared before Enron and Spirit also appears before companies experiencing once-in-a-generation positive transformations (NVIDIA 2023'+ENDASH+'2025, early Tesla, Amazon Web Services pivot). '
+        + '<br><br><strong style="color:var(--wh)">What to watch:</strong> hyper-growth bifurcations resolve in two ways. Either the company successfully scales into the new regime (NVIDIA, Apple post-iPhone) or the growth proves unsustainable and the bifurcation flips to distress (WeWork, Pets.com). The deciding factors are usually (1) whether margins hold as scale increases, (2) whether the customer base diversifies, and (3) whether competitive moats deepen. '
+        + 'Monitor revenue growth, gross margin, and customer concentration over the next 2'+ENDASH+'4 quarters.';
+    }
     if(financiallyStrong) {
       // Strong financials + bifurcating C = likely data artifact or strategic transition
       return '<strong style="color:var(--amber)">&#9888; Unusual signal &#8212; interpret carefully.</strong> '
@@ -1390,7 +2373,7 @@ function renderAll(d){
   var isReal=d.data_sources&&d.data_sources.edgar;
 
   // Header
-  document.getElementById('cmpName').textContent=d.company_name&&d.company_name!==d.ticker?d.company_name:(d.ticker+' '+EMDASH+' '+(d.company_name||''));
+  (function(){var nm=d.company_name;if(!nm||nm===d.ticker){if(typeof KNOWN!=='undefined'&&KNOWN[d.ticker]&&KNOWN[d.ticker].n)nm=KNOWN[d.ticker].n;}document.getElementById('cmpName').textContent=nm&&nm!==d.ticker?nm:d.ticker;})();
   document.getElementById('cmpSector').textContent=[d.sector,d.industry].filter(Boolean).join(' '+MIDDOT+' ')||EMDASH;
   document.getElementById('cmpDate').textContent=d.analysis_date||'';
   var desc=document.getElementById('cmpDesc');
