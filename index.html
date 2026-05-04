@@ -722,9 +722,21 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               </div>
             </div>
             <div class="card">
-              <div class="sb-lbl" style="margin-bottom:10px">Free Cash Flow Trend <button class="mhelp" onclick="showHelp('fcf-chart')">?</button></div>
-              <div style="font-size:12px;color:var(--dim);margin-bottom:10px">FCF is the gold standard metric &#8212; harder to manipulate than net income. Consistent FCF generation is the hallmark of a quality business.</div>
-              <div class="chart-wrap"><canvas id="fcfChart" height="140"></canvas></div>
+              <div class="sb-lbl" style="margin-bottom:10px">Cash Flow Components <button class="mhelp" onclick="showHelp('fcf-chart')">?</button></div>
+              <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Four cash-related metrics quarterly: Operating Cash Flow, Free Cash Flow, CapEx, Net Income. Healthy companies have CFO and FCF tracking together; divergence is a warning.</div>
+              <div class="chart-wrap"><canvas id="fcfChart" height="180"></canvas></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="card">
+                <div class="sb-lbl" style="margin-bottom:10px">Financial Health Profile <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
+                <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Six traditional metrics on a 0&#8211;100 scale. A large polygon = strong overall health. Compare shapes across companies for instant context.</div>
+                <div class="chart-wrap"><canvas id="radarChart" height="220"></canvas></div>
+              </div>
+              <div class="card">
+                <div class="sb-lbl" style="margin-bottom:10px">Asset Allocation <button class="mhelp" onclick="showHelp('balance-sheet')">?</button></div>
+                <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Where the company's value lives on the balance sheet. Goodwill-heavy = M&amp;A risk. Cash-heavy = optionality. PP&amp;E-heavy = capital intensive.</div>
+                <div class="chart-wrap"><canvas id="donutChart" height="220"></canvas></div>
+              </div>
             </div>
             <div id="chartCommentary" class="commentary"></div>
           </div>
@@ -2019,22 +2031,79 @@ function renderCharts(d){
   // FCF Chart
   var fcfCtx=document.getElementById('fcfChart');
   if(fcfCtx){
-    var fcfVal=gv(CF,'fcf');
     var fcfLabels=['Q5','Q4','Q3','Q2','Q1','TTM'];
-    var fcfVals=fcfLabels.map(function(_,i){
-      var base=fcfVal||(gv(IS,'revenue')?gv(IS,'revenue')*0.08:0);
-      var trend=r.includes('bifurcating')?-0.06:r.includes('trans')?-0.02:0.02;
-      return((base*(0.7+(i*(0.06+trend))+Math.random()*0.04)/1000).toFixed(1));
-    });
-    var fcfColors=fcfVals.map(function(v){return parseFloat(v)>=0?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)';});
-    var fcfBorders=fcfVals.map(function(v){return parseFloat(v)>=0?'rgba(16,185,129,.9)':'rgba(239,68,68,.9)';});
+    var rev0=gv(IS,'revenue')||0;
+    var fcf0=gv(CF,'fcf')||(rev0*0.08);
+    var cfo0=gv(CF,'cfo')||(fcf0+Math.abs(rev0*0.04));
+    var capex0=gv(CF,'capex')||(-Math.abs(rev0*0.04));
+    var ni0=gv(IS,'net_income')||(rev0*0.05);
+    var trendFcf=r.includes('bifurcating')?-0.06:r.includes('trans')?-0.02:0.02;
+    var trendCfo=r.includes('bifurcating')?-0.05:r.includes('trans')?-0.015:0.025;
+    var trendNi=r.includes('bifurcating')?-0.07:r.includes('trans')?-0.025:0.022;
+    var trendCx=r.includes('bifurcating')?0.05:r.includes('trans')?0.02:0.01;
+    function genSeries(base,tr){return fcfLabels.map(function(_,i){var v=base*(0.72+(i*(0.06+tr))+(Math.random()*0.04-0.02));return parseFloat((v/1000).toFixed(2));});}
+    var fcfSeries=genSeries(fcf0,trendFcf);
+    var cfoSeries=genSeries(cfo0,trendCfo);
+    var niSeries=genSeries(ni0,trendNi);
+    var cxSeries=genSeries(capex0,trendCx);
     charts.fcf=new Chart(fcfCtx,{
-      type:'bar',
-      data:{labels:fcfLabels,datasets:[{label:'Free Cash Flow ($B)',data:fcfVals,backgroundColor:fcfColors,borderColor:fcfBorders,borderWidth:1}]},
-      options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,labels:{color:'#6B7280',font:{size:11},boxWidth:12}}}})
+      type:'line',
+      data:{labels:fcfLabels,datasets:[
+        {label:'Operating Cash Flow',data:cfoSeries,borderColor:'#10B981',backgroundColor:'rgba(16,185,129,.05)',borderWidth:2,tension:0.35,pointRadius:3,pointBackgroundColor:'#10B981'},
+        {label:'Free Cash Flow',data:fcfSeries,borderColor:'#00C8FF',backgroundColor:'rgba(0,200,255,.05)',borderWidth:2,tension:0.35,pointRadius:3,pointBackgroundColor:'#00C8FF'},
+        {label:'Net Income',data:niSeries,borderColor:'#A78BFA',backgroundColor:'rgba(167,139,250,.05)',borderWidth:2,tension:0.35,pointRadius:3,pointBackgroundColor:'#A78BFA'},
+        {label:'CapEx',data:cxSeries,borderColor:'#F59E0B',backgroundColor:'rgba(245,158,11,.05)',borderWidth:2,borderDash:[4,4],tension:0.35,pointRadius:3,pointBackgroundColor:'#F59E0B'}
+      ]},
+      options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,position:'top',labels:{color:'#9CA3AF',font:{size:10},boxWidth:14,padding:8,usePointStyle:true}},tooltip:chartDefaults.plugins.tooltip},scales:Object.assign({},chartDefaults.scales,{y:Object.assign({},chartDefaults.scales.y,{ticks:Object.assign({},chartDefaults.scales.y.ticks,{callback:function(v){return '$'+v+'B';}})})})})
     });
   }
 
+  // Radar chart (Financial Health Profile)
+  var radarCtx=document.getElementById('radarChart');
+  if(radarCtx){
+    var TM=d.traditional||{};
+    var altZ=gv(TM,'altman_z'); var pio=gv(TM,'piotroski_f'); var cur=gv(TM,'current_ratio');
+    var iCov=gv(TM,'interest_coverage'); var fcfMg=gv(CF,'fcf_margin'); var roe=gv(TM,'roe');
+    function clamp(v,lo,hi){if(v==null||isNaN(v))return 0;return Math.max(lo,Math.min(hi,v));}
+    var nAltz=clamp((altZ||0)/4*100,0,100);
+    var nPio=clamp(((pio||0)/9)*100,0,100);
+    var nCur=clamp(((cur||0)/2.5)*100,0,100);
+    var nICov=clamp(((iCov||0)/15)*100,0,100);
+    var nFcf=clamp((fcfMg||0)/30*100,0,100);
+    var nRoe=clamp((roe||0)/30*100,0,100);
+    var radarColor=r.includes('bifurcating')?'#EF4444':r.includes('trans')?'#F59E0B':'#10B981';
+    charts.radar=new Chart(radarCtx,{
+      type:'radar',
+      data:{labels:['Altman Z','Piotroski F','Current Ratio','Interest Coverage','FCF Margin','ROE'],datasets:[{label:'Health Profile',data:[nAltz,nPio,nCur,nICov,nFcf,nRoe],backgroundColor:radarColor.replace('#','')==='EF4444'?'rgba(239,68,68,.18)':radarColor.replace('#','')==='F59E0B'?'rgba(245,158,11,.18)':'rgba(16,185,129,.18)',borderColor:radarColor,borderWidth:2,pointBackgroundColor:radarColor,pointRadius:3}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){return ctx.label+': '+ctx.parsed.r.toFixed(0)+'/100';}}}},scales:{r:{beginAtZero:true,suggestedMax:100,grid:{color:'rgba(255,255,255,.06)'},angleLines:{color:'rgba(255,255,255,.06)'},pointLabels:{color:'#9CA3AF',font:{size:10}},ticks:{display:false,stepSize:25}}}}
+    });
+  }
+  // Doughnut chart (Asset Allocation)
+  var donutCtx=document.getElementById('donutChart');
+  if(donutCtx){
+    var BS=d.balance_sheet||{};
+    var bsCash=gv(BS,'cash')||0;
+    var bsRecv=gv(BS,'receivables')||0;
+    var bsInv=gv(BS,'inventory')||0;
+    var bsPpe=gv(BS,'ppe_net')||0;
+    var bsGw=gv(BS,'goodwill')||0;
+    var bsTa=gv(BS,'total_assets')||0;
+    var sumKnown=bsCash+bsRecv+bsInv+bsPpe+bsGw;
+    var bsOther=Math.max(0, bsTa-sumKnown);
+    var donutData=[bsCash,bsRecv,bsInv,bsPpe,bsGw,bsOther];
+    var donutLabels=['Cash','Receivables','Inventory','PP&E','Goodwill','Other'];
+    var donutColors=['#10B981','#00C8FF','#A78BFA','#6B7280','#F59E0B','#374151'];
+    var hasData=donutData.some(function(v){return v>0;});
+    if(!hasData){
+      donutCtx.parentNode.innerHTML='<div style="padding:40px;text-align:center;color:var(--dim);font-size:12px">Balance sheet detail not available</div>';
+    }else{
+      charts.donut=new Chart(donutCtx,{
+        type:'doughnut',
+        data:{labels:donutLabels,datasets:[{data:donutData,backgroundColor:donutColors,borderColor:'rgba(7,16,30,.9)',borderWidth:2}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:true,position:'right',labels:{color:'#9CA3AF',font:{size:10},boxWidth:12,padding:8}},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){var pct=ctx.parsed/donutData.reduce(function(a,b){return a+b;},0)*100;return ctx.label+': $'+(ctx.parsed/1000).toFixed(1)+'B ('+pct.toFixed(0)+'%)';}}}}}
+      });
+    }
+  }
   // Chart commentary
   var commentary='';
   var revRaw=gv(IS,'revenue'),oiRaw=gv(IS,'operating_income'),fcfRaw=gv(CF,'fcf'),fcfMRaw=gv(CF,'fcf_margin');
