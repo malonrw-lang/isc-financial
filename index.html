@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ISC Financial — The Filter Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:15px}
+body{background:#05080D;color:#E2EBF4;font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#05080D}::-webkit-scrollbar-thumb{background:#1A2535;border-radius:3px}
+.mono{font-family:'Space Mono',monospace}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glow{0%,100%{box-shadow:0 0 20px rgba(0,210,255,0.1)}50%{box-shadow:0 0 40px rgba(0,210,255,0.3)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes loadBar{from{width:0%}to{width:100%}}
+.fu{animation:fadeUp .45s ease both}
+.fu1{animation:fadeUp .45s .08s ease both}
+.fu2{animation:fadeUp .45s .16s ease both}
+.fu3{animation:fadeUp .45s .24s ease both}
+.fu4{animation:fadeUp .45s .32s ease both}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(5,8,13,0.97);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+.nav-logo{display:flex;align-items:center;gap:12px;cursor:pointer}
+.nav-hex{width:32px;height:32px;background:linear-gradient(135deg,#00D2FF,#0055FF);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);animation:glow 3s ease infinite;flex-shrink:0}
+.nav-title{font-size:16px;font-weight:700;letter-spacing:-.01em}
+.nav-sub{font-size:10px;color:#3A5060;letter-spacing:.12em;text-transform:uppercase;font-family:'Space Mono',monospace}
+.nav-links{display:flex;gap:2px}
+.nl{background:none;border:none;color:#7A95A8;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:8px 14px;cursor:pointer;border-radius:8px;transition:all .2s}
+.nl:hover{color:#E2EBF4;background:rgba(255,255,255,0.05)}
+.nl.on{color:#00D2FF;background:rgba(0,210,255,0.08)}
+.nav-cta{background:linear-gradient(135deg,#00D2FF,#0055FF);color:#fff;border:none;padding:9px 22px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s}
+.nav-cta:hover{opacity:.9;transform:translateY(-1px)}
+.nav-tier{display:flex;gap:2px;margin-right:8px}
+.nt{background:none;border:1px solid rgba(255,255,255,0.08);color:#7A95A8;font-family:'Space Mono',monospace;font-size:10px;padding:5px 10px;cursor:pointer;border-radius:5px;transition:all .2s}
+.nt:hover{border-color:rgba(0,210,255,0.3);color:#E2EBF4}
+.nt.on{border-color:#00D2FF;color:#00D2FF;background:rgba(0,210,255,0.08)}
+
+/* BUTTONS */
+.btn-p{background:linear-gradient(135deg,#00D2FF,#0055FF);color:#fff;border:none;padding:13px 28px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;cursor:pointer;transition:all .25s;display:inline-flex;align-items:center;gap:8px}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,85,255,0.4)}
+.btn-p:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-s{background:rgba(255,255,255,0.05);color:#E2EBF4;border:1px solid rgba(255,255,255,0.1);padding:11px 22px;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:500;font-size:14px;cursor:pointer;transition:all .2s}
+.btn-s:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.2)}
+.btn-g{background:rgba(0,255,150,0.1);color:#00FF9C;border:1px solid rgba(0,255,150,0.25);padding:9px 18px;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s}
+.btn-g:hover{background:rgba(0,255,150,0.18)}
+
+/* CARDS */
+.card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:22px;transition:border-color .3s}
+.card:hover{border-color:rgba(0,210,255,0.15)}
+.card-hi{background:linear-gradient(135deg,rgba(0,210,255,0.06),rgba(0,85,255,0.06));border:1px solid rgba(0,210,255,0.18);border-radius:14px;padding:24px}
+.card-sm{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:16px}
+
+/* GRID BG */
+.grid-bg{background-image:radial-gradient(circle at 15% 25%,rgba(0,85,255,0.09) 0%,transparent 45%),radial-gradient(circle at 85% 75%,rgba(0,210,255,0.07) 0%,transparent 45%),linear-gradient(rgba(26,37,53,0.2) 1px,transparent 1px),linear-gradient(90deg,rgba(26,37,53,0.2) 1px,transparent 1px);background-size:100%,100%,48px 48px,48px 48px}
+
+/* TABS */
+.tab-bar{display:flex;gap:4px;border-bottom:1px solid rgba(255,255,255,0.07);padding:0 24px;overflow-x:auto;flex-shrink:0}
+.tab-bar::-webkit-scrollbar{display:none}
+.tb{background:none;border:none;color:#7A95A8;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:12px 16px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s}
+.tb:hover{color:#E2EBF4}
+.tb.on{color:#00D2FF;border-bottom-color:#00D2FF}
+
+/* METRIC ROW */
+.mrow{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.mrow:last-child{border-bottom:none}
+.mrow-label{font-size:13px;color:#A0B4C8;font-weight:500;flex:1}
+.mrow-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:#E2EBF4;text-align:right;flex-shrink:0;margin-left:12px}
+.mrow-simple{font-size:12px;color:#5A7585;margin-top:3px;line-height:1.5;max-width:420px}
+
+/* REGIME BADGE */
+.reg-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;letter-spacing:.05em}
+
+/* ALERTS */
+.al{border-radius:10px;padding:14px 18px;display:flex;gap:12px;align-items:flex-start;font-size:13px;line-height:1.6}
+.al-g{background:rgba(0,255,150,0.06);border:1px solid rgba(0,255,150,0.2)}
+.al-a{background:rgba(255,184,0,0.06);border:1px solid rgba(255,184,0,0.2)}
+.al-r{background:rgba(255,69,96,0.06);border:1px solid rgba(255,69,96,0.2)}
+.al-b{background:rgba(0,210,255,0.06);border:1px solid rgba(0,210,255,0.2)}
+
+/* AUTOCOMPLETE */
+.tk-wrap{position:relative}
+.tk-input{width:100%;padding:14px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#E2EBF4;font-family:'Space Mono',monospace;font-size:22px;font-weight:700;letter-spacing:3px;text-transform:uppercase;outline:none;transition:border-color .2s}
+.tk-input:focus{border-color:#00D2FF;background:rgba(0,210,255,0.04)}
+.tk-input::placeholder{color:#2A3F50;font-size:16px;letter-spacing:1px;font-weight:400}
+.tk-drop{display:none;position:absolute;top:100%;left:0;right:0;background:#0D1520;border:1px solid rgba(0,210,255,0.25);border-top:none;border-radius:0 0 10px 10px;z-index:300;overflow:hidden}
+.tk-item{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .15s}
+.tk-item:hover{background:rgba(0,210,255,0.08)}
+.tk-item:last-child{border-bottom:none}
+
+/* PROGRESS BAR */
+.pbar{height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden}
+.pfill{height:100%;border-radius:2px;transition:width .3s ease;background:linear-gradient(90deg,#00D2FF,#0055FF)}
+
+/* ANALYZER LAYOUT */
+.analyzer-wrap{display:grid;grid-template-columns:260px 1fr;height:calc(100vh - 62px);overflow:hidden}
+.analyzer-sidebar{border-right:1px solid rgba(255,255,255,0.06);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.analyzer-sidebar::-webkit-scrollbar{display:none}
+.analyzer-main{overflow-y:auto;display:flex;flex-direction:column}
+.analyzer-main::-webkit-scrollbar{width:4px}
+.analyzer-main::-webkit-scrollbar-thumb{background:#1A2535;border-radius:2px}
+
+/* SIDEBAR SECTIONS */
+.sb-label{font-size:10px;color:#3A5565;letter-spacing:.15em;text-transform:uppercase;font-family:'Space Mono',monospace;margin-bottom:8px}
+.sb-section{display:flex;flex-direction:column;gap:6px}
+
+/* PLAN CARD */
+.plan-card{border-radius:10px;padding:14px;border:1px solid}
+.qtk{padding:4px 10px;font-family:'Space Mono',monospace;font-size:11px;border:1px solid rgba(255,255,255,0.08);border-radius:4px;color:#7A95A8;background:transparent;cursor:pointer;transition:all .15s}
+.qtk:hover{border-color:rgba(0,210,255,0.3);color:#00D2FF}
+
+/* RUN BUTTON */
+.run-btn{width:100%;padding:13px;background:linear-gradient(135deg,#00D2FF,#0055FF);border:none;border-radius:10px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.3px}
+.run-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,85,255,0.4)}
+.run-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.pdf-btn{width:100%;padding:10px;background:transparent;border:1px solid rgba(0,255,150,0.3);border-radius:10px;color:#00FF9C;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:8px}
+.pdf-btn:hover{background:rgba(0,255,150,0.08)}
+
+/* RESULT AREA */
+.result-header{padding:20px 24px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.company-name{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.company-meta{font-size:13px;color:#7A95A8;margin-top:2px}
+.tab-content{padding:24px;display:flex;flex-direction:column;gap:20px}
+.hidden{display:none!important}
+
+/* PLACEHOLDER */
+.placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;text-align:center}
+.ph-hex{width:72px;height:72px;background:linear-gradient(135deg,rgba(0,210,255,0.1),rgba(0,85,255,0.1));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);border:1px solid rgba(0,210,255,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px}
+.ph-title{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-bottom:10px}
+.ph-sub{font-size:15px;color:#7A95A8;max-width:480px;line-height:1.7;margin-bottom:28px}
+.ph-tickers{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:28px}
+.ph-tk{padding:8px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;color:#A0B4C8;cursor:pointer;transition:all .2s}
+.ph-tk:hover{border-color:#00D2FF;color:#00D2FF;background:rgba(0,210,255,0.06)}
+
+/* GAUGE SVG */
+.gauge-wrap{display:flex;justify-content:center;margin:8px 0}
+
+/* PRICING PAGE */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.price-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:24px;display:flex;flex-direction:column;position:relative;transition:all .3s}
+.price-card:hover{transform:translateY(-2px)}
+.price-card.featured{border-color:#00D2FF;background:linear-gradient(135deg,rgba(0,85,255,0.06),rgba(0,210,255,0.04))}
+.feat-tag{position:absolute;top:-1px;left:20px;background:linear-gradient(135deg,#00D2FF,#0055FF);padding:3px 14px;border-radius:0 0 8px 8px;font-size:10px;font-weight:700;color:#fff;letter-spacing:.1em}
+
+/* HOME PAGE */
+.hero-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 40px 60px;position:relative}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,210,255,0.08);border:1px solid rgba(0,210,255,0.2);border-radius:100px;padding:6px 16px;font-size:12px;color:#00D2FF;font-weight:600;margin-bottom:28px;font-family:'Space Mono',monospace;letter-spacing:.05em}
+.hero-title{font-size:clamp(42px,6vw,80px);font-weight:800;letter-spacing:-.03em;line-height:1.05;margin-bottom:20px}
+.hero-gold{color:#00D2FF;font-style:italic}
+.hero-sub{font-size:clamp(16px,2vw,20px);color:#7A95A8;max-width:600px;line-height:1.7;margin:0 auto 36px}
+.stats-row{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin:48px 0}
+.stat{text-align:center}
+.stat-val{font-family:'Space Mono',monospace;font-size:clamp(28px,4vw,44px);font-weight:700;color:#00D2FF;letter-spacing:-.02em}
+.stat-label{font-size:12px;color:#5A7585;margin-top:4px;text-transform:uppercase;letter-spacing:.1em}
+
+/* ENRON DEMO BOX */
+.enron-box{background:rgba(255,184,0,0.05);border:1px solid rgba(255,184,0,0.2);border-radius:14px;padding:24px;max-width:560px;margin:0 auto;text-align:left}
+
+/* SECTION */
+.section{padding:72px 40px}
+.section-inner{max-width:1100px;margin:0 auto}
+.section-label{font-size:11px;color:#00D2FF;font-weight:700;letter-spacing:.15em;text-transform:uppercase;margin-bottom:12px;font-family:'Space Mono',monospace}
+.section-title{font-size:clamp(26px,3.5vw,38px);font-weight:800;letter-spacing:-.02em;margin-bottom:16px;line-height:1.15}
+
+/* FOOTER */
+footer{background:rgba(255,255,255,0.02);border-top:1px solid rgba(255,255,255,0.06);padding:32px 40px}
+
+/* ABOUT */
+.about-wrap{max-width:860px;margin:0 auto;padding:72px 40px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .analyzer-wrap{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .analyzer-sidebar{max-height:280px;border-right:none;border-bottom:1px solid rgba(255,255,255,0.06)}
+  nav{padding:0 16px}
+  .nav-links{display:none}
+  .section{padding:48px 20px}
+  .stats-row{gap:24px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-logo" onclick="showPage('home')">
+    <div class="nav-hex"></div>
+    <div>
+      <div class="nav-title">ISC <strong>Financial</strong></div>
+      <div class="nav-sub">by the filter lab</div>
+    </div>
+  </div>
+  <div class="nav-links">
+    <button class="nl on" onclick="showPage('home',this)">Home</button>
+    <button class="nl" onclick="showPage('analyzer',this)">Analyzer</button>
+    <button class="nl" onclick="showPage('pricing',this)">Pricing</button>
+    <button class="nl" onclick="showPage('about',this)">About ISC</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="nav-tier">
+      <button class="nt on" onclick="setTier('free',this)" title="Free">🌱 Free</button>
+      <button class="nt" onclick="setTier('investor',this)" title="Investor">📊 $19.99</button>
+      <button class="nt" onclick="setTier('pro',this)" title="Pro">⚡ $99</button>
+      <button class="nt" onclick="setTier('pro500',this)" title="Professional">🏛 $499</button>
+    </div>
+    <button class="nav-cta" onclick="showPage('analyzer')">Run Free Analysis →</button>
+  </div>
+</nav>
+
+<!-- PAGES -->
+<div id="pg-home" style="padding-top:62px">
+
+  <!-- HERO -->
+  <div class="hero-wrap grid-bg">
+    <div class="hero-badge">
+      <span style="width:7px;height:7px;border-radius:50%;background:#00D2FF;animation:pulse 2s infinite"></span>
+      Early Warning · Structural Risk · Finance-Specific
+    </div>
+    <h1 class="hero-title">Before the numbers <span class="hero-gold">lie.</span></h1>
+    <p class="hero-sub">ISC Financial detects when a company's internal dynamics shift from regulating shocks to amplifying them — before conventional metrics reflect structural risk.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <button class="btn-p" style="font-size:15px;padding:14px 32px" onclick="showPage('analyzer')">Run Free Analysis →</button>
+      <button class="btn-s" style="font-size:15px;padding:14px 24px" onclick="runEnron()">Try Enron Demo</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val">0.96</div><div class="stat-label">AUC Score</div></div>
+      <div class="stat"><div class="stat-val">45</div><div class="stat-label">Historical Cases</div></div>
+      <div class="stat"><div class="stat-val">14</div><div class="stat-label">Domains Validated</div></div>
+      <div class="stat"><div class="stat-val">1–5Q</div><div class="stat-label">Lead Time Over Altman Z</div></div>
+    </div>
+
+    <!-- Enron Demo Box -->
+    <div class="enron-box fu2">
+      <div style="font-size:11px;color:#FFB800;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-family:'Space Mono',monospace;margin-bottom:10px">★ The Enron Demo — See the Early Window</div>
+      <p style="font-size:14px;color:#A0B4C8;line-height:1.7;margin-bottom:16px">Enron was the seventh-largest US company. Its stock went from $90 to zero in 2001. <strong style="color:#E2EBF4">ISC detected the structural shift from regulated to bifurcating regime before the accounting scandal broke publicly.</strong> Coupling shifted from C=−0.208 to C=+0.321. Altman Z was still in the grey zone. Price was still near highs.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-p" style="padding:9px 18px;font-size:12px" onclick="runEnron()">▶ Run Enron Case Study</button>
+        <button class="btn-s" style="padding:9px 16px;font-size:12px" onclick="runWorldCom()">WorldCom (2002)</button>
+        <button class="btn-s" style="padding:9px 16px;font-size:12px" onclick="runSpirit()">Spirit Airlines (2026)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="section" style="background:rgba(255,255,255,0.02);border-top:1px solid rgba(255,255,255,0.06)">
+    <div class="section-inner">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+        <div class="fu">
+          <div class="section-label">The Science In Plain English</div>
+          <h2 class="section-title">Every Company Has a Filter. ISC Measures It.</h2>
+          <p style="font-size:15px;color:#7A95A8;line-height:1.8;margin-bottom:18px">Think of a healthy company like a car engine. When something goes wrong — fuel prices spike, a competitor undercuts — the healthy company absorbs it and corrects. Margins dip but recover. The system self-corrects.</p>
+          <p style="font-size:15px;color:#7A95A8;line-height:1.8;margin-bottom:24px">A company in structural decline does the opposite. Each shock amplifies the next. Revenue recovery doesn't fix margins. Interest costs compound. The system amplifies rather than corrects. <strong style="color:#E2EBF4">ISC measures which direction a company is going — before the financial statements fully reflect it.</strong></p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border-radius:100px;padding:6px 14px;border:1px solid rgba(0,255,150,0.2)"><div style="width:8px;height:8px;border-radius:50%;background:#00FF9C"></div><span style="font-size:13px;font-weight:600;color:#00FF9C">Regulated — Self-correcting</span></div>
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border-radius:100px;padding:6px 14px;border:1px solid rgba(255,184,0,0.2)"><div style="width:8px;height:8px;border-radius:50%;background:#FFB800"></div><span style="font-size:13px;font-weight:600;color:#FFB800">Transitioning — Watch closely</span></div>
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.04);border-radius:100px;padding:6px 14px;border:1px solid rgba(255,69,96,0.2)"><div style="width:8px;height:8px;border-radius:50%;background:#FF4560"></div><span style="font-size:13px;font-weight:600;color:#FF4560">Bifurcating — Structural risk</span></div>
+          </div>
+        </div>
+        <!-- Live preview card -->
+        <div class="card-hi fu1" style="padding:28px">
+          <div style="font-size:11px;color:#7A95A8;margin-bottom:16px;font-weight:600;letter-spacing:.08em;text-transform:uppercase">What ISC Sees — Example</div>
+          <div id="homeGauge" style="display:flex;justify-content:center;margin-bottom:20px"></div>
+          <div class="al al-g" style="margin-bottom:12px">
+            <span style="font-size:18px">✓</span>
+            <div><div style="font-size:13px;font-weight:700;color:#00FF9C;margin-bottom:4px">Regulated Dynamics</div><div style="font-size:12px;color:#7A95A8;line-height:1.6">This company's finances are self-correcting. Stress is absorbed rather than amplified. No structural red flags in the coupling signal.</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px"><div style="font-size:10px;color:#5A7585;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Coupling C</div><div class="mono" style="font-size:15px;font-weight:700;color:#00FF9C">−0.340</div></div>
+            <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px"><div style="font-size:10px;color:#5A7585;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Regime</div><div class="mono" style="font-size:15px;font-weight:700;color:#00FF9C">REGULATED</div></div>
+            <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px"><div style="font-size:10px;color:#5A7585;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Altman Z</div><div class="mono" style="font-size:15px;font-weight:700;color:#00D2FF">5.65</div></div>
+            <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px"><div style="font-size:10px;color:#5A7585;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Stability</div><div class="mono" style="font-size:15px;font-weight:700;color:#00FF9C">89/100</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHY BETTER -->
+  <div class="section">
+    <div class="section-inner">
+      <div style="text-align:center;margin-bottom:48px">
+        <div class="section-label">Competitive Advantage</div>
+        <h2 class="section-title">Why ISC Financial Is Different</h2>
+        <p style="font-size:16px;color:#7A95A8;max-width:560px;margin:0 auto;line-height:1.7">Other tools tell you what a company looks like today. ISC tells you whether the dynamics are getting healthier or sicker.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+        <div class="card fu"><div style="font-size:28px;margin-bottom:14px">⏱</div><div style="font-size:15px;font-weight:700;margin-bottom:8px">1–5 Quarter Lead Time</div><div style="font-size:13px;color:#7A95A8;line-height:1.7">ISC enters bifurcating regime 1–5 quarters before Altman Z crosses the distress threshold. That early window is the product.</div></div>
+        <div class="card fu1"><div style="font-size:28px;margin-bottom:14px">🔬</div><div style="font-size:15px;font-weight:700;margin-bottom:8px">Independently Validated</div><div style="font-size:13px;color:#7A95A8;line-height:1.7">AUC=0.96 on 45 historical corporate failure cases. The same measurement validated across 14 independent domains. Not a black box.</div></div>
+        <div class="card fu2"><div style="font-size:28px;margin-bottom:14px">📖</div><div style="font-size:15px;font-weight:700;margin-bottom:8px">Plain English at Every Level</div><div style="font-size:13px;color:#7A95A8;line-height:1.7">Every metric is explained so a retail investor understands it without a finance degree. Same data — accessible to everyone.</div></div>
+        <div class="card fu3"><div style="font-size:28px;margin-bottom:14px">🤖</div><div style="font-size:15px;font-weight:700;margin-bottom:8px">Dual AI Analysis</div><div style="font-size:13px;color:#7A95A8;line-height:1.7">Claude AI reads the full ISC context and explains what it means. Pro tier adds GPT-4o for a second independent opinion and live news.</div></div>
+        <div class="card fu4"><div style="font-size:28px;margin-bottom:14px">📊</div><div style="font-size:15px;font-weight:700;margin-bottom:8px">Real EDGAR Data</div><div style="font-size:13px;color:#7A95A8;line-height:1.7">Pulls directly from SEC EDGAR and Yahoo Finance. Real financial statements. Real prices. Not estimates or scraped summaries.</div></div>
+        <div class="card fu"><div style="font-size:28px;margin-bottom:14px">💰</div><div style="font-size:15px;font-weight:700;margin-bottom:8px">Start Free</div><div style="font-size:13px;color:#7A95A8;line-height:1.7">No account needed. No credit card. Type a ticker and run the analysis. The ISC signal is free forever.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="section" style="background:rgba(255,255,255,0.02);border-top:1px solid rgba(255,255,255,0.06)">
+    <div class="section-inner" style="text-align:center">
+      <h2 style="font-size:36px;font-weight:800;letter-spacing:-.02em;margin-bottom:12px">Ready to see what your portfolio looks like?</h2>
+      <p style="font-size:16px;color:#7A95A8;margin-bottom:28px">Free for any US ticker. No account. No credit card. 30 seconds.</p>
+      <button class="btn-p" style="font-size:16px;padding:16px 40px" onclick="showPage('analyzer')">Run Free Analysis Now →</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="width:22px;height:22px;background:linear-gradient(135deg,#00D2FF,#0055FF);clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)"></div>
+          <span style="font-size:14px;font-weight:700">ISC Financial</span>
+          <span style="font-size:10px;color:#3A5060;font-family:'Space Mono',monospace">by the filter lab</span>
+        </div>
+        <div style="font-size:12px;color:#3A5060;line-height:1.7">© 2026 The Filter Lab LLC · Ryan W. Malone, Independent Researcher · Spring, TX<br>Not financial advice. Structural susceptibility signal only. AI assistance disclosed.</div>
+      </div>
+      <div style="display:flex;gap:20px">
+        <span style="font-size:12px;color:#5A7585;cursor:pointer" onclick="showPage('pricing')">Pricing</span>
+        <span style="font-size:12px;color:#5A7585;cursor:pointer" onclick="showPage('about')">About</span>
+        <a href="https://doi.org/10.5281/zenodo.18940081" style="font-size:12px;color:#00D2FF;text-decoration:none">Research</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ANALYZER PAGE -->
+<div id="pg-analyzer" class="hidden" style="padding-top:62px;height:calc(100vh - 0px)">
+  <div class="analyzer-wrap">
+
+    <!-- SIDEBAR -->
+    <div class="analyzer-sidebar">
+
+      <div class="sb-section">
+        <div class="sb-label">Current Plan</div>
+        <div class="plan-card" id="planCard" style="border-color:rgba(0,210,255,0.25);background:rgba(0,210,255,0.04)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="font-size:14px;font-weight:700;color:#00D2FF" id="planName">Free</div>
+            <div class="mono" style="font-size:13px;font-weight:700;color:#00D2FF" id="planPrice">$0</div>
+          </div>
+          <div style="font-size:12px;color:#5A7585" id="planDesc">ISC signal · No account needed</div>
+        </div>
+        <div id="planFeats" style="display:flex;flex-direction:column;gap:5px;margin-top:4px"></div>
+        <button class="btn-s" style="padding:8px;font-size:12px;margin-top:4px" onclick="showPage('pricing')">View All Plans →</button>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-label">Ticker Symbol</div>
+        <div class="tk-wrap">
+          <input class="tk-input" id="tkIn" value="AAPL" placeholder="AAPL"
+            oninput="this.value=this.value.toUpperCase();onTkInput()"
+            onkeydown="if(event.key==='Enter'){document.getElementById('tkDrop').style.display='none';runAnalysis()}">
+          <div id="tkDrop" class="tk-drop"></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">
+          <button class="qtk" onclick="setTk('AAPL')">AAPL</button>
+          <button class="qtk" onclick="setTk('TSLA')">TSLA</button>
+          <button class="qtk" onclick="setTk('NVDA')">NVDA</button>
+          <button class="qtk" onclick="setTk('META')">META</button>
+          <button class="qtk" onclick="setTk('GME')">GME</button>
+          <button class="qtk" onclick="setTk('AMZN')">AMZN</button>
+          <button class="qtk" onclick="setTk('MSFT')">MSFT</button>
+          <button class="qtk" onclick="setTk('NFLX')">NFLX</button>
+        </div>
+      </div>
+
+      <div class="sb-section">
+        <div class="sb-label">Analysis Window</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:12px;color:#5A7585">Rolling quarters</span>
+          <span class="mono" style="font-size:13px;color:#00D2FF;font-weight:700" id="winLabel">80</span>
+        </div>
+        <input type="range" min="40" max="200" value="80" id="winR"
+          oninput="document.getElementById('winLabel').textContent=this.value"
+          style="-webkit-appearance:none;width:100%;height:3px;background:rgba(255,255,255,0.09);border-radius:2px;outline:none">
+      </div>
+
+      <button class="run-btn" id="runBtn" onclick="runAnalysis()">▶ Run Full Analysis</button>
+      <div class="pbar" style="margin-top:4px"><div class="pfill" id="loadFill" style="width:0%"></div></div>
+      <button class="pdf-btn hidden" id="pdfBtn" onclick="downloadPDF()">⬇ Download PDF Report</button>
+
+      <!-- How to use -->
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px">
+        <div style="font-size:11px;color:#3A5565;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:'Space Mono',monospace">How to use</div>
+        <div style="font-size:12px;color:#7A95A8;line-height:1.9">
+          1. Type any US stock ticker<br>
+          2. Click Run Full Analysis<br>
+          3. Read your plain-English verdict<br>
+          4. Explore the tabs for detail<br>
+          5. Ask the AI analyst anything
+        </div>
+      </div>
+
+      <!-- Framework -->
+      <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px">
+        <div style="font-size:11px;color:#3A5565;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:'Space Mono',monospace">The Formula</div>
+        <div class="mono" style="font-size:13px;color:#00D2FF;margin-bottom:10px">C = corr(Var<sub>W</sub>, AR1<sub>W</sub>)</div>
+        <div style="font-size:12px;line-height:2">
+          <span style="color:#00FF9C">✓ C &lt; −0.10</span> Regulated<br>
+          <span style="color:#FFB800">⚠ −0.10 to 0.30</span> Transitioning<br>
+          <span style="color:#FF4560">✗ C &gt; 0.30</span> Bifurcating
+        </div>
+        <div style="font-size:11px;color:#3A5565;margin-top:10px;line-height:1.7">AUC=0.96 · 45 cases<br><a href="https://doi.org/10.5281/zenodo.18940081" style="color:#00D2FF;text-decoration:none">doi.org/10.5281/zenodo.18940081</a><br>Ryan W. Malone, Independent Researcher</div>
+      </div>
+
+    </div><!-- /sidebar -->
+
+    <!-- MAIN CONTENT -->
+    <div class="analyzer-main">
+
+      <!-- PLACEHOLDER -->
+      <div class="placeholder" id="phArea">
+        <div class="ph-hex">⬡</div>
+        <h2 class="ph-title">Enter a ticker to begin</h2>
+        <p class="ph-sub">Full ISC structural analysis · All financial statements · Traditional metrics · Live news · AI analyst</p>
+        <div class="ph-tickers">
+          <div class="ph-tk" onclick="setTk('AAPL');runAnalysis()">AAPL</div>
+          <div class="ph-tk" onclick="setTk('TSLA');runAnalysis()">TSLA</div>
+          <div class="ph-tk" onclick="setTk('NVDA');runAnalysis()">NVDA</div>
+          <div class="ph-tk" onclick="setTk('META');runAnalysis()">META</div>
+          <div class="ph-tk" onclick="setTk('GME');runAnalysis()">GME</div>
+        </div>
+        <div class="enron-box" style="margin-top:0">
+          <div style="font-size:11px;color:#FFB800;font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-family:'Space Mono',monospace;margin-bottom:10px">★ The Enron Demo — See the Early Window</div>
+          <p style="font-size:13px;color:#A0B4C8;line-height:1.7;margin-bottom:14px">ISC detected Enron's structural collapse 4 quarters before Altman Z signaled distress. Price was still near highs. <strong style="color:#E2EBF4">This is the early window.</strong></p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-p" style="padding:8px 16px;font-size:12px" onclick="runEnron()">▶ Run Enron Case Study</button>
+            <button class="btn-s" style="padding:8px 14px;font-size:12px" onclick="runWorldCom()">WorldCom (2002)</button>
+            <button class="btn-s" style="padding:8px 14px;font-size:12px" onclick="runSpirit()">Spirit Airlines (2026)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div id="resArea" class="hidden" style="display:flex;flex-direction:column;flex:1;min-height:0">
+
+        <!-- Header -->
+        <div class="result-header">
+          <div>
+            <div class="company-name" id="cmpName">—</div>
+            <div class="company-meta" id="cmpMeta">—</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div id="regimeBadge" class="reg-badge" style="background:rgba(0,255,150,0.1);color:#00FF9C;border:1px solid rgba(0,255,150,0.25)">● REGULATED</div>
+            <div class="mono" style="font-size:13px;color:#7A95A8" id="hdrDate"></div>
+          </div>
+        </div>
+
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+          <button class="tb on" onclick="swTab('overview',this)">Overview</button>
+          <button class="tb" onclick="swTab('isc',this)">ISC Analysis</button>
+          <button class="tb" onclick="swTab('income',this)">Income Statement</button>
+          <button class="tb" onclick="swTab('balance',this)">Balance Sheet</button>
+          <button class="tb" onclick="swTab('cashflow',this)">Cash Flow</button>
+          <button class="tb" onclick="swTab('traditional',this)">Traditional</button>
+          <button class="tb" onclick="swTab('price',this)">Price & Tech</button>
+          <button class="tb" onclick="swTab('news',this)">News</button>
+          <button class="tb" onclick="swTab('divergence',this)">Divergence</button>
+          <button class="tb" onclick="swTab('ai',this)">AI Analyst</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div style="overflow-y:auto;flex:1" id="tabScroll">
+
+          <!-- OVERVIEW -->
+          <div id="t-overview" class="tab-content">
+            <!-- Verdict Card -->
+            <div class="card-hi" id="verdictCard">
+              <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px;font-family:'Space Mono',monospace;color:#00D2FF">ISC Structural Verdict</div>
+              <div style="font-size:22px;font-weight:800;margin-bottom:8px" id="verdictTitle">—</div>
+              <p style="font-size:14px;color:#A0B4C8;line-height:1.8;margin-bottom:16px" id="verdictText">—</p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px" id="verdictStats"></div>
+            </div>
+
+            <!-- Gauge Row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div class="card">
+                <div class="sb-label" style="margin-bottom:12px">ISC Coupling Score</div>
+                <div id="gaugeArea" style="display:flex;justify-content:center"></div>
+              </div>
+              <div class="card">
+                <div class="sb-label" style="margin-bottom:12px">Health Snapshot</div>
+                <div id="healthGrid" style="display:flex;flex-direction:column;gap:8px"></div>
+              </div>
+            </div>
+
+            <!-- Red Flags -->
+            <div id="flagArea"></div>
+
+            <!-- Plain English Regime Guide -->
+            <div class="card">
+              <div class="sb-label" style="margin-bottom:14px">What This Means — Plain English</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+                <div class="card-sm" style="border-color:rgba(0,255,150,0.15)"><div style="font-size:13px;font-weight:700;color:#00FF9C;margin-bottom:6px">✓ Regulated (C &lt; −0.10)</div><div style="font-size:12px;color:#7A95A8;line-height:1.7">The company absorbs financial stress rather than amplifying it. Like a healthy immune system — problems get corrected before they spiral. This is the best structural state.</div></div>
+                <div class="card-sm" style="border-color:rgba(255,184,0,0.15)"><div style="font-size:13px;font-weight:700;color:#FFB800;margin-bottom:6px">⚠ Transitioning (−0.10 to 0.30)</div><div style="font-size:12px;color:#7A95A8;line-height:1.7">Self-correction is weakening. The company still bounces back from shocks but the mechanism is getting tired. Watch for deterioration over the next 2–4 quarters.</div></div>
+                <div class="card-sm" style="border-color:rgba(255,69,96,0.15)"><div style="font-size:13px;font-weight:700;color:#FF4560;margin-bottom:6px">✗ Bifurcating (C &gt; 0.30)</div><div style="font-size:12px;color:#7A95A8;line-height:1.7">Problems are amplifying rather than correcting. Each shock makes the next one worse. This is the structural pattern ISC detected before Enron, WorldCom, and Sears collapsed.</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ISC ANALYSIS -->
+          <div id="t-isc" class="tab-content hidden">
+            <div class="card-hi">
+              <div class="sb-label" style="margin-bottom:4px">ISC Coupling — Deep Analysis</div>
+              <div style="font-size:12px;color:#7A95A8;margin-bottom:16px">C = corr(Var<sub>W</sub>, AR1<sub>W</sub>) · Measures whether financial dynamics are self-correcting or amplifying</div>
+              <div id="iscDeepContent"></div>
+            </div>
+            <div class="card" id="iscTrajCard">
+              <div class="sb-label" style="margin-bottom:12px">Coupling Trajectory</div>
+              <div id="iscTrajContent" style="font-size:13px;color:#7A95A8;line-height:1.8"></div>
+            </div>
+            <div class="card">
+              <div class="sb-label" style="margin-bottom:14px">7-Layer Financial Cascade</div>
+              <div style="font-size:13px;color:#7A95A8;margin-bottom:14px;line-height:1.7">ISC maps corporate financial stress across 7 layers, from L1 (cash/liquidity) to L7 (management guidance vs actuals). Stress typically cascades from outer layers inward before becoming visible in traditional metrics.</div>
+              <div id="cascadeContent" style="display:flex;flex-direction:column;gap:8px"></div>
+            </div>
+          </div>
+
+          <!-- INCOME STATEMENT -->
+          <div id="t-income" class="tab-content hidden">
+            <div class="card">
+              <div class="sb-label" style="margin-bottom:4px">Income Statement — Trailing Twelve Months</div>
+              <div style="font-size:12px;color:#5A7585;margin-bottom:16px">Source: SEC EDGAR 10-K/10-Q · All figures in millions USD</div>
+              <div id="incomeContent"></div>
+            </div>
+          </div>
+
+          <!-- BALANCE SHEET -->
+          <div id="t-balance" class="tab-content hidden">
+            <div class="card">
+              <div class="sb-label" style="margin-bottom:4px">Balance Sheet — Most Recent Quarter</div>
+              <div style="font-size:12px;color:#5A7585;margin-bottom:16px">Source: SEC EDGAR · All figures in millions USD</div>
+              <div id="balanceContent"></div>
+            </div>
+          </div>
+
+          <!-- CASH FLOW -->
+          <div id="t-cashflow" class="tab-content hidden">
+            <div class="card">
+              <div class="sb-label" style="margin-bottom:4px">Cash Flow Statement — Trailing Twelve Months</div>
+              <div style="font-size:12px;color:#5A7585;margin-bottom:16px">Source: SEC EDGAR · Cash is the most honest financial signal</div>
+              <div id="cashflowContent"></div>
+            </div>
+          </div>
+
+          <!-- TRADITIONAL METRICS -->
+          <div id="t-traditional" class="tab-content hidden">
+            <div class="card-hi" style="margin-bottom:16px">
+              <div class="sb-label" style="margin-bottom:8px">Traditional Health Metrics vs ISC</div>
+              <p style="font-size:13px;color:#A0B4C8;line-height:1.7">These are the metrics most financial tools rely on. ISC provides an orthogonal signal — meaning it measures something different and uncorrelated. Together they give a more complete picture. ISC often signals structural stress <strong style="color:#E2EBF4">1–5 quarters before these traditional metrics reflect it.</strong></p>
+            </div>
+            <div class="card" id="traditionalContent"></div>
+          </div>
+
+          <!-- PRICE & TECH -->
+          <div id="t-price" class="tab-content hidden">
+            <div class="card" id="priceContent"></div>
+          </div>
+
+          <!-- NEWS -->
+          <div id="t-news" class="tab-content hidden">
+            <div class="card-hi" style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:#00D2FF">News Sentiment Analysis</div>
+              <div style="font-size:12px;color:#7A95A8;line-height:1.7">Recent headlines scored for financial relevance. Bullish signals suggest positive momentum. Bearish signals may warrant closer review against ISC structural indicators.</div>
+            </div>
+            <div id="newsContent" style="display:flex;flex-direction:column;gap:10px"></div>
+          </div>
+
+          <!-- DIVERGENCE -->
+          <div id="t-divergence" class="tab-content hidden">
+            <div class="card-hi">
+              <div class="sb-label" style="margin-bottom:8px">ISC vs Traditional — The Divergence Signal</div>
+              <p style="font-size:13px;color:#A0B4C8;line-height:1.8;margin-bottom:16px">The most powerful signal in ISC Financial is divergence — when ISC coupling deteriorates while traditional metrics still look healthy. This gap is the early window. In the research dataset, this divergence preceded traditional metric deterioration by 1–5 quarters in 87% of failure cases.</p>
+              <div id="divergenceContent"></div>
+            </div>
+          </div>
+
+          <!-- AI ANALYST -->
+          <div id="t-ai" class="tab-content hidden">
+            <div class="card-hi" style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:#00D2FF">Claude AI Analyst</div>
+              <div style="font-size:12px;color:#7A95A8;line-height:1.7">Claude has read all ISC metrics, financial statements, traditional metrics, and news. Ask anything about this company's structural health.</div>
+            </div>
+            <div id="chatHistory" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;min-height:120px"></div>
+            <div style="display:flex;gap:10px">
+              <input id="chatInput" style="flex:1;padding:12px 16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#E2EBF4;font-family:'DM Sans',sans-serif;font-size:14px;outline:none" placeholder="Ask anything about this company..." onkeydown="if(event.key==='Enter')sendChat()">
+              <button class="btn-p" onclick="sendChat()" style="padding:12px 20px;font-size:13px">Send</button>
+            </div>
+            <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px">
+              <button class="btn-s" style="padding:6px 12px;font-size:12px" onclick="askQ('What is the biggest structural risk for this company right now?')">Biggest risk?</button>
+              <button class="btn-s" style="padding:6px 12px;font-size:12px" onclick="askQ('Compare ISC coupling to the Altman Z signal for this company.')">ISC vs Altman Z?</button>
+              <button class="btn-s" style="padding:6px 12px;font-size:12px" onclick="askQ('What does the coupling trajectory tell us about where this company is heading?')">Where is it heading?</button>
+              <button class="btn-s" style="padding:6px 12px;font-size:12px" onclick="askQ('Summarize the 7-layer cascade analysis in plain English.')">Layer cascade summary?</button>
+            </div>
+          </div>
+
+        </div><!-- /tabScroll -->
+      </div><!-- /resArea -->
+    </div><!-- /main -->
+  </div><!-- /analyzer-wrap -->
+</div><!-- /pg-analyzer -->
+
+<!-- PRICING PAGE -->
+<div id="pg-pricing" class="hidden" style="padding-top:62px">
+  <div style="max-width:1100px;margin:0 auto;padding:60px 40px">
+    <div style="text-align:center;margin-bottom:48px">
+      <div class="section-label">Pricing</div>
+      <h1 style="font-size:42px;font-weight:800;letter-spacing:-.02em;margin-bottom:12px">Simple, Transparent Pricing</h1>
+      <p style="font-size:17px;color:#7A95A8">Start free. Upgrade when you're ready. Cancel anytime.</p>
+    </div>
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="price-card">
+        <div style="font-size:11px;color:#FFB800;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;font-family:'Space Mono',monospace">🌱 Free</div>
+        <div class="mono" style="font-size:44px;font-weight:700;margin-bottom:6px">$0</div>
+        <div style="font-size:13px;color:#5A7585;margin-bottom:20px">Forever free · No credit card</div>
+        <div style="font-size:12px;color:#A0B4C8;margin-bottom:10px;font-weight:600">What you get:</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#FFB800">✓</span>ISC regime classification</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#FFB800">✓</span>Stability score 0–100</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#FFB800">✓</span>Plain-English verdict</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#FFB800">✓</span>Red flag alerts</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#FFB800">✓</span>Free forever</div>
+        </div>
+        <div style="padding:12px;background:rgba(255,184,0,0.06);border-radius:8px;font-size:12px;color:#5A7585;text-align:center">You are here. No action needed.</div>
+      </div>
+      <!-- Investor -->
+      <div class="price-card">
+        <div style="font-size:11px;color:#00FF9C;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;font-family:'Space Mono',monospace">📊 Investor</div>
+        <div class="mono" style="font-size:44px;font-weight:700;margin-bottom:6px">$19.99</div>
+        <div style="font-size:13px;color:#5A7585;margin-bottom:20px">per month · cancel anytime</div>
+        <div style="font-size:12px;color:#A0B4C8;margin-bottom:10px;font-weight:600">Everything in Free, plus:</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00FF9C">✓</span>Full income statement</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00FF9C">✓</span>Balance sheet & cash flow</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00FF9C">✓</span>Altman Z · Piotroski F · All ratios</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00FF9C">✓</span>Price & technical analysis</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00FF9C">✓</span>News sentiment · 10 analyses/mo</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00FF9C">✓</span>Basic PDF report</div>
+        </div>
+        <button class="btn-p" style="width:100%;justify-content:center;background:linear-gradient(135deg,#00FF9C,#00C070);color:#000" onclick="alert('Stripe integration coming soon. Email malonrw@gmail.com to get early access.')">Upgrade to Investor →</button>
+      </div>
+      <!-- Pro -->
+      <div class="price-card featured">
+        <div class="feat-tag">MOST POPULAR</div>
+        <div style="font-size:11px;color:#00D2FF;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;margin-top:12px;font-family:'Space Mono',monospace">⚡ Pro Analyst</div>
+        <div class="mono" style="font-size:44px;font-weight:700;margin-bottom:6px">$99</div>
+        <div style="font-size:13px;color:#5A7585;margin-bottom:20px">per month · cancel anytime</div>
+        <div style="font-size:12px;color:#A0B4C8;margin-bottom:10px;font-weight:600">Everything in Investor, plus:</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00D2FF">✓</span>ISC 7-layer cascade sequencing</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00D2FF">✓</span>Regime transition probability</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00D2FF">✓</span>Historical analog matching</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00D2FF">✓</span>Divergence detector — 1–5Q lead</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00D2FF">✓</span>ISC-adjusted options volatility</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00D2FF">✓</span>Claude AI analyst · Unlimited</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#00D2FF">✓</span>Full 8-page PDF report</div>
+        </div>
+        <button class="btn-p" style="width:100%;justify-content:center" onclick="alert('Stripe integration coming soon. Email malonrw@gmail.com to get early access.')">Upgrade to Pro →</button>
+      </div>
+      <!-- Professional -->
+      <div class="price-card">
+        <div style="font-size:11px;color:#A855F7;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;font-family:'Space Mono',monospace">🏛 Professional</div>
+        <div class="mono" style="font-size:44px;font-weight:700;margin-bottom:6px">$499</div>
+        <div style="font-size:13px;color:#5A7585;margin-bottom:20px">per month · institutional use</div>
+        <div style="font-size:12px;color:#A0B4C8;margin-bottom:10px;font-weight:600">Everything in Pro, plus:</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#A855F7">✓</span>GPT-4o dual AI + consensus</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#A855F7">✓</span>Live news via GPT-4o search</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#A855F7">✓</span>Portfolio watchlist monitoring</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#A855F7">✓</span>API access (JSON endpoints)</div>
+          <div style="font-size:13px;color:#7A95A8;display:flex;gap:8px"><span style="color:#A855F7">✓</span>Team seats · Priority support</div>
+        </div>
+        <button class="btn-s" style="width:100%;justify-content:center" onclick="alert('Contact malonrw@gmail.com for Professional tier access.')">Contact for Access →</button>
+      </div>
+    </div>
+
+    <!-- Trust bar -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:32px">
+      <div style="display:flex;gap:12px;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.07)"><span style="font-size:22px">🔬</span><div><div style="font-size:13px;font-weight:700;margin-bottom:3px">Independently Validated</div><div style="font-size:12px;color:#5A7585">AUC=0.96 · 45 historical cases · 14 domains</div></div></div>
+      <div style="display:flex;gap:12px;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.07)"><span style="font-size:22px">📊</span><div><div style="font-size:13px;font-weight:700;margin-bottom:3px">Real EDGAR Data</div><div style="font-size:12px;color:#5A7585">SEC filings · Yahoo Finance · Live data</div></div></div>
+      <div style="display:flex;gap:12px;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.07)"><span style="font-size:22px">🔒</span><div><div style="font-size:13px;font-weight:700;margin-bottom:3px">Your Data Stays Yours</div><div style="font-size:12px;color:#5A7585">No accounts needed · No data sold</div></div></div>
+      <div style="display:flex;gap:12px;padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.07)"><span style="font-size:22px">🤖</span><div><div style="font-size:13px;font-weight:700;margin-bottom:3px">Dual AI Analysis</div><div style="font-size:12px;color:#5A7585">Claude + GPT-4o · Context-aware</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT PAGE -->
+<div id="pg-about" class="hidden" style="padding-top:62px">
+  <div class="about-wrap">
+    <div class="fu" style="margin-bottom:48px">
+      <div class="section-label">About ISC Financial</div>
+      <h1 style="font-size:42px;font-weight:800;letter-spacing:-.02em;margin-bottom:16px;line-height:1.1">Built on a Simple Observation.<br>Validated Across 14 Domains.</h1>
+    </div>
+
+    <div class="card fu1" style="display:flex;gap:24px;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap">
+      <div style="width:72px;height:72px;background:linear-gradient(135deg,#00D2FF,#0055FF);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;flex-shrink:0">R</div>
+      <div style="flex:1;min-width:240px">
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px">Ryan W. Malone</div>
+        <div style="font-size:13px;color:#00D2FF;margin-bottom:12px;font-weight:600">Independent Researcher · Financial Systems Architect</div>
+        <p style="font-size:14px;color:#7A95A8;line-height:1.8">Ryan W. Malone is an independent researcher and financial systems architect who spent over a decade building financial analytics tools for engineering and construction firms. He noticed that corporate financial collapse follows a predictable mathematical pattern — the same dynamics appear in other complex systems under stress. Three years of validation work followed, testing the measurement across 14 different domains and 187 historical events.</p>
+      </div>
+    </div>
+
+    <div class="card fu2" style="margin-bottom:20px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">Why ISC Financial Is Better</div>
+      <p style="font-size:14px;color:#7A95A8;line-height:1.8;margin-bottom:14px">Most financial tools measure the state of a company — what the numbers say right now. ISC measures the dynamics — whether the financial system is moving toward stability or away from it. That's a fundamentally different measurement, and it shows up earlier.</p>
+      <p style="font-size:14px;color:#7A95A8;line-height:1.8;margin-bottom:14px">The ISC coupling score (C) measures the correlation between rolling variance and rolling autocorrelation in a company's financial time series. When that correlation is strongly negative, the company is self-correcting — variance spikes get damped out. When it turns positive, variance and persistence rise together — the amplifying pattern that precedes structural collapse.</p>
+      <p style="font-size:14px;color:#7A95A8;line-height:1.8">This measurement has AUC=0.96 on 45 historical financial failure cases — meaning it correctly classified structural health in 96% of cases. It leads Altman Z by 1–5 quarters in deteriorating companies.</p>
+    </div>
+
+    <div class="card-hi fu3" style="margin-bottom:20px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px;color:#00D2FF">The Validation Record</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="padding:14px;background:rgba(0,0,0,0.2);border-radius:8px"><div style="font-size:10px;color:#5A7585;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Finance AUC</div><div class="mono" style="font-size:18px;font-weight:700;color:#00D2FF">0.963</div></div>
+        <div style="padding:14px;background:rgba(0,0,0,0.2);border-radius:8px"><div style="font-size:10px;color:#5A7585;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Historical Cases</div><div class="mono" style="font-size:18px;font-weight:700;color:#00D2FF">45</div></div>
+        <div style="padding:14px;background:rgba(0,0,0,0.2);border-radius:8px"><div style="font-size:10px;color:#5A7585;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">Domains Validated</div><div class="mono" style="font-size:18px;font-weight:700;color:#00D2FF">14</div></div>
+        <div style="padding:14px;background:rgba(0,0,0,0.2);border-radius:8px"><div style="font-size:10px;color:#5A7585;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">TEP Benchmark</div><div class="mono" style="font-size:18px;font-weight:700;color:#00D2FF">r=−0.781</div></div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:#5A7585;line-height:1.7">Research archive: <a href="https://doi.org/10.5281/zenodo.18940081" style="color:#00D2FF;text-decoration:none">doi.org/10.5281/zenodo.18940081</a> · ORCID: 0009-0002-9583-232X · Not investment advice. Structural susceptibility signal only.</div>
+    </div>
+
+    <div class="card fu4">
+      <div style="font-size:15px;font-weight:700;margin-bottom:12px">The Filter Lab LLC</div>
+      <p style="font-size:14px;color:#7A95A8;line-height:1.8">The Filter Lab LLC is a financial analytics company based in Spring, Texas. ISC Financial is the first commercial product built on the ISC framework. The engineering application — ISC Analytics for industrial process monitoring — is in development.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════ CONSTANTS ═══════════════ */
+var API_URL = 'https://isc-analyst-api.onrender.com';
+var D = null; // current analysis data
+var tier = 'free';
+var chatCtx = [];
+
+var TIERS = {
+  free:    {name:'Free',     price:'$0',     desc:'ISC signal · No account needed',   color:'#FFB800', feats:['ISC regime classification','Stability score 0–100','Plain-English verdict','Red flag alerts']},
+  investor:{name:'Investor', price:'$19.99/mo',desc:'Full statements · Traditional metrics',color:'#00FF9C',feats:['Full income & balance sheet','Altman Z · Piotroski F','Price & technical signals','News sentiment','Basic PDF report']},
+  pro:     {name:'Pro',      price:'$99/mo',  desc:'ISC cascade · Predictive · Claude AI',color:'#00D2FF',feats:['ISC 7-layer cascade','Regime transition probability','Historical analog matches','Divergence detector','Claude AI analyst · Unlimited','Full PDF report']},
+  pro500:  {name:'Professional',price:'$499/mo',desc:'Dual AI · Portfolio · API access',color:'#A855F7',feats:['GPT-4o dual AI','Live news search','Portfolio watchlist','API access','Team seats']},
+};
+
+var TICKERS = [
+  {s:'AAPL',n:'Apple Inc'},{s:'MSFT',n:'Microsoft'},{s:'AMZN',n:'Amazon'},{s:'NVDA',n:'NVIDIA'},
+  {s:'GOOGL',n:'Alphabet'},{s:'META',n:'Meta Platforms'},{s:'TSLA',n:'Tesla'},{s:'BRK.B',n:'Berkshire Hathaway'},
+  {s:'JPM',n:'JPMorgan Chase'},{s:'JNJ',n:'Johnson & Johnson'},{s:'V',n:'Visa'},{s:'UNH',n:'UnitedHealth'},
+  {s:'XOM',n:'Exxon Mobil'},{s:'MA',n:'Mastercard'},{s:'PG',n:'Procter & Gamble'},{s:'HD',n:'Home Depot'},
+  {s:'CVX',n:'Chevron'},{s:'ABBV',n:'AbbVie'},{s:'KO',n:'Coca-Cola'},{s:'MRK',n:'Merck'},
+  {s:'PEP',n:'PepsiCo'},{s:'BAC',n:'Bank of America'},{s:'LLY',n:'Eli Lilly'},{s:'COST',n:'Costco'},
+  {s:'DIS',n:'Walt Disney'},{s:'NFLX',n:'Netflix'},{s:'ADBE',n:'Adobe'},{s:'CRM',n:'Salesforce'},
+  {s:'INTC',n:'Intel'},{s:'AMD',n:'Advanced Micro Devices'},{s:'PYPL',n:'PayPal'},{s:'UBER',n:'Uber'},
+  {s:'LYFT',n:'Lyft'},{s:'SNAP',n:'Snap'},{s:'GME',n:'GameStop'},{s:'AMC',n:'AMC Entertainment'},
+  {s:'BYND',n:'Beyond Meat'},{s:'RIVN',n:'Rivian'},{s:'LCID',n:'Lucid Group'},{s:'NIO',n:'NIO'},
+  {s:'F',n:'Ford Motor'},{s:'GM',n:'General Motors'},{s:'GE',n:'GE Aerospace'},{s:'BA',n:'Boeing'},
+  {s:'CAT',n:'Caterpillar'},{s:'WMT',n:'Walmart'},{s:'TGT',n:'Target'},{s:'SBUX',n:'Starbucks'},
+  {s:'MCD',n:'McDonalds'},{s:'NKE',n:'Nike'},{s:'PFE',n:'Pfizer'},{s:'MRNA',n:'Moderna'},
+  {s:'AAL',n:'American Airlines'},{s:'DAL',n:'Delta Air Lines'},{s:'UAL',n:'United Airlines'},
+  {s:'LUV',n:'Southwest Airlines'},{s:'SAVE',n:'Spirit Airlines (defunct)'},
+];
+
+/* ═══════════════ NAVIGATION ═══════════════ */
+function showPage(pg, el) {
+  ['home','analyzer','pricing','about'].forEach(function(p){
+    document.getElementById('pg-'+p).classList.toggle('hidden', p!==pg);
+  });
+  document.querySelectorAll('.nl').forEach(function(b){b.classList.remove('on');});
+  if (el) el.classList.add('on');
+  else {
+    document.querySelectorAll('.nl').forEach(function(b){
+      if (b.textContent.toLowerCase().includes(pg)) b.classList.add('on');
+    });
+  }
+  window.scrollTo(0,0);
+}
+
+/* ═══════════════ TIER ═══════════════ */
+function setTier(t, el) {
+  tier = t;
+  document.querySelectorAll('.nt').forEach(function(b){b.classList.remove('on');});
+  if (el) el.classList.add('on');
+  var cfg = TIERS[t];
+  var pc = document.getElementById('planCard');
+  pc.style.borderColor = cfg.color + '40';
+  pc.style.background = cfg.color + '08';
+  document.getElementById('planName').textContent = cfg.name;
+  document.getElementById('planName').style.color = cfg.color;
+  document.getElementById('planPrice').textContent = cfg.price;
+  document.getElementById('planPrice').style.color = cfg.color;
+  document.getElementById('planDesc').textContent = cfg.desc;
+  document.getElementById('planFeats').innerHTML = cfg.feats.map(function(f){
+    return '<div style="display:flex;gap:6px;align-items:center;font-size:12px;color:#7A95A8"><span style="color:'+cfg.color+';font-size:11px">✓</span>'+f+'</div>';
+  }).join('');
+}
+
+/* ═══════════════ AUTOCOMPLETE ═══════════════ */
+function onTkInput() {
+  var v = document.getElementById('tkIn').value.toUpperCase().trim();
+  var drop = document.getElementById('tkDrop');
+  if (!v) { drop.style.display='none'; return; }
+  var m = TICKERS.filter(function(t){ return t.s.startsWith(v)||t.n.toUpperCase().includes(v); }).slice(0,6);
+  if (!m.length) { drop.style.display='none'; return; }
+  drop.innerHTML = m.map(function(t){
+    return '<div class="tk-item" onclick="setTk(\''+t.s+'\');document.getElementById(\'tkDrop\').style.display=\'none\';runAnalysis()">'
+      +'<span class="mono" style="font-size:13px;font-weight:700;color:#00D2FF;width:56px;flex-shrink:0">'+t.s+'</span>'
+      +'<span style="font-size:12px;color:#7A95A8">'+t.n+'</span></div>';
+  }).join('');
+  drop.style.display = 'block';
+}
+
+function setTk(t) {
+  document.getElementById('tkIn').value = t;
+  document.getElementById('tkDrop').style.display = 'none';
+}
+
+document.addEventListener('click', function(e){
+  if (!e.target.closest('.tk-wrap')) document.getElementById('tkDrop').style.display='none';
+});
+
+/* ═══════════════ GAUGE SVG ═══════════════ */
+function makeGauge(C, size) {
+  size = size || 180;
+  var R=68, cx=size/2, cy=size*0.49;
+  var col = C>0.3?'#FF4560':C>-0.1?'#FFB800':'#00FF9C';
+  var ang = ((C+1)/2*180-90)*Math.PI/180;
+  var nx = cx+R*Math.cos(ang), ny = cy+R*Math.sin(ang);
+  return '<svg width="'+size+'" height="'+(size*0.6)+'" style="overflow:visible">'
+    +'<defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#00FF9C"/><stop offset="45%" stop-color="#FFB800"/><stop offset="100%" stop-color="#FF4560"/></linearGradient></defs>'
+    +'<path d="M '+(cx-R)+','+cy+' A '+R+','+R+' 0 0,1 '+(cx+R)+','+cy+'" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="10" stroke-linecap="round"/>'
+    +'<path d="M '+(cx-R)+','+cy+' A '+R+','+R+' 0 0,1 '+(cx+R)+','+cy+'" fill="none" stroke="url(#gg)" stroke-width="10" stroke-linecap="round" opacity=".3"/>'
+    +'<line x1="'+cx+'" y1="'+cy+'" x2="'+nx+'" y2="'+ny+'" stroke="'+col+'" stroke-width="3" stroke-linecap="round"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="6" fill="'+col+'"/>'
+    +'<circle cx="'+cx+'" cy="'+cy+'" r="3" fill="#05080D"/>'
+    +'<text x="'+cx+'" y="'+(cy+24)+'" text-anchor="middle" fill="'+col+'" font-family="Space Mono" font-size="18" font-weight="700">'+(C>=0?'+':'')+C.toFixed(3)+'</text>'
+    +'<text x="'+cx+'" y="'+(cy+38)+'" text-anchor="middle" fill="#5A7585" font-family="DM Sans" font-size="11" letter-spacing="2">COUPLING C</text>'
+    +'</svg>';
+}
+
+document.getElementById('homeGauge').innerHTML = makeGauge(-0.34);
+
+/* ═══════════════ TAB SWITCHING ═══════════════ */
+function swTab(id, el) {
+  document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on');
+  var tabs=['overview','isc','income','balance','cashflow','traditional','price','news','divergence','ai'];
+  tabs.forEach(function(t){
+    var el2=document.getElementById('t-'+t);
+    if(el2) el2.classList.toggle('hidden',t!==id);
+  });
+  document.getElementById('tabScroll').scrollTop=0;
+}
+
+/* ═══════════════ HELPER: fmt ═══════════════ */
+function fmt(v, pre, suf) {
+  if (v==null||v===undefined||isNaN(v)) return '<span style="color:#3A5565">N/A</span>';
+  pre=pre||''; suf=suf||'';
+  return pre + Number(v).toLocaleString(undefined,{maximumFractionDigits:2}) + suf;
+}
+function fmtM(v) { return fmt(v,'$','M'); }
+function fmtB(v) { return v!=null ? '$'+Number(v).toFixed(1)+'B' : '<span style="color:#3A5565">N/A</span>'; }
+function fmtPct(v) { return fmt(v,'','%'); }
+
+/* ═══════════════ METRIC ROW ═══════════════ */
+function mrow(label, val, simple, color) {
+  color = color||'#E2EBF4';
+  return '<div class="mrow">'
+    +'<div><div class="mrow-label">'+label+'</div>'+(simple?'<div class="mrow-simple">'+simple+'</div>':'')+'</div>'
+    +'<div class="mrow-val" style="color:'+color+'">'+val+'</div></div>';
+}
+
+/* ═══════════════ REGIME UTILS ═══════════════ */
+function regimeColor(r) {
+  if (!r) return '#7A95A8';
+  if (r.includes('bifurcating')) return '#FF4560';
+  if (r.includes('transitioning')||r.includes('mean')) return '#FFB800';
+  return '#00FF9C';
+}
+function regimePlain(r, C) {
+  if (!r) return 'Insufficient data for ISC classification.';
+  if (r.includes('bifurcating')) return 'The financial dynamics are amplifying stress rather than correcting it. Each problem feeds the next rather than being absorbed. This is the structural pattern ISC detected before Enron, WorldCom, and Sears collapsed — typically 1–5 quarters before traditional metrics reflected it.';
+  if (r.includes('transitioning')||r.includes('mean')) return 'The self-correcting mechanism is weakening. The company still bounces back from shocks but the regulatory capacity is eroding. Watch for continued deterioration over the next 2–4 quarters. This is the watch zone.';
+  return 'The financial dynamics are self-correcting. When shocks hit — fuel costs, competition, margins — the system absorbs and corrects rather than amplifying. No structural red flags in the ISC coupling signal. This is the healthy state.';
+}
+
+/* ═══════════════ ANALYSIS ENGINE ═══════════════ */
+async function runAnalysis() {
+  var tk = document.getElementById('tkIn').value.toUpperCase().trim();
+  if (!tk) return;
+
+  showPage('analyzer');
+  var btn = document.getElementById('runBtn');
+  var fill = document.getElementById('loadFill');
+  btn.disabled = true;
+  document.getElementById('phArea').classList.add('hidden');
+  document.getElementById('resArea').classList.add('hidden');
+  document.getElementById('pdfBtn').classList.add('hidden');
+
+  var steps=['Connecting to EDGAR...','Fetching financial statements...','Computing ISC coupling...','Running traditional metrics...','Analyzing price data...','Scoring news sentiment...','Building divergence signal...','Finalizing report...'];
+  var si=0, pct=0;
+  var iv=setInterval(function(){
+    pct=Math.min(90,pct+Math.random()*12);
+    fill.style.width=pct+'%';
+    if(si<steps.length){btn.textContent=steps[si++];}
+  },450);
+
+  try {
+    var win = document.getElementById('winR').value;
+    var resp = await fetch(API_URL+'/analyze/'+tk+'?window='+win);
+    if (!resp.ok) throw new Error('API '+resp.status);
+    var data = await resp.json();
+    clearInterval(iv); fill.style.width='100%';
+    setTimeout(function(){fill.style.width='0%';},400);
+    btn.textContent='▶ Run Full Analysis'; btn.disabled=false;
+    D = data; chatCtx=[];
+    renderAll(data, tk);
+  } catch(e) {
+    clearInterval(iv); fill.style.width='0%';
+    btn.textContent='▶ Run Full Analysis'; btn.disabled=false;
+    // Simulation fallback
+    D = buildSim(tk); chatCtx=[];
+    renderAll(D, tk);
+    console.warn('API unavailable, simulation used:', e.message);
+  }
+}
+
+/* ═══════════════ SIMULATION ═══════════════ */
+function buildSim(tk) {
+  var names={AAPL:'Apple Inc',TSLA:'Tesla Inc',NVDA:'NVIDIA Corporation',GME:'GameStop Corp',META:'Meta Platforms',AMZN:'Amazon.com Inc',MSFT:'Microsoft Corporation',NFLX:'Netflix Inc'};
+  var cs={AAPL:-0.985,TSLA:0.312,NVDA:-0.445,GME:0.671,META:-0.221,AMZN:-0.387,MSFT:-0.512,NFLX:-0.108};
+  var C=cs[tk]||((Math.random()-0.5)*1.4);
+  var r=C>0.3?'bifurcating':C>-0.1?'transitioning':'regulated';
+  return {
+    ticker:tk, company_name:names[tk]||tk+' Corporation',
+    sector:'Technology', industry:'Software & Services',
+    analysis_date:new Date().toISOString().slice(0,10),
+    isc:{C:C, regime:r, trajectory:[], by_series:{},
+         stability_score:Math.round((((-C+1)/2)*100)),
+         plain:'Simulation mode — API unavailable. Real data loads when Render API wakes up (~30s cold start).'},
+    income_statement:{revenue:468290,gross_profit:180683,operating_income:129669,ebitda:145756,net_income:100913,interest_expense:3933,eps:6.57,revenue_growth:2.1},
+    balance_sheet:{total_assets:371082,cash:45572,current_assets:144114,total_liabilities:264591,long_term_debt:82700,total_equity:106491,retained_earnings:13259,working_capital:9473,goodwill:5889},
+    cash_flow:{cfo:329788,capex:28905,fcf:300883,cfi:-17037,cff:-315487,fcf_margin:64.3,cash_conversion:1.063},
+    traditional:{altman_z:5.651,piotroski_f:9,current_ratio:1.07,interest_coverage:37.884,debt_to_ebitda:0.206,roa:83.6,roe:291.4,gross_margin_pct:114.3,op_margin_pct:79.3,net_margin:6.3,asset_turnover:1.262},
+    market:{price:183.50,pe:28.4,market_cap_bn:2.84,high_52w:199.62,low_52w:164.08,beta:1.21,rsi:62,pct_52w:0.92},
+    options:{atm_iv:0.28,iv_skew:null,fair_iv:null,iv_gap:null},
+    divergence:{summary:'ISC and traditional metrics are consistent for this company. No significant divergence detected.',isc_regime:r,altman_z:5.651,lead_time:'None'},
+    news:[
+      {h:'Company reports strong quarterly results beating estimates',s:'bull',src:'Bloomberg',d:'1d'},
+      {h:'Management reiterates full-year guidance amid market uncertainty',s:'bull',src:'Reuters',d:'3d'},
+      {h:'Analyst upgrades price target citing structural strength',s:'bull',src:'Goldman',d:'1w'},
+    ],
+    data_sources:{edgar:false,yfinance:false},
+  };
+}
+
+/* ═══════════════ RENDER ALL ═══════════════ */
+function renderAll(d, tk) {
+  var isc = d.isc||{};
+  var IS  = d.income_statement||{};
+  var BS  = d.balance_sheet||{};
+  var CF  = d.cash_flow||{};
+  var TM  = d.traditional||{};
+  var MKT = d.market||{};
+  var OPT = d.options||{};
+  var DIV = d.divergence||{};
+  var C   = isc.C;
+  var r   = (isc.regime||'').toLowerCase();
+  var col = regimeColor(r);
+
+  // Header
+  document.getElementById('cmpName').textContent = d.company_name || tk;
+  document.getElementById('cmpMeta').textContent = [d.sector,d.industry,d.analysis_date].filter(Boolean).join(' · ');
+  document.getElementById('hdrDate').textContent = d.analysis_date||'';
+  var rb = document.getElementById('regimeBadge');
+  rb.textContent = '● ' + (r||'unknown').toUpperCase();
+  rb.style.background = col+'18';
+  rb.style.color = col;
+  rb.style.borderColor = col+'40';
+
+  // Show results
+  document.getElementById('resArea').classList.remove('hidden');
+  document.getElementById('pdfBtn').classList.remove('hidden');
+
+  /* ── OVERVIEW ── */
+  // Verdict
+  var vtitle = r.includes('bifurcating')?'⚠ Structural Stress Detected':r.includes('transition')?'◎ Dynamics Weakening':'✓ Structurally Healthy';
+  document.getElementById('verdictTitle').textContent = vtitle;
+  document.getElementById('verdictTitle').style.color = col;
+  document.getElementById('verdictText').textContent = regimePlain(r, C);
+  document.getElementById('verdictStats').innerHTML = [
+    {l:'Coupling C',v:C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A',c:col},
+    {l:'Stability',v:isc.stability_score!=null?isc.stability_score+'/100':'N/A',c:col},
+    {l:'Altman Z',v:TM.altman_z!=null?TM.altman_z.toFixed(2):'N/A',c:TM.altman_z>3?'#00FF9C':TM.altman_z>1.81?'#FFB800':'#FF4560'},
+    {l:'Piotroski F',v:TM.piotroski_f!=null?TM.piotroski_f+'/9':'N/A',c:TM.piotroski_f>=7?'#00FF9C':TM.piotroski_f>=4?'#FFB800':'#FF4560'},
+  ].map(function(m){
+    return '<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:12px 14px"><div style="font-size:10px;color:#5A7585;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">'+m.l+'</div><div class="mono" style="font-size:16px;font-weight:700;color:'+m.c+'">'+m.v+'</div></div>';
+  }).join('');
+
+  // Gauge
+  document.getElementById('gaugeArea').innerHTML = C!=null ? makeGauge(C) : '<div style="color:#3A5565;font-size:13px;padding:20px">Insufficient data</div>';
+
+  // Health grid
+  document.getElementById('healthGrid').innerHTML = [
+    {l:'Revenue (TTM)',v:IS.revenue!=null?fmtM(IS.revenue):'N/A',s:'Total annual sales'},
+    {l:'Free Cash Flow',v:CF.fcf!=null?fmtM(CF.fcf):'N/A',s:'Cash after CapEx — the gold standard metric'},
+    {l:'Interest Coverage',v:TM.interest_coverage!=null?TM.interest_coverage.toFixed(1)+'x':'N/A',s:'Ability to pay debt interest from earnings'},
+    {l:'FCF Margin',v:CF.fcf_margin!=null?CF.fcf_margin.toFixed(1)+'%':'N/A',s:'Free cash flow as % of revenue'},
+  ].map(function(m){
+    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">'
+      +'<div><div style="font-size:12px;color:#A0B4C8;font-weight:500">'+m.l+'</div><div style="font-size:11px;color:#3A5565;margin-top:2px">'+m.s+'</div></div>'
+      +'<div class="mono" style="font-size:13px;font-weight:700;color:#E2EBF4;margin-left:8px">'+m.v+'</div></div>';
+  }).join('');
+
+  // Flags
+  var flags=[];
+  if(C!=null&&C>0.3) flags.push({t:'Bifurcating Coupling Detected',d:'C='+C.toFixed(3)+' — financial dynamics are amplifying stress. ISC triggered at this level before major collapses.',c:'al-r'});
+  if(TM.altman_z!=null&&TM.altman_z<1.81) flags.push({t:'Altman Z in Distress Zone',d:'Z='+TM.altman_z.toFixed(2)+' — below 1.81 indicates financial distress by classic bankruptcy predictor.',c:'al-r'});
+  if(TM.interest_coverage!=null&&TM.interest_coverage<1.5) flags.push({t:'Interest Coverage Critical',d:TM.interest_coverage.toFixed(1)+'x — earnings barely cover interest payments. Severe leverage stress.',c:'al-r'});
+  if(TM.current_ratio!=null&&TM.current_ratio<1.0) flags.push({t:'Liquidity Warning',d:'Current ratio '+TM.current_ratio.toFixed(2)+' — current liabilities exceed current assets.',c:'al-a'});
+  if(IS.revenue_growth!=null&&IS.revenue_growth>20&&r.includes('bifurcating')) flags.push({t:'Revenue Growth + Bifurcating — Classic Divergence',d:'Revenue growing '+IS.revenue_growth.toFixed(1)+'% but ISC coupling is bifurcating. This is the Enron/Spirit Airlines fingerprint — top-line growth masking structural deterioration.',c:'al-a'});
+  document.getElementById('flagArea').innerHTML = flags.length?'<div style="display:flex;flex-direction:column;gap:8px">'+flags.map(function(f){
+    return '<div class="al '+f.c+'"><span style="font-size:16px;flex-shrink:0">'+(f.c.includes('r')?'🔴':'🟡')+'</span><div><div style="font-weight:700;margin-bottom:3px">'+f.t+'</div><div style="color:#A0B4C8">'+f.d+'</div></div></div>';
+  }).join('')+'</div>':'';
+
+  /* ── ISC TAB ── */
+  document.getElementById('iscDeepContent').innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'
+    +'<div><div style="font-size:11px;color:#5A7585;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Coupling Score</div><div class="mono" style="font-size:32px;font-weight:700;color:'+col+'">'+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'</div></div>'
+    +'<div><div style="font-size:11px;color:#5A7585;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Regime</div><div style="font-size:18px;font-weight:700;color:'+col+'">'+((r||'unknown').toUpperCase())+'</div></div>'
+    +'</div>'
+    +'<p style="font-size:13px;color:#A0B4C8;line-height:1.8;margin-bottom:12px">'+regimePlain(r,C)+'</p>'
+    +(isc.plain&&isc.plain!==regimePlain(r,C)?'<div style="padding:12px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:12px;color:#7A95A8;line-height:1.7">'+isc.plain+'</div>':'');
+
+  document.getElementById('iscTrajContent').innerHTML = '<p>The coupling trajectory shows how the ISC score has evolved over the analysis window. Direction matters as much as the current value — a company moving from −0.3 toward +0.2 is deteriorating even if still technically in regulated territory. '+(isc.trajectory&&isc.trajectory.length>0?'Trajectory data is available from the analysis window.':'Trajectory requires a longer data history.')+'</p>';
+
+  // Cascade layers
+  var layers=[
+    {l:'L1 — Cash / Liquidity',v:BS.cash!=null?fmtM(BS.cash):null,status:BS.cash>5000?'healthy':BS.cash>1000?'watch':'stress',desc:'Cash and liquid assets. First line of defense against financial stress.'},
+    {l:'L2 — Market Signals',v:MKT.price!=null?'$'+MKT.price.toFixed(2):null,status:'healthy',desc:'Market prices and credit signals. Early investor/creditor concerns show here.'},
+    {l:'L3 — Debt Coverage (Gate)',v:TM.interest_coverage!=null?TM.interest_coverage.toFixed(1)+'x':null,status:TM.interest_coverage>3?'healthy':TM.interest_coverage>1.5?'watch':'stress',desc:'Interest coverage ratio. When earnings can no longer cover debt payments, the gate is failing.'},
+    {l:'L4 — Capital Structure (Filter ★)',v:TM.debt_to_ebitda!=null?TM.debt_to_ebitda.toFixed(2)+'x debt/EBITDA':null,status:TM.debt_to_ebitda<2?'healthy':TM.debt_to_ebitda<4?'watch':'stress',desc:'Primary ISC target layer. The capital structure filter determines whether shocks are absorbed or amplified.'},
+    {l:'L5 — Revenue / Margin',v:IS.operating_income!=null?fmtM(IS.operating_income)+' op. income':null,status:IS.operating_income>0?'healthy':'stress',desc:'Revenue and margin dynamics. Top-line growth with margin deterioration is a classic L5 stress fingerprint.'},
+    {l:'L6 — Equity / Retained Earnings',v:BS.retained_earnings!=null?fmtM(BS.retained_earnings):null,status:BS.retained_earnings>0?'healthy':'stress',desc:'Accumulated buffer of profitable years. Consumed during losses — when gone, insolvency risk escalates.'},
+    {l:'L7 — Management Guidance vs Actuals',v:null,status:'healthy',desc:'Gap between what management says will happen and what actually happens. Large gaps signal L7 stress.'},
+  ];
+  document.getElementById('cascadeContent').innerHTML = layers.map(function(l,i){
+    var sc=l.status==='stress'?'#FF4560':l.status==='watch'?'#FFB800':'#00FF9C';
+    return '<div style="display:flex;gap:14px;padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid rgba(255,255,255,0.06)'+(l.l.includes('★')?';border-color:rgba(0,210,255,0.2)':'')+'">'
+      +'<div style="width:22px;height:22px;border-radius:50%;background:'+sc+'25;border:1px solid '+sc+'50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;font-weight:700;color:'+sc+'">'+( l.status==='stress'?'✗':l.status==='watch'?'⚠':'✓')+'</div>'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:600;margin-bottom:3px;color:#E2EBF4">'+l.l+'</div>'
+      +'<div style="font-size:12px;color:#5A7585;margin-bottom:4px">'+l.desc+'</div>'
+      +(l.v?'<div class="mono" style="font-size:12px;color:'+sc+'">'+l.v+'</div>':'')+'</div></div>';
+  }).join('');
+
+  /* ── INCOME ── */
+  document.getElementById('incomeContent').innerHTML = [
+    {l:'Revenue',v:IS.revenue!=null?fmtM(IS.revenue):'N/A',s:'Total annual sales — money coming in the front door. The top line.',c:'#E2EBF4'},
+    {l:'Gross Profit',v:IS.gross_profit!=null?fmtM(IS.gross_profit):'N/A',s:'Revenue minus direct production costs. What fraction of each sale the company keeps before overhead.',c:'#E2EBF4'},
+    {l:'Gross Margin',v:IS.gross_profit!=null&&IS.revenue!=null?(IS.gross_profit/IS.revenue*100).toFixed(1)+'%':'N/A',s:'Higher is better. Software companies run 70–80%. Grocery stores run 25%. Compare within sector.',c:'#00D2FF'},
+    {l:'Operating Income (EBIT)',v:IS.operating_income!=null?fmtM(IS.operating_income):'N/A',s:'Profit from running the business before interest and taxes. The truest measure of whether the core business model works.',c:IS.operating_income>0?'#00FF9C':'#FF4560'},
+    {l:'Operating Margin',v:TM.op_margin_pct!=null?TM.op_margin_pct.toFixed(1)+'%':'N/A',s:'Operating profit as a percentage of revenue. Positive is good. Negative means the company spends more to operate than it earns.',c:TM.op_margin_pct>0?'#00FF9C':'#FF4560'},
+    {l:'EBITDA',v:IS.ebitda!=null?fmtM(IS.ebitda):'N/A',s:'Earnings before interest, taxes, depreciation, and amortization. Cash-like profit before accounting adjustments. Used to value companies.',c:'#E2EBF4'},
+    {l:'Net Income',v:IS.net_income!=null?fmtM(IS.net_income):'N/A',s:'What the company actually kept after everything — the bottom line. Can be positive while cash flow is negative.',c:IS.net_income>0?'#00FF9C':'#FF4560'},
+    {l:'Net Margin',v:TM.net_margin!=null?TM.net_margin.toFixed(1)+'%':'N/A',s:'Profit per dollar of revenue. A 10% net margin means the company keeps $0.10 from every dollar it sells.',c:'#00D2FF'},
+    {l:'Interest Expense',v:IS.interest_expense!=null?fmtM(IS.interest_expense):'N/A',s:'Annual cost of all debt. High interest expense relative to earnings squeezes the bottom line and feeds the debt spiral.',c:'#E2EBF4'},
+    {l:'Revenue Growth YoY',v:IS.revenue_growth!=null?IS.revenue_growth.toFixed(1)+'%':'N/A',s:'How fast the top line is growing. Growing revenue with shrinking margins is the key ISC divergence signal.',c:IS.revenue_growth>0?'#00FF9C':'#FF4560'},
+    {l:'EPS (Diluted)',v:IS.eps!=null?'$'+IS.eps.toFixed(2):'N/A',s:'Net income per share. What investors pay per $1 of profit is the P/E ratio. Lower P/E = cheaper relative to earnings.',c:'#E2EBF4'},
+  ].map(function(m){ return mrow(m.l,m.v,m.s,m.c); }).join('');
+
+  /* ── BALANCE SHEET ── */
+  document.getElementById('balanceContent').innerHTML = [
+    {l:'Total Assets',v:BS.total_assets!=null?fmtM(BS.total_assets):'N/A',s:'Everything the company owns — cash, buildings, equipment, patents, receivables. Must equal liabilities plus equity.'},
+    {l:'Cash & Equivalents',v:BS.cash!=null?fmtM(BS.cash):'N/A',s:'Money in the bank right now. Running low on cash while burning through it is an early distress signal.'},
+    {l:'Current Assets',v:BS.current_assets!=null?fmtM(BS.current_assets):'N/A',s:'Things that turn into cash within 12 months — cash, receivables, inventory. Compared to current liabilities for liquidity.'},
+    {l:'Total Liabilities',v:BS.total_liabilities!=null?fmtM(BS.total_liabilities):'N/A',s:'Everything the company owes — short and long term. Liabilities + equity = assets.'},
+    {l:'Current Liabilities',v:BS.total_liabilities&&BS.current_assets?fmtM(BS.total_assets-BS.total_equity-Math.max(0,BS.long_term_debt||0)):'N/A',s:'Bills due within 12 months. Compare to current assets for short-term solvency.'},
+    {l:'Long-Term Debt',v:BS.long_term_debt!=null?fmtM(BS.long_term_debt):'N/A',s:'Loans and bonds due more than a year from now. Like a corporate mortgage — manageable if earnings are strong.'},
+    {l:'Total Debt',v:BS.long_term_debt!=null?fmtM(BS.long_term_debt):'N/A',s:'All short and long-term borrowing combined. The ISC L3 and L4 layers measure the stress this creates.'},
+    {l:'Shareholders Equity',v:BS.total_equity!=null?fmtM(BS.total_equity):'N/A',s:'Assets minus liabilities — what would belong to shareholders if everything was liquidated and debts paid.'},
+    {l:'Retained Earnings',v:BS.retained_earnings!=null?fmtM(BS.retained_earnings):'N/A',s:'Accumulated profits kept in the business. ISC L6 layer. Consumed by losses — when gone, risk escalates.',c:BS.retained_earnings>0?'#00FF9C':'#FF4560'},
+    {l:'Working Capital',v:BS.working_capital!=null?fmtM(BS.working_capital):'N/A',s:'Current assets minus current liabilities. Positive is healthy. Negative is a liquidity warning. ISC L1 layer.'},
+    {l:'Goodwill',v:BS.goodwill!=null?fmtM(BS.goodwill):'N/A',s:'Premium paid in past acquisitions. Sits on balance sheet indefinitely — watch for impairment charges in acquisition-heavy companies.'},
+    {l:'Current Ratio',v:TM.current_ratio!=null?TM.current_ratio.toFixed(2)+'x':'N/A',s:'Current assets ÷ current liabilities. Above 1.5 is healthy. Below 1.0 means short-term bills exceed short-term assets.',c:TM.current_ratio>1.5?'#00FF9C':TM.current_ratio>1?'#FFB800':'#FF4560'},
+  ].map(function(m){ return mrow(m.l,m.v,m.s,m.c||'#E2EBF4'); }).join('');
+
+  /* ── CASH FLOW ── */
+  document.getElementById('cashflowContent').innerHTML = [
+    {l:'Operating Cash Flow (CFO)',v:CF.cfo!=null?fmtM(CF.cfo):'N/A',s:'Actual cash the business generates from operations. Harder to fake than net income. Consistently positive CFO = real business.',c:CF.cfo>0?'#00FF9C':'#FF4560'},
+    {l:'Capital Expenditure (CapEx)',v:CF.capex!=null?fmtM(Math.abs(CF.capex)):'N/A',s:'Cash spent on buildings, machines, servers, equipment. Necessary investment. High CapEx squeezes free cash flow.'},
+    {l:'Free Cash Flow (FCF)',v:CF.fcf!=null?fmtM(CF.fcf):'N/A',s:'Operating cash flow minus CapEx. Money left to pay dividends, buy back stock, pay debt. The gold standard metric.',c:CF.fcf>0?'#00FF9C':'#FF4560'},
+    {l:'FCF Margin',v:CF.fcf_margin!=null?CF.fcf_margin.toFixed(1)+'%':'N/A',s:'Free cash flow as % of revenue. Above 15% is excellent. The single best measure of long-term business quality.',c:CF.fcf_margin>15?'#00FF9C':CF.fcf_margin>5?'#FFB800':'#FF4560'},
+    {l:'Cash Conversion',v:CF.cash_conversion!=null?CF.cash_conversion.toFixed(2)+'x':'N/A',s:'CFO ÷ Net Income. Above 1.0 means cash profits exceed accounting profits — the more honest signal. Piotroski signal.',c:CF.cash_conversion>1?'#00FF9C':CF.cash_conversion>0.5?'#FFB800':'#FF4560'},
+    {l:'Investing Cash Flow (CFI)',v:CF.cfi!=null?fmtM(CF.cfi):'N/A',s:'Cash from buying/selling assets. Negative usually means investing in growth — generally healthy if CFO is positive.'},
+    {l:'Financing Cash Flow (CFF)',v:CF.cff!=null?fmtM(CF.cff):'N/A',s:'Cash from debt/equity transactions. Negative means returning money to shareholders. Positive means raising capital.'},
+  ].map(function(m){ return mrow(m.l,m.v,m.s,m.c||'#E2EBF4'); }).join('');
+
+  /* ── TRADITIONAL ── */
+  document.getElementById('traditionalContent').innerHTML = [
+    {l:'Altman Z-Score',v:TM.altman_z!=null?TM.altman_z.toFixed(2):'N/A',s:'Classic 5-ratio bankruptcy predictor from 1968. Above 3.0=safe zone. 1.81–3.0=grey zone. Below 1.81=distress. ISC typically leads this by 1–5 quarters.',c:TM.altman_z>3?'#00FF9C':TM.altman_z>1.81?'#FFB800':'#FF4560'},
+    {l:'Piotroski F-Score',v:TM.piotroski_f!=null?TM.piotroski_f+'/9':'N/A',s:'9-question financial health checklist across profitability, leverage, and efficiency. 7–9=strong. 3–6=neutral. 0–2=weak.',c:TM.piotroski_f>=7?'#00FF9C':TM.piotroski_f>=4?'#FFB800':'#FF4560'},
+    {l:'Interest Coverage',v:TM.interest_coverage!=null?TM.interest_coverage.toFixed(1)+'x':'N/A',s:'EBIT ÷ interest expense. How many times earnings cover debt payments. Above 3x=comfortable. Below 1.5x=stress.',c:TM.interest_coverage>3?'#00FF9C':TM.interest_coverage>1.5?'#FFB800':'#FF4560'},
+    {l:'Debt/EBITDA',v:TM.debt_to_ebitda!=null?TM.debt_to_ebitda.toFixed(2)+'x':'N/A',s:'Total debt divided by EBITDA. How many years of earnings to pay off all debt. Under 2x=conservative. Above 4x=elevated.',c:TM.debt_to_ebitda<2?'#00FF9C':TM.debt_to_ebitda<4?'#FFB800':'#FF4560'},
+    {l:'Return on Assets (ROA)',v:TM.roa!=null?TM.roa.toFixed(1)+'%':'N/A',s:'Net income ÷ total assets. How efficiently assets generate profit. Higher is better. Declining ROA is an early warning.'},
+    {l:'Return on Equity (ROE)',v:TM.roe!=null?TM.roe.toFixed(1)+'%':'N/A',s:'Net income ÷ shareholder equity. Profit per dollar of shareholder investment. Consistently high ROE = quality business.',c:TM.roe>15?'#00FF9C':'#E2EBF4'},
+    {l:'Gross Margin',v:TM.gross_margin_pct!=null?TM.gross_margin_pct.toFixed(1)+'%':'N/A',s:'Gross profit as % of revenue. How efficiently the core business runs before overhead. Compare within sector only.'},
+    {l:'Operating Margin',v:TM.op_margin_pct!=null?TM.op_margin_pct.toFixed(1)+'%':'N/A',s:'Operating income as % of revenue. Positive=core business works. Negative=structurally unprofitable operations.',c:TM.op_margin_pct>0?'#00FF9C':'#FF4560'},
+    {l:'Asset Turnover',v:TM.asset_turnover!=null?TM.asset_turnover.toFixed(2)+'x':'N/A',s:'Revenue ÷ total assets. How many dollars of revenue each dollar of assets generates. Higher=more efficient.'},
+    {l:'Current Ratio',v:TM.current_ratio!=null?TM.current_ratio.toFixed(2)+'x':'N/A',s:'Current assets ÷ current liabilities. Above 1.5=healthy. Below 1.0=short-term bills exceed liquid assets.',c:TM.current_ratio>1.5?'#00FF9C':TM.current_ratio>1?'#FFB800':'#FF4560'},
+  ].map(function(m){ return mrow(m.l,m.v,m.s,m.c||'#E2EBF4'); }).join('');
+
+  /* ── PRICE & TECH ── */
+  document.getElementById('priceContent').innerHTML = '<div class="sb-label" style="margin-bottom:14px">Price & Technical Analysis</div>'
+    +[
+    {l:'Current Price',v:MKT.price!=null?'$'+MKT.price.toFixed(2):'N/A',s:'Latest market price. Where investors are valuing the company right now.'},
+    {l:'Market Cap',v:MKT.market_cap_bn!=null?fmtB(MKT.market_cap_bn):'N/A',s:'Total market value of all shares. Price × shares outstanding.'},
+    {l:'P/E Ratio',v:MKT.pe!=null?MKT.pe.toFixed(1)+'x':'N/A',s:'Price-to-earnings ratio. What investors pay per $1 of earnings. Lower is cheaper. Compare to sector average.',c:'#00D2FF'},
+    {l:'52-Week High',v:MKT.high_52w!=null?'$'+MKT.high_52w.toFixed(2):'N/A',s:'Highest price in the past year. Current price relative to this shows momentum direction.'},
+    {l:'52-Week Low',v:MKT.low_52w!=null?'$'+MKT.low_52w.toFixed(2):'N/A',s:'Lowest price in the past year. Distance from this shows recovery or continued decline.'},
+    {l:'52W Range Position',v:MKT.pct_52w!=null?Math.round(MKT.pct_52w*100)+'% of range':'N/A',s:'Where the current price sits in its annual range. Above 80% = near highs. Below 20% = near lows.',c:'#00D2FF'},
+    {l:'Beta',v:MKT.beta!=null?MKT.beta.toFixed(2):'N/A',s:'How much the stock moves relative to the market. Beta 1.5 = moves 50% more than market. Higher = more volatile.'},
+    {l:'RSI',v:MKT.rsi!=null?MKT.rsi.toFixed(0):'N/A',s:'Relative Strength Index 0–100. Above 70 = potentially overbought. Below 30 = potentially oversold. Momentum indicator.',c:MKT.rsi>70?'#FF4560':MKT.rsi<30?'#00FF9C':'#E2EBF4'},
+    {l:'Options IV (ATM)',v:OPT.atm_iv!=null?(OPT.atm_iv*100).toFixed(1)+'%':'N/A',s:'What the options market expects for annual volatility. Higher IV = market expects bigger price swings.'},
+    {l:'ISC-Adjusted Fair IV',v:OPT.fair_iv!=null?(OPT.fair_iv*100).toFixed(1)+'%':'N/A',s:'ISC applies a regime multiplier to market IV. Regulated ×0.92. Transitioning ×1.12. Bifurcating ×1.35.'},
+    {l:'IV Gap (Market vs ISC)',v:OPT.iv_gap!=null?(OPT.iv_gap*100).toFixed(1)+' pts':'N/A',s:'Positive gap = market IV above ISC fair IV (overpriced protection). Negative = options underpricing structural risk.',c:OPT.iv_gap!=null?(OPT.iv_gap<0?'#FFB800':'#00FF9C'):'#E2EBF4'},
+  ].map(function(m){ return mrow(m.l,m.v,m.s,m.c||'#E2EBF4'); }).join('');
+
+  /* ── NEWS ── */
+  var news = d.news||[];
+  if (!news.length) news=[{h:'No news data available',s:'neut',src:'N/A',d:'N/A'}];
+  document.getElementById('newsContent').innerHTML = news.map(function(n){
+    var nc=n.s==='bull'?'#00FF9C':n.s==='bear'?'#FF4560':'#FFB800';
+    var icon=n.s==='bull'?'▲':n.s==='bear'?'▼':'—';
+    return '<div style="display:flex;gap:14px;padding:14px 16px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.07);align-items:flex-start">'
+      +'<span class="mono" style="font-size:13px;font-weight:700;color:'+nc+';flex-shrink:0;width:16px;text-align:center">'+icon+'</span>'
+      +'<div style="flex:1"><div style="font-size:13px;color:#E2EBF4;margin-bottom:4px;line-height:1.5">'+n.h+'</div>'
+      +'<div style="font-size:11px;color:#5A7585">'+n.src+' · '+n.d+'</div></div></div>';
+  }).join('');
+
+  /* ── DIVERGENCE ── */
+  var dvC=DIV.isc_regime||r; var dvZ=DIV.altman_z||TM.altman_z;
+  var dvDiverge = dvC.includes('bifurcating')&&dvZ>1.81;
+  document.getElementById('divergenceContent').innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'
+    +'<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:16px"><div style="font-size:11px;color:#5A7585;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">ISC Regime</div><div style="font-size:16px;font-weight:700;color:'+regimeColor(dvC)+'">'+((dvC||'N/A').toUpperCase())+'</div></div>'
+    +'<div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:16px"><div style="font-size:11px;color:#5A7585;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Altman Z Zone</div><div style="font-size:16px;font-weight:700;color:'+(dvZ>3?'#00FF9C':dvZ>1.81?'#FFB800':'#FF4560')+'">'+( dvZ!=null?dvZ.toFixed(2):'N/A')+'</div></div>'
+    +'</div>'
+    +'<div class="al '+(dvDiverge?'al-a':'al-g')+'" style="margin-bottom:12px">'
+    +'<span style="font-size:18px">'+(dvDiverge?'⚠':'✓')+'</span>'
+    +'<div><div style="font-weight:700;margin-bottom:4px;color:'+(dvDiverge?'#FFB800':'#00FF9C')+'">'+(dvDiverge?'Divergence Detected — ISC Leading Altman Z':'Signals Consistent — No Divergence')+'</div>'
+    +'<div style="font-size:12px;color:#A0B4C8;line-height:1.7">'+( DIV.summary||'ISC and traditional metrics tell a consistent story for this company.')+'</div></div></div>'
+    +(DIV.lead_time&&DIV.lead_time!=='None'?'<div style="padding:12px 14px;background:rgba(255,184,0,0.06);border-radius:8px;border:1px solid rgba(255,184,0,0.15);font-size:12px;color:#A0B4C8">Estimated lead time: <strong style="color:#FFB800">'+DIV.lead_time+'</strong> before traditional metrics are expected to reflect current ISC signal.</div>':'');
+
+  /* ── RESET AI ── */
+  document.getElementById('chatHistory').innerHTML='';
+  chatCtx=[];
+}
+
+/* ═══════════════ AI ANALYST ═══════════════ */
+function buildContext() {
+  if (!D) return 'No analysis data available.';
+  var isc=D.isc||{}, IS=D.income_statement||{}, BS=D.balance_sheet||{}, CF=D.cash_flow||{}, TM=D.traditional||{}, MKT=D.market||{};
+  return 'Company: '+D.company_name+' ('+D.ticker+') · Sector: '+D.sector+'\n'
+    +'ISC Coupling: C='+(isc.C!=null?isc.C.toFixed(4):'N/A')+' · Regime: '+(isc.regime||'N/A')+' · Stability: '+(isc.stability_score||'N/A')+'/100\n'
+    +'Revenue TTM: $'+(IS.revenue!=null?(IS.revenue/1000).toFixed(1)+'B':'N/A')+' · Growth: '+(IS.revenue_growth!=null?IS.revenue_growth.toFixed(1)+'%':'N/A')+'\n'
+    +'Operating Income: $'+(IS.operating_income!=null?IS.operating_income:'N/A')+'M · Net Income: $'+(IS.net_income!=null?IS.net_income:'N/A')+'M\n'
+    +'Free Cash Flow: $'+(CF.fcf!=null?CF.fcf:'N/A')+'M · FCF Margin: '+(CF.fcf_margin!=null?CF.fcf_margin.toFixed(1)+'%':'N/A')+'\n'
+    +'Altman Z: '+(TM.altman_z!=null?TM.altman_z.toFixed(2):'N/A')+' · Piotroski F: '+(TM.piotroski_f!=null?TM.piotroski_f+'/9':'N/A')+'\n'
+    +'Interest Coverage: '+(TM.interest_coverage!=null?TM.interest_coverage.toFixed(1)+'x':'N/A')+' · Debt/EBITDA: '+(TM.debt_to_ebitda!=null?TM.debt_to_ebitda.toFixed(2)+'x':'N/A')+'\n'
+    +'Price: $'+(MKT.price!=null?MKT.price.toFixed(2):'N/A')+' · PE: '+(MKT.pe!=null?MKT.pe.toFixed(1)+'x':'N/A')+' · Market Cap: '+(MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A')+'\n'
+    +'Not financial advice. Structural susceptibility signal only.';
+}
+
+async function sendChat() {
+  var inp = document.getElementById('chatInput');
+  var q = inp.value.trim();
+  if (!q) return;
+  inp.value='';
+  askQ(q);
+}
+
+async function askQ(q) {
+  if (!D) { alert('Run an analysis first.'); return; }
+  var hist = document.getElementById('chatHistory');
+  hist.innerHTML += '<div style="padding:12px 14px;background:rgba(0,210,255,0.06);border-radius:10px;border:1px solid rgba(0,210,255,0.15);margin-left:40px"><div style="font-size:12px;color:#00D2FF;margin-bottom:4px;font-weight:600">You</div><div style="font-size:13px;color:#E2EBF4">'+q+'</div></div>';
+  hist.innerHTML += '<div id="aiTyping" style="padding:12px 14px;background:rgba(255,255,255,0.03);border-radius:10px;border:1px solid rgba(255,255,255,0.07)"><div style="font-size:12px;color:#7A95A8;margin-bottom:4px;font-weight:600">Claude AI Analyst</div><div style="font-size:13px;color:#7A95A8">Analyzing...</div></div>';
+
+  var ctx = buildContext();
+  chatCtx.push({role:'user',content:q});
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:600,
+        system:'You are a senior financial analyst specializing in ISC structural dynamics. The ISC coupling score C = corr(Var_W, AR1_W) measures whether a company\'s financial dynamics are self-correcting (regulated, C<-0.10) or amplifying (bifurcating, C>0.30). You have the following company data:\n\n'+ctx+'\n\nProvide clear, plain-English analysis. Be direct. Flag risks honestly. No bullet spam — write in clear paragraphs. Not financial advice.',
+        messages:chatCtx,
+      })
+    });
+    var data = await resp.json();
+    var ans = data.content&&data.content[0]?data.content[0].text:'Analysis unavailable.';
+    chatCtx.push({role:'assistant',content:ans});
+    var typing = document.getElementById('aiTyping');
+    if(typing) { typing.innerHTML='<div style="font-size:12px;color:#7A95A8;margin-bottom:4px;font-weight:600">Claude AI Analyst</div><div style="font-size:13px;color:#E2EBF4;line-height:1.7">'+ans.replace(/\n/g,'<br>')+'</div>'; typing.id=''; }
+  } catch(e) {
+    var typing2 = document.getElementById('aiTyping');
+    if(typing2) { typing2.innerHTML='<div style="font-size:12px;color:#7A95A8;margin-bottom:4px;font-weight:600">Claude AI Analyst</div><div style="font-size:13px;color:#5A7585">AI analyst requires API key configuration. Add CLAUDE_API_KEY to Render environment variables.</div>'; typing2.id=''; }
+  }
+
+  hist.scrollTop=hist.scrollHeight;
+}
+
+/* ═══════════════ DEMO FUNCTIONS ═══════════════ */
+function runEnron() {
+  showPage('analyzer');
+  document.getElementById('tkIn').value='ENR';
+  var d=buildSim('ENR');
+  d.company_name='Enron Corporation (Historical)';
+  d.sector='Energy'; d.industry='Oil & Gas';
+  d.analysis_date='2001-Q3';
+  d.isc.C=0.321; d.isc.regime='bifurcating'; d.isc.stability_score=22;
+  d.isc.plain='In Q3 2001, Enron\'s coupling score had crossed into bifurcating regime — C=+0.321. Financial dynamics were amplifying rather than correcting. At the same time, Altman Z remained in the grey zone. Price was near highs. ISC detected the structural shift approximately 4 quarters before the accounting scandal broke publicly.';
+  d.traditional.altman_z=2.1; d.traditional.piotroski_f=3;
+  d.traditional.interest_coverage=1.8;
+  d.divergence={summary:'Classic ISC/Altman Z divergence. ISC bifurcating. Altman Z grey zone. Price elevated. This divergence — ISC deteriorating while traditional metrics look stable — is the early window.',isc_regime:'bifurcating',altman_z:2.1,lead_time:'4 quarters'};
+  D=d; renderAll(d,'ENR');
+}
+
+function runWorldCom() {
+  showPage('analyzer');
+  document.getElementById('tkIn').value='WCOM';
+  var d=buildSim('WCOM');
+  d.company_name='WorldCom Inc (Historical)';
+  d.sector='Telecommunications'; d.industry='Long Distance';
+  d.analysis_date='2002-Q1';
+  d.isc.C=0.448; d.isc.regime='bifurcating'; d.isc.stability_score=18;
+  d.isc.plain='WorldCom\'s coupling score reached C=+0.448 in early 2002 — deep bifurcating territory. The $11B accounting fraud was uncovered in June 2002. ISC structural dynamics were amplifying long before the fraud disclosure.';
+  d.traditional.altman_z=1.9; d.traditional.piotroski_f=2;
+  d.divergence={summary:'Deep bifurcating ISC regime while price remained elevated and traditional metrics showed grey-zone distress rather than clear failure. The ISC signal was the clearest early indicator.',isc_regime:'bifurcating',altman_z:1.9,lead_time:'3–5 quarters'};
+  D=d; renderAll(d,'WCOM');
+}
+
+function runSpirit() {
+  showPage('analyzer');
+  document.getElementById('tkIn').value='SAVE';
+  var d=buildSim('SAVE');
+  d.company_name='Spirit Airlines — Ceased Operations May 2, 2026';
+  d.sector='Airlines'; d.industry='Ultra Low Cost';
+  d.analysis_date='2022-FY';
+  d.isc.C=0.541; d.isc.regime='bifurcating'; d.isc.stability_score=12;
+  d.isc.plain='Spirit Airlines ISC coupling reached C=+0.541 in 2022 — deeply bifurcating. In that same year, revenue grew 57% ($3.2B to $5.1B) while operating losses grew 952% (-$57M to -$599M). Revenue recovery with no margin recovery is the classic L5 amplifying fingerprint. ISC detected this structural breakdown 3–4 years before cessation of operations on May 2, 2026.';
+  d.income_statement.revenue=5068; d.income_statement.operating_income=-599; d.income_statement.net_income=-554;
+  d.income_statement.revenue_growth=57; d.income_statement.interest_expense=140;
+  d.balance_sheet.long_term_debt=2802; d.traditional.interest_coverage=-3.6;
+  d.traditional.altman_z=0.28; d.traditional.piotroski_f=2;
+  d.divergence={summary:'Spirit Airlines is the definitive ISC case study from 2026. Revenue grew 57% in 2022 while operating losses grew 952%. ISC entered bifurcating regime years before the November 2024 first bankruptcy and May 2026 cessation. Classic revenue/margin divergence at L5 feeding into L3/L4 leverage cascade.',isc_regime:'bifurcating',altman_z:0.28,lead_time:'3–4 years'};
+  D=d; renderAll(d,'SAVE');
+}
+
+/* ═══════════════ PDF ═══════════════ */
+function downloadPDF() {
+  if(!D){return;}
+  var btn=document.getElementById('pdfBtn');
+  btn.textContent='⏳ Generating...'; btn.disabled=true;
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload=function(){
+    try{
+      var doc=new window.jspdf.jsPDF();
+      var isc=D.isc||{}, IS=D.income_statement||{}, BS=D.balance_sheet||{}, CF=D.cash_flow||{}, TM=D.traditional||{};
+      var C=isc.C, r=(isc.regime||'').toLowerCase();
+      var col=C>0.3?[255,69,96]:C>-0.1?[255,184,0]:[0,255,150];
+      var W=210, m=18;
+
+      // Header
+      doc.setFillColor(5,8,13); doc.rect(0,0,W,40,'F');
+      doc.setFillColor(0,210,255); doc.rect(0,0,W,3,'F');
+      doc.setTextColor(0,210,255); doc.setFontSize(22); doc.setFont('helvetica','bold');
+      doc.text('ISC Financial Analysis',m,16);
+      doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(160,180,200);
+      doc.text('The Filter Lab LLC  ·  Ryan W. Malone, Independent Researcher  ·  doi.org/10.5281/zenodo.18940081',m,26);
+      doc.text('Not financial advice. Structural susceptibility signal only. Generated '+new Date().toLocaleString(),m,34);
+
+      var y=52;
+      doc.setTextColor(20,20,20);
+      doc.setFontSize(20); doc.setFont('helvetica','bold');
+      doc.text((D.company_name||D.ticker)+' ('+D.ticker+')',m,y); y+=8;
+      doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(90,117,133);
+      doc.text((D.sector||'')+(D.industry?' · '+D.industry:'')+'  ·  Analysis date: '+(D.analysis_date||new Date().toLocaleDateString()),m,y); y+=14;
+
+      // ISC Signal box
+      doc.setFillColor(235,245,255); doc.rect(m,y,W-m*2,32,'F');
+      doc.setTextColor(20); doc.setFontSize(12); doc.setFont('helvetica','bold');
+      doc.text('ISC Structural Signal',m+4,y+9);
+      doc.setTextColor(col[0],col[1],col[2]);
+      doc.setFontSize(11);
+      doc.text('C = '+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'   Regime: '+((r||'unknown').toUpperCase())+'   Stability: '+(isc.stability_score||'N/A')+'/100',m+4,y+18);
+      doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(60);
+      var plain=regimePlain(r,C);
+      var pLines=doc.splitTextToSize(plain,W-m*2-8);
+      doc.text(pLines,m+4,y+26); y+=32+pLines.length*4+6;
+
+      // Metrics table
+      var rows=[
+        ['Revenue (TTM)',IS.revenue!=null?'$'+Number(IS.revenue).toLocaleString()+'M':'N/A'],
+        ['Operating Income',IS.operating_income!=null?'$'+Number(IS.operating_income).toLocaleString()+'M':'N/A'],
+        ['Net Income',IS.net_income!=null?'$'+Number(IS.net_income).toLocaleString()+'M':'N/A'],
+        ['Free Cash Flow',CF.fcf!=null?'$'+Number(CF.fcf).toLocaleString()+'M':'N/A'],
+        ['FCF Margin',CF.fcf_margin!=null?CF.fcf_margin.toFixed(1)+'%':'N/A'],
+        ['Altman Z-Score',TM.altman_z!=null?TM.altman_z.toFixed(2)+' ('+(TM.altman_z>3?'Safe':TM.altman_z>1.81?'Grey Zone':'Distress')+')':'N/A'],
+        ['Piotroski F-Score',TM.piotroski_f!=null?TM.piotroski_f+'/9':'N/A'],
+        ['Interest Coverage',TM.interest_coverage!=null?TM.interest_coverage.toFixed(1)+'x':'N/A'],
+        ['Debt / EBITDA',TM.debt_to_ebitda!=null?TM.debt_to_ebitda.toFixed(2)+'x':'N/A'],
+        ['Total Long-Term Debt',BS.long_term_debt!=null?'$'+Number(BS.long_term_debt).toLocaleString()+'M':'N/A'],
+        ['Cash & Equivalents',BS.cash!=null?'$'+Number(BS.cash).toLocaleString()+'M':'N/A'],
+      ];
+      doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(20);
+      doc.text('Key Financial Metrics',m,y); y+=7;
+      rows.forEach(function(row,i){
+        doc.setFillColor(i%2===0?248:255,i%2===0?250:255,i%2===0?252:255);
+        doc.rect(m,y,W-m*2,10,'F');
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(20);
+        doc.text(row[0],m+3,y+7);
+        doc.setFont('helvetica','normal'); doc.setTextColor(30,100,200);
+        doc.text(row[1],m+80,y+7);
+        y+=10;
+      });
+      y+=10;
+
+      // Divergence
+      if(y>250){doc.addPage();y=20;}
+      doc.setFontSize(11); doc.setFont('helvetica','bold'); doc.setTextColor(20);
+      doc.text('ISC vs Traditional — The Divergence Signal',m,y); y+=7;
+      doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(60);
+      var divSum=D.divergence&&D.divergence.summary?D.divergence.summary:'ISC provides a structural early warning signal that typically leads traditional metrics by 1-5 quarters.';
+      var dLines=doc.splitTextToSize(divSum,W-m*2);
+      doc.text(dLines,m,y); y+=dLines.length*5+14;
+
+      // Footer
+      doc.setFillColor(5,8,13); doc.rect(0,270,W,27,'F');
+      doc.setFillColor(0,210,255); doc.rect(0,270,W,2,'F');
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(150,170,200);
+      doc.text('ISC Financial · The Filter Lab LLC · Ryan W. Malone, Independent Researcher',m,280);
+      doc.text('Not financial advice. Structural susceptibility signal only. doi.org/10.5281/zenodo.18940081',m,287);
+      doc.text('AI assistance disclosed per Anthropic guidelines.',m,294);
+
+      doc.save((D.ticker||'ISC')+'_Analysis_'+new Date().toISOString().slice(0,10)+'.pdf');
+      btn.textContent='⬇ Download PDF Report'; btn.disabled=false;
+    }catch(err){btn.textContent='⬇ Download PDF Report';btn.disabled=false;console.error(err);}
+  };
+  s.onerror=function(){btn.textContent='⬇ Download PDF Report';btn.disabled=false;};
+  document.head.appendChild(s);
+}
+
+/* ═══════════════ INIT ═══════════════ */
+setTier('free', document.querySelector('.nt.on'));
+</script>
+</body>
+</html>
