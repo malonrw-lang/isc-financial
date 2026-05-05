@@ -2164,21 +2164,21 @@ function buildCascadeSignature(layers, d, r, C){
     signatureColor='var(--purple)';
     narrative='The L4 ISC filter is signaling structural change while traditional layers (cash, debt coverage, margins, equity) still look acceptable. This is exactly the early-warning window ISC was designed to detect '+EMDASH+' the gap between when ISC sees structural deterioration and when conventional metrics catch up is typically 1'+ENDASH+'5 quarters. Watch L3 (debt coverage) and L5 (margins) for the cascade to spread.';
   }else if(has(stressed,1) && has(stressed,3) && has(stressed,5)){
-    pattern='Spirit Airlines Pattern (L1+L3+L5)';
+    pattern='ISC Pattern - Spirit Airlines Historical Comparable';
     signatureColor='var(--red)';
-    narrative='Cash stress (L1), interest coverage failure (L3), and operating margin collapse (L5) together '+EMDASH+' the Spirit Airlines signature. Top-line revenue may still be growing, but each new dollar of revenue costs more to produce than it brings in, and the cash buffer cannot service the debt indefinitely. Historical resolution: 12'+ENDASH+'24 months to terminal event without a major restructuring.';
+    narrative='Cash stress (L1), interest coverage failure (L3), and operating margin collapse (L5) together '+EMDASH+' the Spirit Airlines signature. Top-line revenue may still be growing, but each new dollar of revenue costs more to produce than it brings in, and the cash buffer cannot service the debt indefinitely. In comparable historical cases, resolution occurred over 12'+ENDASH+'24 months. Individual outcomes vary; this is a structural signal, not a prediction.';
   }else if(has(stressed,3) && has(stressed,5) && (has(stressed,7)||has(watching,7))){
-    pattern='WorldCom Pattern (L3+L5+L7)';
+    pattern='ISC Pattern - WorldCom Historical Comparable';
     signatureColor='var(--red)';
-    narrative='Debt coverage stress (L3), margin compression (L5), and disclosure quality concerns (L7) together '+EMDASH+' the WorldCom signature. When operating margins are deteriorating AND interest coverage is below threshold AND earnings-to-cash conversion is poor, the surface financials are usually being held together by accounting choices that will eventually unwind. Historical resolution: 4'+ENDASH+'8 quarters to disclosure event.';
+    narrative='Debt coverage stress (L3), margin compression (L5), and disclosure quality concerns (L7) together '+EMDASH+' the WorldCom signature. When operating margins are deteriorating AND interest coverage is below threshold AND earnings-to-cash conversion is poor, the surface financials are usually being held together by accounting choices that will eventually unwind. In comparable historical cases, resolution occurred over 4'+ENDASH+'8 quarters. Outcomes vary; this is a structural signal, not a prediction.';
   }else if(has(stressed,1) && has(stressed,4)){
-    pattern='Enron Pattern (L1+L4)';
+    pattern='ISC Pattern - Enron Historical Comparable';
     signatureColor='var(--red)';
-    narrative='Working capital deficit (L1) combined with bifurcating ISC at L4 '+EMDASH+' the Enron signature. The L4 capital structure filter is amplifying stress while the L1 layer shows the underlying liquidity problem. When traditional metrics like Altman Z still look acceptable, off-balance-sheet structures may be hiding the true picture. Historical resolution: 4'+ENDASH+'5 quarters to disclosure event.';
+    narrative='Working capital deficit (L1) combined with bifurcating ISC at L4 '+EMDASH+' the Enron signature. The L4 capital structure filter is amplifying stress while the L1 layer shows the underlying liquidity problem. When traditional metrics like Altman Z still look acceptable, off-balance-sheet structures may be hiding the true picture. In comparable historical cases, resolution occurred over 4'+ENDASH+'5 quarters. Outcomes vary; this is a structural signal, not a prediction.';
   }else if(nStress>=3){
     pattern='Multi-Layer Stress';
     signatureColor='var(--red)';
-    narrative=nStress+' layers are stressed simultaneously: '+stressed.map(function(n){return 'L'+n;}).join(', ')+'. Stress in multiple layers at once means the cascade is already in motion. The single most important predictor of recovery is whether the company has external capital access (parent, sponsor, or debt markets willing to lend) to bridge the operational gap. Without that, terminal event is a question of timing.';
+    narrative=nStress+' layers are stressed simultaneously: '+stressed.map(function(n){return 'L'+n;}).join(', ')+'. Stress in multiple layers at once means the cascade is already in motion. The single most important predictor of recovery is whether the company has external capital access (parent, sponsor, or debt markets willing to lend) to bridge the operational gap. Historical comparable cases without external capital access have resolved variably; this is a structural signal, not a prediction.';
   }else if(nStress>=1){
     pattern='Localized Stress';
     signatureColor='var(--amber)';
