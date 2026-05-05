@@ -670,6 +670,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <button class="tb" onclick="swTab('balance',this)">Balance Sheet</button>
           <button class="tb" onclick="swTab('cashflow',this)">Cash Flow</button>
           <button class="tb" onclick="swTab('traditional',this)">Traditional</button>
+          <button class="tb" onclick="swTab('peers',this)">Peers</button>
           <button class="tb" onclick="swTab('news',this)">News</button>
           <button class="tb" onclick="swTab('portfolio',this)">&#55357;&#56513; Portfolio</button>
           <button class="tb" onclick="swTab('ai',this)">&#55358;&#56598; AI Analyst</button>
@@ -816,6 +817,14 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
             <div class="card-hi"><div class="sb-lbl" style="margin-bottom:12px">Traditional Financial Health Metrics</div><div id="tradContent"></div></div>
           </div>
 
+          <!-- PEERS -->
+          <div id="t-peers" class="tab-content hidden">
+            <div class="al al-b" style="margin-bottom:0">
+              <span style="font-size:16px">&#62666;</span>
+              <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Peer comparison:</strong> See how this company's ISC and traditional metrics stack against industry peers. ISC reveals structural patterns conventional metrics miss '+EMDASH+' comparing peer ISC values shows which companies in the sector are closest to a regime break.</div>
+            </div>
+            <div id="peersArea"></div>
+          </div>
           <!-- NEWS -->
           <div id="t-news" class="tab-content hidden">
             <div class="al al-b" style="margin-bottom:0">
@@ -1440,7 +1449,7 @@ async function runAnal() {
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
    SIMULATION (fallback only, N/A for financials)
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-var KNOWN={AAPL:{C:-0.985,n:'Apple Inc',s:'Technology',i:'Consumer Electronics'},TSLA:{C:0.312,n:'Tesla Inc',s:'Consumer Discretionary',i:'Auto Manufacturers'},NVDA:{C:-0.445,n:'NVIDIA Corporation',s:'Technology',i:'Semiconductors'},GME:{C:0.671,n:'GameStop Corp',s:'Consumer Cyclical',i:'Specialty Retail'},META:{C:-0.221,n:'Meta Platforms',s:'Communication Services',i:'Internet Content'},AMZN:{C:-0.387,n:'Amazon.com Inc',s:'Consumer Cyclical',i:'Internet Retail'},MSFT:{C:-0.512,n:'Microsoft Corporation',s:'Technology',i:'Software'},NFLX:{C:-0.108,n:'Netflix Inc',s:'Communication Services',i:'Entertainment'},BAC:{C:0.18,n:'Bank of America',s:'Financial Services',i:'Banks'},HAL:{C:-0.352,n:'Halliburton Co',s:'Energy',i:'Oil & Gas Services'}};
+var KNOWN={AAPL:{C:-0.985,n:'Apple Inc',s:'Technology',i:'Consumer Electronics',altZ:5.8,fcfM:27.5,opM:30.7,revG:5.2,mcap:3520},MSFT:{C:-0.512,n:'Microsoft Corporation',s:'Technology',i:'Software',altZ:6.4,fcfM:30.2,opM:44.6,revG:15.7,mcap:3120},NVDA:{C:-0.445,n:'NVIDIA Corporation',s:'Technology',i:'Semiconductors',altZ:28.5,fcfM:45.8,opM:62.4,revG:78.4,mcap:3300},GOOGL:{C:-0.418,n:'Alphabet Inc',s:'Technology',i:'Internet Content',altZ:7.1,fcfM:22.4,opM:30.5,revG:12.3,mcap:2200},AVGO:{C:-0.388,n:'Broadcom Inc',s:'Technology',i:'Semiconductors',altZ:4.2,fcfM:36.5,opM:32.1,revG:17.5,mcap:800},ADBE:{C:-0.624,n:'Adobe Inc',s:'Technology',i:'Software',altZ:12.8,fcfM:38.5,opM:36.2,revG:11.4,mcap:240},ORCL:{C:-0.298,n:'Oracle Corporation',s:'Technology',i:'Software',altZ:3.4,fcfM:24.6,opM:30.5,revG:8.5,mcap:380},CRM:{C:-0.412,n:'Salesforce Inc',s:'Technology',i:'Software',altZ:4.8,fcfM:28.6,opM:18.4,revG:11.2,mcap:280},AMD:{C:-0.331,n:'Advanced Micro Devices',s:'Technology',i:'Semiconductors',altZ:6.2,fcfM:18.5,opM:14.8,revG:22.3,mcap:250},INTC:{C:0.142,n:'Intel Corporation',s:'Technology',i:'Semiconductors',altZ:1.8,fcfM:5.5,opM:-8.2,revG:-1.4,mcap:90},QCOM:{C:-0.282,n:'Qualcomm Inc',s:'Technology',i:'Semiconductors',altZ:5.5,fcfM:24.8,opM:28.5,revG:9.2,mcap:190},INTU:{C:-0.591,n:'Intuit Inc',s:'Technology',i:'Software',altZ:8.6,fcfM:30.5,opM:25.4,revG:13.5,mcap:180},NOW:{C:-0.487,n:'ServiceNow Inc',s:'Technology',i:'Software',altZ:9.2,fcfM:31.4,opM:12.8,revG:23.5,mcap:220},META:{C:-0.221,n:'Meta Platforms',s:'Communication Services',i:'Internet Content',altZ:7.8,fcfM:28.4,opM:38.6,revG:16.2,mcap:1480},NFLX:{C:-0.108,n:'Netflix Inc',s:'Communication Services',i:'Entertainment',altZ:4.1,fcfM:16.8,opM:22.4,revG:14.8,mcap:320},DIS:{C:0.087,n:'Walt Disney Co',s:'Communication Services',i:'Entertainment',altZ:1.9,fcfM:8.5,opM:6.2,revG:2.5,mcap:200},T:{C:0.215,n:'AT&T Inc',s:'Communication Services',i:'Telecom',altZ:1.4,fcfM:12.5,opM:18.4,revG:1.8,mcap:145},VZ:{C:0.184,n:'Verizon Communications',s:'Communication Services',i:'Telecom',altZ:1.6,fcfM:14.2,opM:22.5,revG:0.5,mcap:175},CMCSA:{C:0.046,n:'Comcast Corporation',s:'Communication Services',i:'Media',altZ:2.1,fcfM:12.8,opM:18.6,revG:1.2,mcap:165},TSLA:{C:0.312,n:'Tesla Inc',s:'Consumer Discretionary',i:'Auto Manufacturers',altZ:3.5,fcfM:5.8,opM:7.6,revG:18.2,mcap:850},AMZN:{C:-0.387,n:'Amazon.com Inc',s:'Consumer Cyclical',i:'Internet Retail',altZ:4.8,fcfM:8.4,opM:9.5,revG:12.5,mcap:1880},HD:{C:-0.342,n:'Home Depot Inc',s:'Consumer Cyclical',i:'Home Improvement',altZ:4.5,fcfM:11.2,opM:14.8,revG:4.2,mcap:410},NKE:{C:-0.156,n:'NIKE Inc',s:'Consumer Cyclical',i:'Footwear',altZ:4.2,fcfM:11.5,opM:11.8,revG:-1.2,mcap:120},MCD:{C:-0.418,n:'McDonald\'s Corporation',s:'Consumer Cyclical',i:'Restaurants',altZ:6.2,fcfM:24.8,opM:45.2,revG:5.1,mcap:215},SBUX:{C:-0.085,n:'Starbucks Corporation',s:'Consumer Cyclical',i:'Restaurants',altZ:3.4,fcfM:11.5,opM:14.6,revG:1.2,mcap:110},GME:{C:0.671,n:'GameStop Corp',s:'Consumer Cyclical',i:'Specialty Retail',altZ:1.8,fcfM:-2.5,opM:-3.4,revG:-8.2,mcap:8},WMT:{C:-0.382,n:'Walmart Inc',s:'Consumer Defensive',i:'Discount Stores',altZ:4.1,fcfM:5.2,opM:4.5,revG:5.8,mcap:720},COST:{C:-0.622,n:'Costco Wholesale',s:'Consumer Defensive',i:'Discount Stores',altZ:8.5,fcfM:4.8,opM:3.6,revG:8.2,mcap:410},TGT:{C:-0.152,n:'Target Corporation',s:'Consumer Defensive',i:'Discount Stores',altZ:3.2,fcfM:6.8,opM:5.4,revG:1.4,mcap:70},PG:{C:-0.451,n:'Procter & Gamble',s:'Consumer Defensive',i:'Household Products',altZ:5.4,fcfM:17.8,opM:22.5,revG:2.8,mcap:380},KO:{C:-0.394,n:'Coca-Cola Company',s:'Consumer Defensive',i:'Beverages',altZ:4.8,fcfM:22.4,opM:28.6,revG:3.5,mcap:290},BAC:{C:0.18,n:'Bank of America',s:'Financial Services',i:'Banks',altZ:1.4,fcfM:18.5,opM:30.5,revG:5.2,mcap:360},JPM:{C:-0.156,n:'JPMorgan Chase',s:'Financial Services',i:'Banks',altZ:1.8,fcfM:22.4,opM:38.5,revG:4.8,mcap:660},GS:{C:0.024,n:'Goldman Sachs',s:'Financial Services',i:'Investment Banking',altZ:1.5,fcfM:14.5,opM:25.4,revG:-0.5,mcap:165},MS:{C:-0.082,n:'Morgan Stanley',s:'Financial Services',i:'Investment Banking',altZ:1.6,fcfM:16.8,opM:22.5,revG:1.8,mcap:175},WFC:{C:0.215,n:'Wells Fargo',s:'Financial Services',i:'Banks',altZ:1.3,fcfM:17.2,opM:26.4,revG:-0.8,mcap:200},BLK:{C:-0.385,n:'BlackRock Inc',s:'Financial Services',i:'Asset Management',altZ:4.2,fcfM:24.5,opM:36.5,revG:6.5,mcap:165},BX:{C:-0.224,n:'Blackstone Inc',s:'Financial Services',i:'Asset Management',altZ:3.5,fcfM:22.8,opM:30.5,revG:8.2,mcap:175},SCHW:{C:0.041,n:'Charles Schwab',s:'Financial Services',i:'Capital Markets',altZ:1.7,fcfM:18.5,opM:32.4,revG:-3.5,mcap:145},XOM:{C:-0.218,n:'Exxon Mobil',s:'Energy',i:'Oil & Gas Integrated',altZ:3.8,fcfM:12.5,opM:13.4,revG:-2.8,mcap:540},CVX:{C:-0.265,n:'Chevron Corporation',s:'Energy',i:'Oil & Gas Integrated',altZ:4.1,fcfM:14.5,opM:15.6,revG:-1.2,mcap:290},COP:{C:-0.198,n:'ConocoPhillips',s:'Energy',i:'Oil & Gas E&P',altZ:4.5,fcfM:18.5,opM:22.4,revG:-3.5,mcap:145},HAL:{C:-0.352,n:'Halliburton Co',s:'Energy',i:'Oil & Gas Services',altZ:3.2,fcfM:9.5,opM:12.4,revG:6.8,mcap:28},SLB:{C:-0.385,n:'Schlumberger NV',s:'Energy',i:'Oil & Gas Services',altZ:3.4,fcfM:11.2,opM:14.5,revG:8.5,mcap:65},EOG:{C:-0.422,n:'EOG Resources',s:'Energy',i:'Oil & Gas E&P',altZ:5.2,fcfM:24.5,opM:32.5,revG:-1.4,mcap:75},JNJ:{C:-0.524,n:'Johnson & Johnson',s:'Healthcare',i:'Drug Manufacturers',altZ:5.8,fcfM:21.5,opM:24.5,revG:4.2,mcap:410},UNH:{C:-0.318,n:'UnitedHealth Group',s:'Healthcare',i:'Healthcare Plans',altZ:4.5,fcfM:6.8,opM:8.4,revG:9.5,mcap:480},PFE:{C:-0.082,n:'Pfizer Inc',s:'Healthcare',i:'Drug Manufacturers',altZ:2.8,fcfM:14.5,opM:22.5,revG:-41.4,mcap:165},ABBV:{C:-0.158,n:'AbbVie Inc',s:'Healthcare',i:'Drug Manufacturers',altZ:1.9,fcfM:28.5,opM:32.4,revG:-6.4,mcap:320},MRK:{C:-0.388,n:'Merck & Co',s:'Healthcare',i:'Drug Manufacturers',altZ:4.8,fcfM:26.5,opM:30.5,revG:1.5,mcap:280},LLY:{C:-0.444,n:'Eli Lilly',s:'Healthcare',i:'Drug Manufacturers',altZ:9.5,fcfM:22.5,opM:28.6,revG:26.5,mcap:720},BA:{C:0.452,n:'Boeing Co',s:'Industrials',i:'Aerospace & Defense',altZ:0.8,fcfM:-8.5,opM:-3.5,revG:12.5,mcap:105},CAT:{C:-0.215,n:'Caterpillar Inc',s:'Industrials',i:'Farm & Heavy Construction',altZ:4.2,fcfM:14.5,opM:21.5,revG:4.5,mcap:195},GE:{C:-0.085,n:'General Electric',s:'Industrials',i:'Specialty Industrial',altZ:2.5,fcfM:8.5,opM:12.4,revG:7.5,mcap:195},DE:{C:-0.158,n:'Deere & Co',s:'Industrials',i:'Farm & Heavy Construction',altZ:4.5,fcfM:11.2,opM:22.5,revG:-8.5,mcap:110},HON:{C:-0.288,n:'Honeywell International',s:'Industrials',i:'Conglomerates',altZ:4.8,fcfM:18.5,opM:21.5,revG:3.4,mcap:145},AAL:{C:0.385,n:'American Airlines',s:'Industrials',i:'Airlines',altZ:1.2,fcfM:-2.8,opM:3.5,revG:9.5,mcap:9},DAL:{C:0.152,n:'Delta Air Lines',s:'Industrials',i:'Airlines',altZ:1.6,fcfM:4.5,opM:8.5,revG:7.2,mcap:30},UAL:{C:0.218,n:'United Airlines',s:'Industrials',i:'Airlines',altZ:1.4,fcfM:3.2,opM:7.8,revG:6.5,mcap:18},LUV:{C:0.245,n:'Southwest Airlines',s:'Industrials',i:'Airlines',altZ:1.8,fcfM:1.5,opM:1.8,revG:4.2,mcap:20},F:{C:0.288,n:'Ford Motor Company',s:'Consumer Discretionary',i:'Auto Manufacturers',altZ:1.5,fcfM:-1.2,opM:2.5,revG:5.8,mcap:45},GM:{C:0.184,n:'General Motors',s:'Consumer Discretionary',i:'Auto Manufacturers',altZ:1.7,fcfM:5.5,opM:6.8,revG:8.5,mcap:60},ENR:{C:0.321,n:'Enron Corporation (Historical)',s:'Energy',i:'Energy Trading',altZ:2.1,fcfM:-1.8,opM:0.2,revG:131.6,mcap:25},WCOM:{C:0.448,n:'WorldCom Inc (Historical)',s:'Communication Services',i:'Telecom',altZ:1.85,fcfM:0.3,opM:7.9,revG:-13.4,mcap:20},SAVE:{C:0.541,n:'Spirit Airlines (Historical)',s:'Industrials',i:'Airlines',altZ:0.28,fcfM:-11.8,opM:-11.8,revG:56.9,mcap:1.5}};
 
 var DEMO_REDIRECT_MAP = {ENR:'enron',ENRN:'enron',ENRNQ:'enron',WCOM:'worldcom',WCOEQ:'worldcom',SAVE:'spirit',SAVEQ:'spirit'};
 var DEMO_LABELS = {enron:'Enron Corporation (Q3 2001)',worldcom:'WorldCom Inc (Q1 2002)',spirit:'Spirit Airlines (FY 2022)'};
@@ -1950,6 +1959,7 @@ function renderAll(d){
   document.getElementById('chatHistory').innerHTML='';chatCtx=[];
   // Render statement-tab commentary (2c)
   try{renderTabCommentaries(d);}catch(e){console.warn('renderTabCommentaries failed:',e);}
+  try{renderPeers(d);}catch(e){console.warn('renderPeers failed:',e);}
 }
 
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
@@ -1959,6 +1969,40 @@ function destroyCharts(){
   Object.keys(charts).forEach(function(k){if(charts[k]){charts[k].destroy();charts[k]=null;}});
 }
 
+function findPeers(ticker, sector, maxN){
+  if(!sector)return [];
+  var t=String(ticker||'').toUpperCase();
+  var candidates=[];
+  Object.keys(KNOWN).forEach(function(k){
+    if(k===t)return;
+    var p=KNOWN[k];
+    if(!p||p.s!==sector)return;
+    if(p.altZ==null)return;
+    candidates.push(Object.assign({ticker:k},p));
+  });
+  // Sort by market cap proximity to subject (when available)
+  var subjectMcap=KNOWN[t]?KNOWN[t].mcap:null;
+  if(subjectMcap){
+    candidates.sort(function(a,b){return Math.abs(Math.log(a.mcap/subjectMcap))-Math.abs(Math.log(b.mcap/subjectMcap));});
+  }else{
+    candidates.sort(function(a,b){return b.mcap-a.mcap;});
+  }
+  return candidates.slice(0, maxN||5);
+}
+function getPeerTierLimit(){
+  var t=(typeof tier!=='undefined'?tier:'free');
+  if(t==='pro500')return 99;
+  if(t==='pro')return 5;
+  if(t==='investor')return 1;
+  return 1;  // free shows 1 blurred
+}
+function isPeerLocked(){
+  var t=(typeof tier!=='undefined'?tier:'free');
+  return t==='free';
+}
+function fmtMcap(m){if(m==null)return '';if(m>=1000)return '$'+(m/1000).toFixed(1)+'T';return '$'+m.toFixed(0)+'B';}
+function regimeOfC(c){if(c==null)return 'unknown';if(c>0.3)return 'bifurcating';if(c>-0.1)return 'transitioning';return 'regulated';}
+function regimeColor(reg){if(reg==='bifurcating')return 'var(--red)';if(reg==='transitioning')return 'var(--amber)';if(reg==='regulated')return 'var(--green)';return 'var(--dim)';}
 function buildCascadeSignature(layers, d, r, C){
   if(!layers||layers.length<7)return '';
   // Tally severity
@@ -2028,6 +2072,111 @@ function buildCascadeSignature(layers, d, r, C){
   sumHtml+='<div style="font-size:13px;color:#A0B8D0;line-height:1.7">'+narrative+'</div>';
   sumHtml+='</div>';
   return sumHtml;
+}
+function renderPeers(d){
+  var area=document.getElementById('peersArea');
+  if(!area)return;
+  var ticker=String(d.ticker||'').toUpperCase();
+  var subjSector=d.sector||(KNOWN[ticker]?KNOWN[ticker].s:null);
+  var subjC=(d.isc||{}).C;
+  if(!subjSector){
+    area.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--dim)"><div style="font-size:14px">Sector not identified for '+ticker+'.</div><div style="font-size:12px;margin-top:8px">Peer comparison requires a sector classification. Try analyzing a major US-listed ticker.</div></div>';
+    return;
+  }
+  var tierLimit=getPeerTierLimit();
+  var locked=isPeerLocked();
+  var allPeers=findPeers(ticker, subjSector, 5);
+  if(allPeers.length===0){
+    area.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--dim)"><div style="font-size:14px">No peers in '+subjSector+' available in the snapshot database yet.</div></div>';
+    return;
+  }
+  var visiblePeers=allPeers.slice(0, tierLimit);
+  // Build subject row using actual analyzed values where available
+  var subj={
+    ticker:ticker,
+    n:d.company_name||(KNOWN[ticker]?KNOWN[ticker].n:ticker),
+    C:subjC!=null?subjC:(KNOWN[ticker]?KNOWN[ticker].C:null),
+    altZ:gv(d.traditional||{},'altman_z')||(KNOWN[ticker]?KNOWN[ticker].altZ:null),
+    fcfM:gv(d.cash_flow||{},'fcf_margin')||(KNOWN[ticker]?KNOWN[ticker].fcfM:null),
+    opM:gv(d.income_statement||{},'operating_margin')||(KNOWN[ticker]?KNOWN[ticker].opM:null),
+    revG:gv(d.income_statement||{},'revenue_growth')||(KNOWN[ticker]?KNOWN[ticker].revG:null),
+    mcap:KNOWN[ticker]?KNOWN[ticker].mcap:null,
+    isSubject:true
+  };
+  var rows=[subj].concat(visiblePeers);
+  // Header card
+  var html='';
+  html+='<div class="card-hi" style="margin-bottom:14px">';
+  html+='<div class="sb-lbl" style="margin-bottom:6px">Peer Comparison '+EMDASH+' '+subjSector+'</div>';
+  html+='<div style="font-size:12px;color:var(--dim);margin-bottom:14px">Snapshot data as of last quarterly update. Tier: '+(typeof tier!=="undefined"?tier:'free')+(tierLimit>=99?' '+EMDASH+' unlimited peers':' '+EMDASH+' '+tierLimit+' peer'+(tierLimit>1?'s':'')+' visible')+'.</div>';
+  // Table
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html+='<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08)">';
+  ['Company','Mkt Cap','ISC C','Regime','Altman Z','FCF Margin','Op Margin','Rev Growth'].forEach(function(h){
+    html+='<th style="text-align:left;padding:10px 8px;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:600">'+h+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(p, i){
+    var isSubj=p.isSubject;
+    var lockedRow=locked && !isSubj;
+    var reg=regimeOfC(p.C);
+    var rc=regimeColor(reg);
+    var rowBg=isSubj?'background:rgba(0,200,255,.04)':'';
+    var nameStyle=isSubj?'color:var(--cyan);font-weight:700':'color:var(--wh)';
+    var blur=lockedRow?'filter:blur(5px);user-select:none':'';
+    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04);'+rowBg+'">';
+    html+='<td style="padding:10px 8px;'+nameStyle+'"><div style="font-weight:700">'+p.ticker+(isSubj?' '+String.fromCharCode(9745):'')+'</div><div style="color:var(--dim);font-size:10px;font-weight:400;margin-top:2px">'+(p.n||'').substring(0,32)+'</div></td>';
+    html+='<td style="padding:10px 8px;color:#A0B8D0;font-family:var(--mono);'+blur+'">'+(p.mcap?fmtMcap(p.mcap):'-')+'</td>';
+    html+='<td style="padding:10px 8px;font-family:var(--mono);font-weight:700;color:'+rc+';'+blur+'">'+(p.C!=null?(p.C>=0?'+':'')+p.C.toFixed(3):'N/A')+'</td>';
+    html+='<td style="padding:10px 8px;color:'+rc+';font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;'+blur+'">'+reg+'</td>';
+    html+='<td style="padding:10px 8px;font-family:var(--mono);'+blur+'">'+(p.altZ!=null?p.altZ.toFixed(2):'-')+'</td>';
+    html+='<td style="padding:10px 8px;font-family:var(--mono);'+blur+'">'+(p.fcfM!=null?(p.fcfM>=0?'+':'')+p.fcfM.toFixed(1)+'%':'-')+'</td>';
+    html+='<td style="padding:10px 8px;font-family:var(--mono);'+blur+'">'+(p.opM!=null?(p.opM>=0?'+':'')+p.opM.toFixed(1)+'%':'-')+'</td>';
+    html+='<td style="padding:10px 8px;font-family:var(--mono);'+blur+'">'+(p.revG!=null?(p.revG>=0?'+':'')+p.revG.toFixed(1)+'%':'-')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  // Lock overlay for free tier
+  if(locked){
+    html+='<div style="margin-top:14px;padding:14px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:8px;display:flex;align-items:center;gap:14px">';
+    html+='<div style="font-size:24px">' + String.fromCharCode(128274) + '</div>';
+    html+='<div style="flex:1"><div style="font-size:13px;color:var(--wh);font-weight:700;margin-bottom:4px">Peer values blurred on Free tier</div>';
+    html+='<div style="font-size:12px;color:#A0B8D0">Upgrade to Investor tier to unlock 1 peer, or Pro tier for 5 peers + custom selection. Peers are pre-selected by sector + market cap similarity.</div></div>';
+    html+='<button onclick="showPage(\'pricing\')" style="background:var(--purple);color:#fff;border:none;border-radius:6px;padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">View plans</button>';
+    html+='</div>';
+  }
+  html+='</div>';
+  // Insights below the table
+  html+='<div class="card">';
+  html+='<div class="sb-lbl" style="margin-bottom:10px">Peer Insights</div>';
+  // Sort all peers (including subject) by C to find ranking
+  var allWithSubj=[subj].concat(allPeers).filter(function(p){return p.C!=null;});
+  allWithSubj.sort(function(a,b){return b.C-a.C;});
+  var subjRank=allWithSubj.findIndex(function(p){return p.isSubject;})+1;
+  var nDistress=allWithSubj.filter(function(p){return p.C>0.3;}).length;
+  var nWatch=allWithSubj.filter(function(p){return p.C>-0.1 && p.C<=0.3;}).length;
+  var nHealthy=allWithSubj.filter(function(p){return p.C<=-0.1;}).length;
+  html+='<div style="font-size:13px;color:#A0B8D0;line-height:1.7">';
+  if(subjRank>0){html+='<div style="margin-bottom:8px">Among '+allWithSubj.length+' '+subjSector+' peers, <strong style="color:var(--wh)">'+ticker+' ranks #'+subjRank+'</strong> by ISC coupling (1 = most stressed). ';
+    if(subj.C!=null){
+      if(subj.C>0.3)html+='Subject is in bifurcating territory while ' + (allWithSubj.length-subjRank) + ' sector peers remain less stressed.';
+      else if(subj.C>-0.1)html+='Subject is in transitioning territory '+EMDASH+' middle of the sector pack.';
+      else html+='Subject is in regulated territory '+EMDASH+' structurally healthier than ' + (subjRank-1) + ' sector peers.';
+    }
+    html+='</div>';
+  }
+  html+='<div style="margin-bottom:8px">Sector regime distribution: ';
+  if(nDistress>0)html+='<span style="color:var(--red);font-weight:600">'+nDistress+' bifurcating</span>';
+  if(nDistress>0 && (nWatch>0 || nHealthy>0))html+=', ';
+  if(nWatch>0)html+='<span style="color:var(--amber);font-weight:600">'+nWatch+' transitioning</span>';
+  if(nWatch>0 && nHealthy>0)html+=', ';
+  if(nHealthy>0)html+='<span style="color:var(--green);font-weight:600">'+nHealthy+' regulated</span>';
+  html+='. ';
+  if(nDistress>=Math.ceil(allWithSubj.length/2))html+='Sector-wide stress signal '+EMDASH+' more than half of peers in bifurcating regime suggests a sector or macro factor, not a company-specific issue.';
+  else if(nHealthy>=Math.ceil(allWithSubj.length*0.6))html+='Sector overall is structurally healthy '+EMDASH+' any individual stress signal stands out as company-specific.';
+  else html+='Mixed sector profile '+EMDASH+' worth watching individual companies rather than the sector as a whole.';
+  html+='</div></div></div>';
+  area.innerHTML=html;
 }
 function renderTabCommentaries(d){
   var IS=d.income_statement||{}, BS=d.balance_sheet||{}, CF=d.cash_flow||{}, TM=d.traditional||{}, isc=d.isc||{};
