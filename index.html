@@ -2967,6 +2967,24 @@ function genPDF(){
       doc.roundedRect(W-m-44,11,38,8,1,1,'F');
       doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(7,16,30);
       doc.text(tierLabel,W-m-25,16.5,{align:'center'});
+      // Batch 7c Pro500 Executive Summary box on cover
+      if(typeof tier!=='undefined' && tier==='pro500'){
+        var execY=120;
+        doc.setDrawColor(167,139,250);doc.setLineWidth(0.6);
+        doc.setFillColor(15,10,35);doc.roundedRect(m,execY,W-m*2,52,2,2,'FD');
+        doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(167,139,250);
+        doc.text('EXECUTIVE SUMMARY',m+5,execY+8);
+        doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(241,245,249);
+        var execTitle = (D.company_name||D.ticker)+' - '+((isc.regime||'').toUpperCase()||'INSUFFICIENT DATA');
+        doc.text(doc.splitTextToSize(execTitle,W-m*2-10),m+5,execY+15);
+        doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(200,210,230);
+        var execBody = (isc.plain&&isc.plain.length>30)?isc.plain.substring(0,360):'No structural analysis available - data insufficient for ISC computation.';
+        if(execBody.length===360)execBody+='...';
+        var execLines = doc.splitTextToSize(execBody,W-m*2-10);
+        doc.text(execLines.slice(0,5),m+5,execY+24);
+        doc.setFontSize(7);doc.setFont('helvetica','italic');doc.setTextColor(140,150,180);
+        doc.text('White-label edition. Prepared by The Filter Lab LLC for institutional use.',m+5,execY+48);
+      }
 
       // Verdict box
       doc.setFillColor(rgb[0],rgb[1],rgb[2],20);doc.setDrawColor(rgb[0],rgb[1],rgb[2]);doc.setLineWidth(0.5);
@@ -3049,15 +3067,17 @@ function genPDF(){
           ['L7 - Management Guidance vs Actuals', 'L7 measures the gap between what management says will happen and what actually happens. Large persistent gaps signal governance stress. This requires multi-quarter tracking; watch earnings call guidance vs. subsequent results.']
         ];
       }
+      // Batch 7c fix: render all lines with dynamic row height
       cascadeItems.forEach(function(item){
-        if(y>255){doc.addPage();y=20;}
-        doc.setFillColor(240,248,255);doc.rect(m,y,W-m*2,20,'F');
+        var lines=doc.splitTextToSize(item[1],W-m*2-6);
+        var rowH = 10 + (lines.length * 4) + 4;  // header + lines + padding
+        if(y+rowH>270){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');y=20;}
+        doc.setFillColor(240,248,255);doc.rect(m,y,W-m*2,rowH,'F');
         doc.setFontSize(8.5);doc.setFont('helvetica','bold');doc.setTextColor(20);
         doc.text(item[0],m+3,y+7);
         doc.setFont('helvetica','normal');doc.setTextColor(60);
-        var lines=doc.splitTextToSize(item[1],W-m*2-6);
-        doc.text(lines[0]||'',m+3,y+14);
-        y+=22;
+        doc.text(lines,m+3,y+13);
+        y+=rowH+2;
       });
 
       // Divergence section
@@ -3184,8 +3204,13 @@ function genPDF(){
             });
             py+=4;
           } else {
+            // Batch 7c peer fallback - sector overview from KNOWN
             doc.setFontSize(9);doc.setFont('helvetica','italic');doc.setTextColor(160,184,208);
-            doc.text('Peer data not available for this ticker.',m,py);py+=8;
+            doc.text('No direct peer match in current database for this ticker.',m,py);py+=5;
+            doc.setFont('helvetica','normal');doc.setTextColor(120,140,165);
+            var fallback='ISC tracks 65 tickers across 8 sectors. Add tickers to the database via account settings to enable peer comparison. Sector regime distribution from current database: see live Peers tab on the analyzer page.';
+            var fbLines=doc.splitTextToSize(fallback,W-m*2);
+            doc.text(fbLines,m,py);py+=fbLines.length*4+4;
           }
         } catch(e){ console.error('Pro peer table err:',e); }
         
@@ -3212,14 +3237,23 @@ function genPDF(){
         });
       }
 
-      // Footer all pages
+      // Footer all pages - Batch 7c Pro500 differentiation
       var pg=doc.internal.getNumberOfPages();
+      var isProEdition = (typeof tier!=='undefined' && tier==='pro500');
       for(var p=1;p<=pg;p++){
         doc.setPage(p);
         doc.setFillColor(7,16,30);doc.rect(0,272,W,25,'F');
-        doc.setFillColor(0,200,255);doc.rect(0,272,W,1.5,'F');
+        if(isProEdition){
+          doc.setFillColor(167,139,250);doc.rect(0,272,W,1.5,'F');
+        } else {
+          doc.setFillColor(0,200,255);doc.rect(0,272,W,1.5,'F');
+        }
         doc.setFontSize(7.5);doc.setFont('helvetica','normal');doc.setTextColor(107,114,128);
-        doc.text('ISC Financial  &#183;  The Filter Lab LLC  &#183;  doi.org/10.5281/zenodo.18940081',m,280);
+        if(isProEdition){
+          doc.text('PREPARED BY ISC FINANCIAL  -  WHITE-LABEL EDITION  -  doi.org/10.5281/zenodo.18940081',m,280);
+        } else {
+          doc.text('ISC Financial  -  The Filter Lab LLC  -  doi.org/10.5281/zenodo.18940081',m,280);
+        }
         doc.text('Not financial advice. Structural susceptibility signal only. AI assistance disclosed.  Page '+p+' of '+pg,m,287);
       }
 
@@ -3229,11 +3263,9 @@ function genPDF(){
       doc.setFillColor(245,158,11);doc.rect(0,0,W,4,'F');
       doc.setTextColor(245,158,11);doc.setFontSize(10);doc.setFont('helvetica','bold');
       doc.text('IMPORTANT LEGAL DISCLAIMER',m,18);
-      doc.setTextColor(241,245,249);doc.setFontSize(20);doc.setFont('helvetica','bold');
-      doc.text('Important Legal Disclosures',m,32);
-      var legalY=44;
+      var legalY=30;
       var legalSections=[
-        ['Not Investment Advice','The Filter Lab LLC and ISC Financial provide structural analysis tools for educational and informational purposes only. We are NOT a registered investment advisor, broker-dealer, or financial planner. Nothing in this report constitutes investment, legal, tax, or accounting advice.'],
+        ['',"The Filter Lab LLC and ISC Financial provide structural analysis tools for educational and informational purposes only. We are NOT a registered investment advisor, broker-dealer, or financial planner. Nothing in this report constitutes investment, legal, tax, or accounting advice."],
         ['About ISC','ISC (Isomorphic Systems Consolidation) is a research framework that measures coupling patterns in financial time series. While ISC has shown statistical accuracy on a curated set of 45 historical cases (AUC 0.96), past patterns do not predict future outcomes for any individual company.'],
         ['No Recommendations','References to specific tickers, sectors, or historical companies are illustrative of the framework only and do not constitute recommendations to buy, sell, or hold any security.'],
         ['No Warranty','Analysis results are provided AS IS without warranty. Data is sourced from third parties (SEC EDGAR, Yahoo Finance) and may contain errors, omissions, or delays.'],
@@ -3244,8 +3276,10 @@ function genPDF(){
       ];
       legalSections.forEach(function(sec){
         if(legalY>250){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');legalY=20;}
-        doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(241,245,249);
-        doc.text(sec[0],m,legalY);legalY+=5;
+        if(sec[0]){
+          doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(241,245,249);
+          doc.text(sec[0],m,legalY);legalY+=5;
+        }
         doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(160,184,208);
         var legalLines=doc.splitTextToSize(sec[1],W-m*2);
         doc.text(legalLines,m,legalY);legalY+=legalLines.length*4+4;
@@ -3253,6 +3287,37 @@ function genPDF(){
       doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(107,114,128);
       doc.text('Full disclaimer: '+location.origin+'/?page=disclaimer  &#183;  Questions: malonrw@gmail.com',m,265);
       doc.save((D.ticker||'ISC')+'_ISC_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
+      // Batch 7c JSON sidecar - Pro500 only
+      if(typeof tier!=='undefined' && tier==='pro500'){
+        try {
+          var jsonPayload = {
+            generated_at: new Date().toISOString(),
+            generated_by: 'ISC Financial Pro500',
+            ticker: D.ticker || null,
+            company_name: D.company_name || null,
+            sector: D.sector || null,
+            industry: D.industry || null,
+            analysis_date: D.analysis_date || null,
+            isc: D.isc || {},
+            income_statement: D.income_statement || {},
+            balance_sheet: D.balance_sheet || {},
+            cash_flow: D.cash_flow || {},
+            traditional: D.traditional || {},
+            market: D.market || {},
+            data_sources: D.data_sources || {},
+            disclaimer: 'Structural analysis output for educational use only. Not investment advice. The Filter Lab LLC is not a registered investment advisor. Past patterns do not predict individual outcomes.'
+          };
+          var jsonBlob = new Blob([JSON.stringify(jsonPayload,null,2)],{type:'application/json'});
+          var jsonUrl = URL.createObjectURL(jsonBlob);
+          var jsonLink = document.createElement('a');
+          jsonLink.href = jsonUrl;
+          jsonLink.download = (D.ticker||'ISC')+'_ISC_Data_'+new Date().toISOString().slice(0,10)+'.json';
+          document.body.appendChild(jsonLink);
+          jsonLink.click();
+          document.body.removeChild(jsonLink);
+          setTimeout(function(){URL.revokeObjectURL(jsonUrl);},1000);
+        } catch(jsonErr){ console.error('JSON sidecar error:',jsonErr); }
+      }
       btn.textContent='&#11015; Download PDF Report';btn.disabled=false;
     }catch(err){btn.textContent='&#11015; Download PDF Report';btn.disabled=false;console.error(err);}
   };
