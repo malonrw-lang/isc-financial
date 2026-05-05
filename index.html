@@ -483,6 +483,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="pc-feat"><span style="color:var(--purple)">&#10003;</span>White-label PDF reports</div>
         <div class="pc-feat"><span style="color:var(--purple)">&#10003;</span>JSON data export</div>
         <div class="pc-feat"><span style="color:var(--purple)">&#10003;</span>Team seats &#183; Priority support</div>
+        <div class="pc-feat" style="opacity:.55"><span style="color:var(--purple)">&#9203;</span>GPT-4o dual-AI second opinion <span style="font-size:10px;color:var(--dim)">(coming soon)</span></div>
         <div class="pc-feat" style="opacity:.55"><span style="color:var(--purple)">&#9203;</span>API access <span style="font-size:10px;color:var(--dim)">(coming soon)</span></div>
         <div class="pc-note">For credit analysts, RIAs, and institutional teams.</div>
         <button class="pc-btn" style="background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3)" onclick="signupAlert('Professional',499)">Contact &#8594;</button>
@@ -940,6 +941,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="pc-feat"><span style="color:var(--purple)">&#10003;</span>JSON data export (structured ISC output)</div>
         <div class="pc-feat"><span style="color:var(--purple)">&#10003;</span>Team seats</div>
         <div class="pc-feat"><span style="color:var(--purple)">&#10003;</span>Priority email support</div>
+        <div class="pc-feat" style="opacity:.55"><span style="color:var(--purple)">&#9203;</span>GPT-4o dual-AI second opinion <span style="font-size:10px;color:var(--dim)">(coming soon)</span></div>
         <div class="pc-feat" style="opacity:.55"><span style="color:var(--purple)">&#9203;</span>API access <span style="font-size:10px;color:var(--dim)">(coming soon)</span></div>
         <div class="pc-note">For credit analysts, RIAs, and institutional teams. Bill as a business expense.</div>
         <button class="pc-btn" style="background:rgba(139,92,246,.15);color:var(--purple);border:1px solid rgba(139,92,246,.3)" onclick="signupAlert('Professional',499)">Contact for Access &#8594;</button>
@@ -1181,7 +1183,7 @@ function setTier(t, el) {
     free: ['ISC regime signal','Stability score','Plain-English verdict','Coupling visualization','Historical demos'],
     investor: ['Full EDGAR financials','Balance sheet & cash flow','Altman Z &#183; Piotroski F','7-layer cascade','6 chart visualizations','Basic PDF report'],
     pro: ['Peer comparison (5 peers)','Peer ISC ranking charts','Sector regime insights','Claude AI analyst chat','Full PDF report'],
-    pro500: ['White-label PDF','JSON data export','Team seats','Priority support','API access (coming soon)']
+    pro500: ['White-label PDF','JSON data export','Team seats','Priority support','GPT-4o second opinion (coming soon)','API access (coming soon)']
   };
   document.getElementById('planFeats').innerHTML = (feats[t]||[]).map(function(f){
     return '<div style="display:flex;gap:6px;font-size:11px;color:#8098B8"><span style="color:'+cfg.color+'">&#10003;</span>'+f+'</div>';
