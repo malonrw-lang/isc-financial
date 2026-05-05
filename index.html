@@ -3049,8 +3049,9 @@ function genPDF(){
       doc.text('Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'   Regime: '+((r||'N/A').toUpperCase())+'   Stability: '+(isc.stability_score||'N/A')+'/100',m+4,100);
       y=118;
 
-      // Commentary
-      if(isc.plain&&!isc.plain.includes('API warming')){
+      // Commentary - Batch 7e: skip for Pro+ since Executive Summary covers this
+      var isProPlus = (typeof tier!=='undefined' && (tier==='pro'||tier==='pro500'));
+      if(isc.plain && !isc.plain.includes('API warming') && !isProPlus){
         doc.setFillColor(240,248,255);doc.rect(m,y,W-m*2,50,'F');
         doc.setTextColor(20);doc.setFontSize(10);doc.setFont('helvetica','bold');
         doc.text('ISC Analysis',m+4,y+9);
@@ -3224,6 +3225,27 @@ function genPDF(){
         doc.text('Sector Peers - Top 5 by Market Cap',m,py);py+=8;
         try {
           var peers = (typeof findPeers==='function')?findPeers(D):[];
+          // Batch 7e peer fallback - if findPeers returned empty, try alternates
+          if((!peers || !peers.length) && typeof KNOWN==='object'){
+            var fallbackPeers = [];
+            var allTickers = Object.keys(KNOWN).filter(function(t){return t!==D.ticker;});
+            // Sort by market cap proximity if subject mcap is known, else first 5
+            var subjectMcap = MKT.market_cap_bn || 0;
+            if(subjectMcap > 0){
+              allTickers.sort(function(a,b){
+                var diffA = Math.abs((KNOWN[a].mcap||0)-subjectMcap);
+                var diffB = Math.abs((KNOWN[b].mcap||0)-subjectMcap);
+                return diffA-diffB;
+              });
+            }
+            allTickers.slice(0,5).forEach(function(t){
+              var k=KNOWN[t];
+              fallbackPeers.push({ticker:t, name:k.n||t, mcap:k.mcap, C:k.C, regime:k.regime, altZ:k.altZ});
+            });
+            if(fallbackPeers.length){
+              peers = fallbackPeers;
+            }
+          }
           if(peers && peers.length){
             // Header row
             doc.setFillColor(0,200,255);doc.rect(m,py,W-m*2,7,'F');
@@ -3416,6 +3438,151 @@ function genPDF(){
             });
           }
         }
+        
+        // Batch 7e Quality of Earnings - Pro+
+        doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;
+        var qeRGB = (tier==='pro500')?[167,139,250]:[0,200,255];
+        doc.setFillColor(qeRGB[0],qeRGB[1],qeRGB[2]);doc.rect(0,0,W,3,'F');
+        doc.setTextColor(qeRGB[0],qeRGB[1],qeRGB[2]);doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text('QUALITY OF EARNINGS',m,py);py+=8;
+        doc.setTextColor(241,245,249);doc.setFontSize(16);doc.setFont('helvetica','bold');
+        doc.text('Earnings Conversion Analysis',m,py);py+=4;
+        doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(140,150,180);
+        doc.text('Higher conversion ratios indicate net income is backed by actual cash, not accounting choices.',m,py);py+=8;
+        try {
+          var qNI = gv(IS,'net_income'), qCFO = gv(CF,'cfo'), qFCF = gv(CF,'fcf');
+          var qeRows = [];
+          if(qNI!=null && qCFO!=null && qNI!==0){
+            var cfoNiRatio = qCFO/qNI;
+            qeRows.push({label:'CFO / Net Income', val:cfoNiRatio.toFixed(2)+'x', interp: cfoNiRatio>1.2?'Strong (above 1.2x). Operating cash flow significantly exceeds reported net income, suggesting earnings quality is solid.':cfoNiRatio>0.9?'Adequate (0.9-1.2x). Cash flow approximately tracks net income, typical of healthy operations.':cfoNiRatio>0.5?'Below typical (0.5-0.9x). Net income outpacing cash generation; non-cash income items or working capital build-up may be elevated.':'Concerning (below 0.5x). Net income substantially exceeds operating cash flow; classic earnings quality red flag.'});
+          }
+          if(qNI!=null && qFCF!=null && qNI!==0){
+            var fcfNiRatio = qFCF/qNI;
+            qeRows.push({label:'FCF / Net Income', val:fcfNiRatio.toFixed(2)+'x', interp: fcfNiRatio>0.8?'Strong (above 0.8x). Free cash flow nearly matches or exceeds net income.':fcfNiRatio>0.4?'Moderate (0.4-0.8x). Capital intensity reduces FCF below NI; common in growing businesses.':fcfNiRatio>0?'Low (0-0.4x). High capital intensity or reinvestment limiting cash conversion.':'Negative. Free cash flow is negative despite reported earnings.'});
+          }
+          if(qCFO!=null && qFCF!=null && qCFO!==0){
+            var cfoToFcfRatio = qFCF/qCFO;
+            qeRows.push({label:'FCF / CFO Conversion', val:(cfoToFcfRatio*100).toFixed(0)+'%', interp: cfoToFcfRatio>0.7?'High conversion (above 70%). Most operating cash flow becomes free cash flow.':cfoToFcfRatio>0.3?'Moderate conversion (30-70%). Capital expenditure consuming meaningful share of operating cash.':'Low conversion (below 30%). Heavy capex investment; majority of operating cash being reinvested.'});
+          }
+          if(qeRows.length===0){
+            doc.setFontSize(9);doc.setFont('helvetica','italic');doc.setTextColor(160,184,208);
+            doc.text('Insufficient data for earnings quality computation.',m,py);py+=8;
+          } else {
+            qeRows.forEach(function(row){
+              if(py>265){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+              doc.setFillColor(15,25,40);doc.rect(m,py,W-m*2,16,'F');
+              doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(241,245,249);
+              doc.text(row.label,m+3,py+5);
+              doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(0,200,255);
+              doc.text(row.val,m+60,py+5);
+              doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(160,184,208);
+              var iLines=doc.splitTextToSize(row.interp,W-m*2-95);
+              doc.text(iLines.slice(0,2),m+90,py+5);
+              if(iLines.length>1)doc.text(iLines[1]||'',m+90,py+10);
+              py+=18;
+            });
+          }
+        } catch(e){console.error('Quality of earnings err:',e);}
+        py+=4;
+        
+        // Batch 7e EBITDA Quality - Pro+
+        if(py>200){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+        py+=4;
+        doc.setTextColor(qeRGB[0],qeRGB[1],qeRGB[2]);doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text('EBITDA QUALITY',m,py);py+=8;
+        doc.setTextColor(241,245,249);doc.setFontSize(16);doc.setFont('helvetica','bold');
+        doc.text('Cash Earnings Analysis',m,py);py+=4;
+        doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(140,150,180);
+        doc.text('EBITDA quality indicates how much of cash earnings represent durable, recurring profitability.',m,py);py+=8;
+        try {
+          var qEbitda = gv(IS,'ebitda'), qRev = gv(IS,'revenue'), qIntExp = gv(IS,'interest_expense');
+          var ebRows = [];
+          if(qEbitda!=null && qRev!=null && qRev>0){
+            var ebMargin = (qEbitda/qRev)*100;
+            ebRows.push({label:'EBITDA Margin', val:ebMargin.toFixed(1)+'%', interp: ebMargin>25?'Strong (above 25%). Substantial cash earnings per dollar of revenue.':ebMargin>15?'Moderate (15-25%). Healthy EBITDA conversion typical of established businesses.':ebMargin>5?'Modest (5-15%). EBITDA generation present but limited cushion.':ebMargin>0?'Thin (below 5%). Limited cash earnings cushion.':'Negative. Operating losses before D&A.'});
+          }
+          if(qEbitda!=null && qIntExp!=null && qIntExp>0){
+            var ebIntCov = qEbitda/qIntExp;
+            ebRows.push({label:'EBITDA / Interest', val:ebIntCov.toFixed(1)+'x', interp: ebIntCov>6?'Strong (above 6x). EBITDA significantly exceeds interest obligations.':ebIntCov>3?'Adequate (3-6x). EBITDA covers interest with reasonable cushion.':ebIntCov>1.5?'Tight (1.5-3x). EBITDA covers interest but limited margin for decline.':'Stress (below 1.5x). EBITDA barely covers interest payments.'});
+          }
+          if(qCFO!=null && qEbitda!=null && qEbitda!==0){
+            var cfoToEbitda = qCFO/qEbitda;
+            ebRows.push({label:'CFO / EBITDA', val:(cfoToEbitda*100).toFixed(0)+'%', interp: cfoToEbitda>0.85?'High quality (above 85%). EBITDA converting cleanly to operating cash.':cfoToEbitda>0.6?'Acceptable (60-85%). Working capital and tax effects creating typical gap.':cfoToEbitda>0.3?'Below typical (30-60%). Significant disconnect between EBITDA and operating cash; investigate working capital trends.':'Concerning (below 30%). Severe gap between EBITDA and operating cash; quality of earnings concern.'});
+          }
+          if(ebRows.length===0){
+            doc.setFontSize(9);doc.setFont('helvetica','italic');doc.setTextColor(160,184,208);
+            doc.text('Insufficient data for EBITDA quality computation.',m,py);py+=8;
+          } else {
+            ebRows.forEach(function(row){
+              if(py>265){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+              doc.setFillColor(15,25,40);doc.rect(m,py,W-m*2,16,'F');
+              doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(241,245,249);
+              doc.text(row.label,m+3,py+5);
+              doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(0,200,255);
+              doc.text(row.val,m+60,py+5);
+              doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(160,184,208);
+              var iLines=doc.splitTextToSize(row.interp,W-m*2-95);
+              doc.text(iLines.slice(0,2),m+90,py+5);
+              if(iLines.length>1)doc.text(iLines[1]||'',m+90,py+10);
+              py+=18;
+            });
+          }
+        } catch(e){console.error('EBITDA quality err:',e);}
+        py+=4;
+        
+        // Batch 7e Working Capital Efficiency - Pro+
+        if(py>200){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+        py+=4;
+        doc.setTextColor(qeRGB[0],qeRGB[1],qeRGB[2]);doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text('WORKING CAPITAL EFFICIENCY',m,py);py+=8;
+        doc.setTextColor(241,245,249);doc.setFontSize(16);doc.setFont('helvetica','bold');
+        doc.text('Cash Conversion Cycle',m,py);py+=4;
+        doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(140,150,180);
+        doc.text('How efficiently the company turns inventory and receivables into cash, less the credit it gets from suppliers.',m,py);py+=8;
+        try {
+          var qReceiv = gv(BS,'receivables'), qInv = gv(BS,'inventory'), qAP = gv(BS,'accounts_payable');
+          var qGP = gv(IS,'gross_profit');
+          var qCOGS = (qRev!=null && qGP!=null) ? (qRev - qGP) : null;
+          var wcRows = [];
+          if(qReceiv!=null && qRev!=null && qRev>0){
+            var dso = (qReceiv/qRev)*365;
+            wcRows.push({label:'Days Sales Outstanding', val:dso.toFixed(0)+' days', interp: dso<30?'Fast collection (under 30 days). Customers pay quickly.':dso<60?'Typical (30-60 days). Standard B2B payment terms.':dso<90?'Extended (60-90 days). Receivables building up; investigate trend.':'Slow (over 90 days). Significant delay in customer payment; potential collection or quality concern.'});
+          }
+          if(qInv!=null && qCOGS!=null && qCOGS>0){
+            var dio = (qInv/qCOGS)*365;
+            wcRows.push({label:'Days Inventory Outstanding', val:dio.toFixed(0)+' days', interp: dio<30?'Lean (under 30 days). Fast inventory turn or services-heavy business.':dio<90?'Moderate (30-90 days). Typical for many product businesses.':dio<180?'Building (90-180 days). Inventory accumulating; check demand trends.':'Heavy (over 180 days). Slow inventory turn; potential obsolescence risk.'});
+          }
+          if(qAP!=null && qCOGS!=null && qCOGS>0){
+            var dpo = (qAP/qCOGS)*365;
+            wcRows.push({label:'Days Payable Outstanding', val:dpo.toFixed(0)+' days', interp: dpo>60?'Extended (over 60 days). Company stretching supplier credit; may indicate either negotiating leverage or cash management stress.':dpo>30?'Typical (30-60 days). Standard supplier terms.':'Quick (under 30 days). Paying suppliers fast; either policy choice or limited supplier credit.'});
+          }
+          // Cash conversion cycle if all three present
+          if(wcRows.length===3){
+            var cccDSO = (qReceiv/qRev)*365;
+            var cccDIO = (qInv/qCOGS)*365;
+            var cccDPO = (qAP/qCOGS)*365;
+            var ccc = cccDSO + cccDIO - cccDPO;
+            wcRows.push({label:'Cash Conversion Cycle', val:ccc.toFixed(0)+' days', interp: ccc<0?'Negative cycle. Customers pay before suppliers do; capital-light operations (Amazon-style).':ccc<30?'Fast (under 30 days). Efficient working capital deployment.':ccc<90?'Typical (30-90 days). Standard for most businesses.':'Long cycle (over 90 days). Significant working capital tied up in operations.'});
+          }
+          if(wcRows.length===0){
+            doc.setFontSize(9);doc.setFont('helvetica','italic');doc.setTextColor(160,184,208);
+            doc.text('Insufficient data for working capital efficiency computation.',m,py);py+=8;
+          } else {
+            wcRows.forEach(function(row){
+              if(py>265){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+              doc.setFillColor(15,25,40);doc.rect(m,py,W-m*2,16,'F');
+              doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(241,245,249);
+              doc.text(row.label,m+3,py+5);
+              doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(0,200,255);
+              doc.text(row.val,m+60,py+5);
+              doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(160,184,208);
+              var iLines=doc.splitTextToSize(row.interp,W-m*2-95);
+              doc.text(iLines.slice(0,2),m+90,py+5);
+              if(iLines.length>1)doc.text(iLines[1]||'',m+90,py+10);
+              py+=18;
+            });
+          }
+        } catch(e){console.error('Working capital err:',e);}
       }
 
       // Footer all pages - Batch 7c Pro500 differentiation
