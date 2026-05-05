@@ -2186,6 +2186,7 @@ function renderPeers(d){
   html+='<div class="card-hi" style="margin-bottom:14px">';
   html+='<div class="sb-lbl" style="margin-bottom:6px">Peer Comparison '+EMDASH+' '+subjSector+'</div>';
   html+='<div style="font-size:12px;color:var(--dim);margin-bottom:14px">Snapshot data as of last quarterly update. Tier: '+(typeof tier!=="undefined"?tier:'free')+(tierLimit>=99?' '+EMDASH+' unlimited peers':' '+EMDASH+' '+tierLimit+' peer'+(tierLimit>1?'s':'')+' visible')+'.</div>';
+  var lockState=getPeerLockState();
   // Charts grid (3 columns: bar, regime, radar)
   var chartBlur=lockState==='full'?'filter:blur(6px);user-select:none;pointer-events:none':'';
   html+='<div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:14px;margin-bottom:18px;'+chartBlur+'">';
