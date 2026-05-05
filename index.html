@@ -3024,12 +3024,31 @@ function genPDF(){
       if(y>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');y=20;}
       y+=8;doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(20,20,20);
       doc.text('7-Layer Financial Cascade Analysis',m,y);y+=7;
-      var cascadeItems = [
-        ['L4 &#8212; Capital Structure (Primary ISC Target)', 'Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'. '+(r.includes('bifurcating')?'BIFURCATING &#8212; financial dynamics are amplifying rather than absorbing stress. This is the core structural failure pattern detected before major corporate collapses.':r.includes('trans')?'TRANSITIONING &#8212; self-correction weakening. Monitor over next 2-4 quarters.':'REGULATED &#8212; capital structure filter functioning well. Shocks are being absorbed.')],
-        ['L3 &#8212; Debt Coverage (Interest Coverage)', gv(TM,'interest_coverage')!=null?'Interest coverage '+Number(gv(TM,'interest_coverage')).toFixed(1)+'x. '+(gv(TM,'interest_coverage')>3?'Comfortable &#8212; earnings well cover interest payments.':gv(TM,'interest_coverage')>1.5?'Adequate but below 3x comfort threshold.':'STRESS &#8212; earnings barely cover debt service.'):'Not available &#8212; requires EDGAR connection.'],
-        ['L1 &#8212; Cash / Liquidity', gv(BS,'cash')!=null?'Cash position $'+Number(gv(BS,'cash')).toLocaleString()+'M. '+(gv(BS,'cash')>5000?'Strong liquidity position.':gv(BS,'cash')>1000?'Adequate cash.':'Low cash &#8212; monitor alongside operating cash flow.'):'Not available.'],
-        ['L5 &#8212; Revenue / Margin', gv(IS,'operating_income')!=null?'Operating income $'+Number(gv(IS,'operating_income')).toLocaleString()+'M. '+(gv(IS,'operating_income')>0?'Positive operating income &#8212; core business model profitable.':'NEGATIVE &#8212; company spending more to operate than it earns. L5 stress.'):'Not available.'],
-      ];
+      // Batch 7b Pro extensions - tier-aware cascade
+      var isProTier = (typeof tier!=='undefined' && (tier==='pro'||tier==='pro500'));
+      var cascadeItems;
+      if(!isProTier){
+        // Investor tier: existing 4-layer cascade
+        cascadeItems = [
+          ['L4 - Capital Structure (Primary ISC Target)', 'Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'. '+(r.includes('bifurcating')?'BIFURCATING - financial dynamics are amplifying rather than absorbing stress.':r.includes('trans')?'TRANSITIONING - self-correction weakening. Monitor over next 2-4 quarters.':'REGULATED - capital structure filter functioning well. Shocks are being absorbed.')],
+          ['L3 - Debt Coverage (Interest Coverage)', gv(TM,'interest_coverage')!=null?'Interest coverage '+Number(gv(TM,'interest_coverage')).toFixed(1)+'x. '+(gv(TM,'interest_coverage')>3?'Comfortable - earnings well cover interest payments.':gv(TM,'interest_coverage')>1.5?'Adequate but below 3x comfort threshold.':'STRESS - earnings barely cover debt service.'):'Not available.'],
+          ['L1 - Cash / Liquidity', gv(BS,'cash')!=null?'Cash position $'+Number(gv(BS,'cash')).toLocaleString()+'M. '+(gv(BS,'cash')>5000?'Strong liquidity position.':gv(BS,'cash')>1000?'Adequate cash.':'Low cash - monitor alongside operating cash flow.'):'Not available.'],
+          ['L5 - Revenue / Margin', gv(IS,'operating_income')!=null?'Operating income $'+Number(gv(IS,'operating_income')).toLocaleString()+'M. '+(gv(IS,'operating_income')>0?'Positive operating income - core business model profitable.':'NEGATIVE - company spending more to operate than it earns. L5 stress.'):'Not available.']
+        ];
+      } else {
+        // Pro/Pro500 tier: full 7-layer cascade
+        var pCash=gv(BS,'cash'), pIntCov=gv(TM,'interest_coverage'), pOI=gv(IS,'operating_income'), pRev=gv(IS,'revenue'), pRevG=gv(IS,'revenue_growth'), pRE=gv(BS,'retained_earnings');
+        var pPrice=MKT.price;
+        cascadeItems = [
+          ['L1 - Cash / Liquidity', pCash!=null?'Cash position $'+Number(pCash).toLocaleString()+'M. '+(pCash>5000?'Strong liquidity - enough runway to weather significant financial stress.':pCash>1000?'Adequate cash but worth monitoring alongside operating cash flow trends.':'Low cash relative to size. Running low on liquidity while burning through it is the earliest visible distress signal.'):'Cash data not available.'],
+          ['L2 - Market Signals', pPrice!=null?'Current price $'+pPrice.toFixed(2)+'. Market signals are the first place sophisticated investors signal concerns - often before official financial distress appears.':'Market data not available.'],
+          ['L3 - Debt Coverage (The Gate)', pIntCov!=null?'Interest coverage '+pIntCov.toFixed(1)+'x. '+(pIntCov>3?'Earnings comfortably cover interest payments. The debt gate is functioning well.':pIntCov>1.5?'Earnings cover interest but with limited cushion. A significant earnings decline could push this below 1.0x.':'Critical. Earnings barely cover interest costs. The L3 gate is failing.'):'Interest coverage not available.'],
+          ['L4 - Capital Structure (Primary ISC Target) ' + String.fromCharCode(9733), 'Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'. '+(r.includes('bifurcating')?'BIFURCATING - capital structure filter is in bifurcating regime. Financial shocks are being amplified rather than absorbed. Historical lead time before traditional metrics reflect this: 1-5 quarters.':r.includes('trans')?'TRANSITIONING - capital structure filter showing early stress. Still absorbing shocks but less efficiently than in regulated state.':'REGULATED - capital structure filter functioning well. Financial shocks are being absorbed and corrected, not amplified.')],
+          ['L5 - Revenue / Margin Dynamics', (pRev!=null&&pOI!=null)?'Revenue $'+Number(pRev).toLocaleString()+'M, operating income $'+Number(pOI).toLocaleString()+'M. '+(pOI>0?'Positive operating income - core business model is profitable.':'Negative operating income - the company is spending more to operate than it earns. This is the L5 stress fingerprint.')+(pRevG!=null?' Revenue growth: '+pRevG.toFixed(1)+'%.':''):'Revenue/margin data not available.'],
+          ['L6 - Equity / Retained Earnings', pRE!=null?'Retained earnings: $'+Number(pRE).toLocaleString()+'M. '+(pRE>0?'Positive retained earnings - accumulated profitable history. This buffer absorbs losses without immediately threatening solvency.':'Negative retained earnings (accumulated deficit). The company has consumed its history of profits. Not automatically fatal but reduces cushion for future stress.'):'Retained earnings not available.'],
+          ['L7 - Management Guidance vs Actuals', 'L7 measures the gap between what management says will happen and what actually happens. Large persistent gaps signal governance stress. This requires multi-quarter tracking; watch earnings call guidance vs. subsequent results.']
+        ];
+      }
       cascadeItems.forEach(function(item){
         if(y>255){doc.addPage();y=20;}
         doc.setFillColor(240,248,255);doc.rect(m,y,W-m*2,20,'F');
@@ -3052,6 +3071,147 @@ function genPDF(){
       doc.text(divLines.slice(0,3),m+3,y+9);
       y+=34;
 
+      // Batch 7b Pro extensions - additional sections (Pro/Pro500 only)
+      if(typeof tier!=='undefined' && (tier==='pro'||tier==='pro500')){
+        // ----- Cascade Signature page -----
+        doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');
+        doc.setFillColor(0,200,255);doc.rect(0,0,W,3,'F');
+        var py=20;
+        doc.setTextColor(0,200,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text('CASCADE SIGNATURE',m,py);py+=8;
+        doc.setTextColor(241,245,249);doc.setFontSize(18);doc.setFont('helvetica','bold');
+        doc.text('Pattern Recognition',m,py);py+=10;
+        // Compute pattern by replicating buildCascadeSignature logic from layer st
+        try {
+          var stCounts={good:0,watch:0,stress:0};
+          var pStressed=[],pWatching=[];
+          // Recompute layer st states (same logic as cascadeItems Pro path)
+          var sLayers=[
+            {n:1, st:gv(BS,'cash')!=null?(gv(BS,'cash')>5000?'good':gv(BS,'cash')>1000?'watch':'stress'):'good'},
+            {n:2, st:'good'},
+            {n:3, st:gv(TM,'interest_coverage')!=null?(gv(TM,'interest_coverage')>3?'good':gv(TM,'interest_coverage')>1.5?'watch':'stress'):'good'},
+            {n:4, st:r.includes('bifurcating')?'stress':r.includes('trans')?'watch':'good'},
+            {n:5, st:gv(IS,'operating_income')!=null?(gv(IS,'operating_income')>0?'good':'stress'):'good'},
+            {n:6, st:gv(BS,'retained_earnings')!=null?(gv(BS,'retained_earnings')>0?'good':'watch'):'good'},
+            {n:7, st:'good'}
+          ];
+          sLayers.forEach(function(L){stCounts[L.st]++;if(L.st==='stress')pStressed.push(L.n);else if(L.st==='watch')pWatching.push(L.n);});
+          function pHas(arr,n){return arr.indexOf(n)>=0;}
+          var sigPattern='', sigNarrative='', sigRGB=[107,114,128];
+          if(stCounts.stress===0 && stCounts.watch===0){
+            sigPattern='Healthy Cascade';sigRGB=[16,185,129];
+            sigNarrative=(D.company_name||D.ticker)+' is functioning across all 7 layers without measurable stress. This is the textbook resilient profile.';
+          } else if(pHas(pStressed,4) && stCounts.stress===1 && stCounts.watch<=1){
+            sigPattern='Pure ISC Bifurcation Signal';sigRGB=[167,139,250];
+            sigNarrative='The L4 ISC filter is signaling structural change while traditional layers (cash, debt coverage, margins, equity) still look acceptable. This is exactly the early-warning window ISC was designed to detect - the gap between when ISC sees structural deterioration and when conventional metrics catch up is typically 1-5 quarters.';
+          } else if(pHas(pStressed,1) && pHas(pStressed,3) && pHas(pStressed,5)){
+            sigPattern='ISC Pattern - Spirit Airlines Historical Comparable';sigRGB=[239,68,68];
+            sigNarrative='Cash stress (L1), interest coverage failure (L3), and operating margin collapse (L5) together. In comparable historical cases, resolution occurred over 12-24 months. Individual outcomes vary; this is a structural signal, not a prediction.';
+          } else if(pHas(pStressed,3) && pHas(pStressed,5) && (pHas(pStressed,7)||pHas(pWatching,7))){
+            sigPattern='ISC Pattern - WorldCom Historical Comparable';sigRGB=[239,68,68];
+            sigNarrative='Debt coverage stress (L3), margin compression (L5), and disclosure quality concerns (L7) together. In comparable historical cases, resolution occurred over 4-8 quarters. Outcomes vary; this is a structural signal, not a prediction.';
+          } else if(pHas(pStressed,1) && pHas(pStressed,4)){
+            sigPattern='ISC Pattern - Enron Historical Comparable';sigRGB=[239,68,68];
+            sigNarrative='Working capital deficit (L1) combined with bifurcating ISC at L4. The L4 capital structure filter is amplifying stress while the L1 layer shows the underlying liquidity problem. In comparable historical cases, resolution occurred over 4-5 quarters. Outcomes vary; this is a structural signal, not a prediction.';
+          } else if(stCounts.stress>=3){
+            sigPattern='Multi-Layer Stress';sigRGB=[239,68,68];
+            sigNarrative=stCounts.stress+' layers stressed simultaneously: '+pStressed.map(function(n){return 'L'+n;}).join(', ')+'. The cascade is already in motion. Historical comparable cases without external capital access have resolved variably; this is a structural signal, not a prediction.';
+          } else if(stCounts.stress>=1){
+            sigPattern='Localized Stress';sigRGB=[245,158,11];
+            sigNarrative='Stress concentrated in '+pStressed.map(function(n){return 'L'+n;}).join(', ')+'. Stress in one layer typically cascades to adjacent layers within 2-4 quarters.';
+          } else {
+            sigPattern='Early Drift Points';sigRGB=[245,158,11];
+            sigNarrative=stCounts.watch+' layer(s) on watch but no measurable stress. Worth tracking quarterly but not yet a structural concern.';
+          }
+          // Render pattern card
+          doc.setDrawColor(sigRGB[0],sigRGB[1],sigRGB[2]);doc.setLineWidth(0.5);
+          doc.roundedRect(m,py,W-m*2,12,1,1,'D');
+          doc.setTextColor(160,184,208);doc.setFontSize(8);doc.setFont('helvetica','normal');
+          doc.text('Cascade Pattern',m+3,py+5);
+          doc.setTextColor(sigRGB[0],sigRGB[1],sigRGB[2]);doc.setFontSize(11);doc.setFont('helvetica','bold');
+          doc.text(sigPattern,m+3,py+10);
+          py+=18;
+          // Severity counts
+          doc.setFontSize(8.5);doc.setFont('helvetica','bold');
+          doc.setTextColor(239,68,68);doc.text(stCounts.stress+' stressed',m,py);
+          doc.setTextColor(245,158,11);doc.text(stCounts.watch+' watch',m+30,py);
+          doc.setTextColor(16,185,129);doc.text(stCounts.good+' healthy',m+60,py);
+          py+=10;
+          // Narrative
+          doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(241,245,249);
+          var sigLines=doc.splitTextToSize(sigNarrative,W-m*2);
+          doc.text(sigLines,m,py);py+=sigLines.length*5+8;
+        } catch(e){ console.error('Pro cascade signature err:',e); }
+        
+        // ----- Peer Comparison Table -----
+        if(py>240){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+        py+=4;
+        doc.setTextColor(0,200,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text('PEER COMPARISON',m,py);py+=8;
+        doc.setTextColor(241,245,249);doc.setFontSize(15);doc.setFont('helvetica','bold');
+        doc.text('Sector Peers - Top 5 by Market Cap',m,py);py+=8;
+        try {
+          var peers = (typeof findPeers==='function')?findPeers(D):[];
+          if(peers && peers.length){
+            // Header row
+            doc.setFillColor(0,200,255);doc.rect(m,py,W-m*2,7,'F');
+            doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(7,16,30);
+            doc.text('Ticker',m+3,py+5);
+            doc.text('Company',m+22,py+5);
+            doc.text('Mkt Cap',m+82,py+5);
+            doc.text('ISC C',m+105,py+5);
+            doc.text('Regime',m+125,py+5);
+            doc.text('Altman Z',m+155,py+5);
+            py+=7;
+            // Subject row + up to 5 peers
+            var allRows=[{ticker:D.ticker,name:(D.company_name||D.ticker).substring(0,28),mcap:MKT.market_cap_bn||0,C:isc.C,regime:isc.regime,altZ:gv(TM,'altman_z')}];
+            peers.slice(0,5).forEach(function(p){allRows.push({ticker:p.ticker,name:(p.name||p.ticker).substring(0,28),mcap:p.mcap||0,C:p.C,regime:p.regime,altZ:p.altZ});});
+            allRows.forEach(function(row,idx){
+              if(py>270){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+              doc.setFillColor(idx===0?[20,40,60][0]:idx%2===0?[15,25,40][0]:[10,20,32][0],idx===0?[20,40,60][1]:idx%2===0?[15,25,40][1]:[10,20,32][1],idx===0?[20,40,60][2]:idx%2===0?[15,25,40][2]:[10,20,32][2]);
+              doc.rect(m,py,W-m*2,7,'F');
+              doc.setFontSize(8);doc.setFont('helvetica',idx===0?'bold':'normal');doc.setTextColor(idx===0?[0,200,255][0]:241,idx===0?[0,200,255][1]:245,idx===0?[0,200,255][2]:249);
+              doc.text(row.ticker||'-',m+3,py+5);
+              doc.setTextColor(241,245,249);doc.text(row.name||'-',m+22,py+5);
+              doc.text(row.mcap?'$'+row.mcap.toFixed(0)+'B':'-',m+82,py+5);
+              var cRGB=row.C>0.30?[239,68,68]:row.C>-0.10?[245,158,11]:[16,185,129];
+              doc.setTextColor(cRGB[0],cRGB[1],cRGB[2]);
+              doc.text(row.C!=null?(row.C>=0?'+':'')+row.C.toFixed(3):'-',m+105,py+5);
+              doc.text((row.regime||'-').substring(0,10),m+125,py+5);
+              doc.setTextColor(241,245,249);
+              doc.text(row.altZ!=null?row.altZ.toFixed(2):'-',m+155,py+5);
+              py+=7;
+            });
+            py+=4;
+          } else {
+            doc.setFontSize(9);doc.setFont('helvetica','italic');doc.setTextColor(160,184,208);
+            doc.text('Peer data not available for this ticker.',m,py);py+=8;
+          }
+        } catch(e){ console.error('Pro peer table err:',e); }
+        
+        // ----- Statement Commentaries -----
+        if(py>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+        py+=6;
+        doc.setTextColor(0,200,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text('STATEMENT-LEVEL COMMENTARY',m,py);py+=8;
+        var pIS_RG=gv(IS,'revenue_growth'), pIS_OM=gv(IS,'operating_margin'), pIS_NM=gv(IS,'net_margin');
+        var pBS_TD=gv(BS,'total_debt'), pBS_TE=gv(BS,'total_equity'), pBS_WC=gv(BS,'working_capital');
+        var pCF_FCF=gv(CF,'fcf'), pCF_FCFM=gv(CF,'fcf_margin');
+        var commentaries=[
+          ['Income Statement', (pIS_RG!=null?'Revenue growth '+pIS_RG.toFixed(1)+'%. ':'')+(pIS_OM!=null?'Operating margin '+pIS_OM.toFixed(1)+'%, ':'')+(pIS_OM!=null?(pIS_OM>15?'strong - significant cushion against cost shocks.':pIS_OM>5?'adequate.':'thin - any cost increase directly threatens profitability.'):'')+(pIS_NM!=null?' Net margin '+pIS_NM.toFixed(1)+'%.':'')],
+          ['Balance Sheet', (pBS_TD!=null&&pBS_TE!=null)?'Total debt $'+Number(pBS_TD).toLocaleString()+'M against equity of $'+Number(pBS_TE).toLocaleString()+'M (D/E '+(pBS_TD/pBS_TE).toFixed(2)+'x). '+(pBS_WC!=null&&pBS_WC<0?'Working capital is NEGATIVE - operating liabilities exceed operating assets. L1 stress signal.':pBS_WC!=null?'Working capital position $'+Number(pBS_WC).toLocaleString()+'M.':''):'Balance sheet data partially unavailable.'],
+          ['Cash Flow', (pCF_FCF!=null)?'Free cash flow $'+Number(pCF_FCF).toLocaleString()+'M. '+(pCF_FCF>0?'Positive - the business generates cash beyond reinvestment needs.':'NEGATIVE - operations are not self-funding. Watch for sustained burn rate vs available liquidity.')+(pCF_FCFM!=null?' FCF margin '+pCF_FCFM.toFixed(1)+'%.':''):'Cash flow data not available.']
+        ];
+        commentaries.forEach(function(item){
+          if(py>260){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
+          doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(241,245,249);
+          doc.text(item[0],m,py);py+=5;
+          doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(160,184,208);
+          var lines=doc.splitTextToSize(item[1],W-m*2);
+          doc.text(lines,m,py);py+=lines.length*4+5;
+        });
+      }
+
       // Footer all pages
       var pg=doc.internal.getNumberOfPages();
       for(var p=1;p<=pg;p++){
@@ -3070,7 +3230,7 @@ function genPDF(){
       doc.setTextColor(245,158,11);doc.setFontSize(10);doc.setFont('helvetica','bold');
       doc.text('IMPORTANT LEGAL DISCLAIMER',m,18);
       doc.setTextColor(241,245,249);doc.setFontSize(20);doc.setFont('helvetica','bold');
-      doc.text('Not Investment Advice',m,32);
+      doc.text('Important Legal Disclosures',m,32);
       var legalY=44;
       var legalSections=[
         ['Not Investment Advice','The Filter Lab LLC and ISC Financial provide structural analysis tools for educational and informational purposes only. We are NOT a registered investment advisor, broker-dealer, or financial planner. Nothing in this report constitutes investment, legal, tax, or accounting advice.'],
