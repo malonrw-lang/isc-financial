@@ -821,7 +821,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <div id="t-peers" class="tab-content hidden">
             <div class="al al-b" style="margin-bottom:0">
               <span style="font-size:16px">&#62666;</span>
-              <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Peer comparison:</strong> See how this company's ISC and traditional metrics stack against industry peers. ISC reveals structural patterns conventional metrics miss '+EMDASH+' comparing peer ISC values shows which companies in the sector are closest to a regime break.</div>
+              <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Peer comparison:</strong> See how this company's ISC and traditional metrics stack against industry peers. ISC reveals structural patterns conventional metrics miss &#8212; comparing peer ISC values shows which companies in the sector are closest to a regime break.</div>
             </div>
             <div id="peersArea"></div>
           </div>
@@ -1263,7 +1263,7 @@ function makeGauge(C,sz){
 function swTab(id, el) {
   document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
-  var tabs=['overview','charts','isc','income','balance','cashflow','traditional','news','portfolio','ai'];
+  var tabs=['overview','charts','isc','income','balance','cashflow','traditional','peers','news','portfolio','ai'];
   tabs.forEach(function(t){
     var e=document.getElementById('t-'+t);
     if(e) e.classList.toggle('hidden',t!==id);
