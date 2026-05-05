@@ -3585,6 +3585,345 @@ function genPDF(){
         } catch(e){console.error('Working capital err:',e);}
       }
 
+
+        // Batch 7f Coupling Decomposition (Pro500 only)
+        if(typeof tier!=="undefined" && tier==="pro500" && D.isc && D.isc.by_series){
+          try {
+            doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;
+            doc.setFillColor(167,139,250);doc.rect(0,0,W,3,"F");
+            doc.setTextColor(167,139,250);doc.setFontSize(9);doc.setFont("helvetica","bold");
+            doc.text("COUPLING DECOMPOSITION",m,py);py+=8;
+            doc.setTextColor(241,245,249);doc.setFontSize(16);doc.setFont("helvetica","bold");
+            doc.text("Per-Series Structural Coupling",m,py);py+=4;
+            doc.setFontSize(8);doc.setFont("helvetica","italic");doc.setTextColor(140,150,180);
+            doc.text("Decomposes the headline coupling score into individual financial series.",m,py);py+=8;
+            
+            // Section intro (Pro500 thorough)
+            doc.setFontSize(9);doc.setFont("helvetica","italic");doc.setTextColor(160,184,208);
+            var introC = doc.splitTextToSize("The coupling coefficient (C) measures how strongly each series tracks the broader system, ranging from -1 to +1. Magnitudes above 0.7 indicate strong coupling. Each series is also classified by regime: regulated (locked in), bifurcating (splitting), critical (at inflection), or transition (actively changing). Decomposition reveals which structural drivers carry the firm’s overall coupling signature.", W-m*2);
+            doc.text(introC,m,py);py+=introC.length*4+4;
+            
+            // Build series array
+            var bs = D.isc.by_series;
+            var seriesArr = Object.keys(bs).map(function(k){return {name:k, C:bs[k].C, regime:bs[k].regime||"unknown", n:bs[k].n||0};});
+            var sorted = seriesArr.slice().sort(function(a,b){return Math.abs(b.C)-Math.abs(a.C);});
+            
+            // Regime color lookup
+            function regimeRGB(r){
+              if(r==="regulated") return [59,130,246];
+              if(r==="bifurcating") return [249,115,22];
+              if(r==="critical") return [239,68,68];
+              if(r==="transition") return [234,179,8];
+              return [148,163,184];
+            }
+            
+            // Per-row interpretation
+            function interpRow(C, regime){
+              if(regime==="critical") return "At critical inflection. Watch closely.";
+              if(regime==="transition") return "Actively transitioning between regimes.";
+              var aC = Math.abs(C);
+              var sign = C>=0?"positive":"negative";
+              if(aC<0.3) return "Loosely connected; minor "+sign+" drift.";
+              if(aC<0.5){
+                if(regime==="regulated") return "Moderate "+sign+" coupling under regulation.";
+                if(regime==="bifurcating") return "Moderate "+sign+" coupling with splitting dynamics.";
+                return "Moderate "+sign+" coupling.";
+              }
+              if(aC<0.7){
+                if(regime==="regulated") return "Strong "+sign+" coupling, tightly regulated.";
+                if(regime==="bifurcating") return "Strong "+sign+" coupling with bifurcating tendency.";
+                return "Strong "+sign+" coupling.";
+              }
+              if(regime==="regulated") return "Very strong "+sign+" coupling under tight regulation.";
+              if(regime==="bifurcating") return "Very strong "+sign+" coupling, bifurcating — high-amplitude drift.";
+              return "Very strong "+sign+" coupling.";
+            }
+            
+            // Table header
+            doc.setFillColor(15,25,40);doc.rect(m,py,W-m*2,8,"F");
+            doc.setFontSize(8);doc.setFont("helvetica","bold");doc.setTextColor(167,139,250);
+            doc.text("Series",m+3,py+5);
+            doc.text("C",m+55,py+5);
+            doc.text("Regime",m+75,py+5);
+            doc.text("n",m+105,py+5);
+            doc.text("Interpretation",m+115,py+5);
+            py+=10;
+            
+            // Table rows
+            sorted.forEach(function(s){
+              if(py>250){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
+              doc.setFillColor(11,20,34);doc.rect(m,py,W-m*2,12,"F");
+              // Series name
+              doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(241,245,249);
+              doc.text(s.name.length>22?s.name.substring(0,21)+"…":s.name,m+3,py+4.5);
+              // C value, color by sign+magnitude
+              var aC = Math.abs(s.C);
+              var cRGB = s.C>=0 ? (aC>0.7?[34,197,94]:aC>0.4?[132,204,22]:[148,163,184]) : (aC>0.7?[239,68,68]:aC>0.4?[249,115,22]:[148,163,184]);
+              doc.setTextColor(cRGB[0],cRGB[1],cRGB[2]);doc.setFont("helvetica","bold");
+              doc.text((s.C>=0?"+":"")+s.C.toFixed(3),m+55,py+4.5);
+              // Regime badge
+              var rRGB = regimeRGB(s.regime);
+              doc.setFillColor(rRGB[0],rRGB[1],rRGB[2]);doc.roundedRect(m+75,py+1,28,7,1,1,"F");
+              doc.setFontSize(7);doc.setFont("helvetica","bold");doc.setTextColor(255,255,255);
+              doc.text(s.regime.toUpperCase(),m+76,py+5.5);
+              // n
+              doc.setFontSize(8);doc.setFont("helvetica","normal");doc.setTextColor(160,184,208);
+              doc.text(String(s.n),m+105,py+4.5);
+              // Interpretation (truncate to fit)
+              doc.setFontSize(7);doc.setTextColor(180,200,220);
+              var ip = interpRow(s.C, s.regime);
+              var ipLines = doc.splitTextToSize(ip, W-m*2-115);
+              doc.text(ipLines.slice(0,1),m+115,py+4.5);
+              if(ipLines.length>1) doc.text(ipLines.slice(1,2),m+115,py+8.5);
+              py+=14;
+            });
+            py+=4;
+            
+            // Synthesis paragraph
+            if(py>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
+            doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(167,139,250);
+            doc.text("STRUCTURAL READ",m,py);py+=6;
+            doc.setFontSize(9);doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
+            
+            // Build synthesis text deterministically
+            var top2 = sorted.slice(0,2);
+            var rest = sorted.slice(2);
+            var highMag = rest.filter(function(s){return Math.abs(s.C)>0.7;});
+            var isList = ["Revenue","Gross Profit","Operating Income","Net Income","Operating Cash Flow"];
+            var bsList = ["Total Assets","Long-Term Debt","Cash","Interest Expense"];
+            var isS = seriesArr.filter(function(s){return isList.indexOf(s.name)>=0;});
+            var bsS = seriesArr.filter(function(s){return bsList.indexOf(s.name)>=0;});
+            var avgFn = function(arr){if(!arr.length)return 0;var sum=0;arr.forEach(function(x){sum+=x.C;});return sum/arr.length;};
+            var isAvg = avgFn(isS), bsAvg = avgFn(bsS);
+            var regimeCount = {};
+            seriesArr.forEach(function(s){regimeCount[s.regime]=(regimeCount[s.regime]||0)+1;});
+            var regimeKeys = Object.keys(regimeCount);
+            var dominant = regimeKeys.sort(function(a,b){return regimeCount[b]-regimeCount[a];})[0];
+            
+            var synth = D.ticker + "’s coupling decomposition shows " + top2[0].name + " (C=" + top2[0].C.toFixed(3) + ") and " + (top2[1]?top2[1].name+" (C="+top2[1].C.toFixed(3)+")":"") + " as the most strongly coupled series. ";
+            if(highMag.length>0){
+              synth += "Additional high-magnitude coupling appears in " + highMag.map(function(s){return s.name+" (C="+s.C.toFixed(3)+")";}).join(", ") + ". ";
+            }
+            if(isS.length>=2 && bsS.length>=2){
+              if(isAvg<-0.3 && bsAvg>0.3){
+                synth += "Income statement series show predominantly regulated (negative C) coupling while balance sheet series show bifurcating (positive C) dynamics — a structural signature of stable income generation paired with shifting balance sheet composition. ";
+              } else if(isAvg>0.3 && bsAvg<-0.3){
+                synth += "Balance sheet series show predominantly regulated coupling while income statement series show bifurcating dynamics — a signature of stable capital structure with shifting income dynamics. ";
+              }
+            }
+            var distParts = [];
+            regimeKeys.forEach(function(k){distParts.push(regimeCount[k]+" "+k);});
+            synth += "Regime distribution: " + distParts.join(", ") + ". ";
+            if(regimeCount[dominant] >= seriesArr.length*0.6){
+              var domRead = (dominant==="regulated")?"overall structural stability":(dominant==="bifurcating")?"distributed bifurcating dynamics":(dominant==="critical")?"broad-based critical risk":"system-wide transition";
+              synth += "Predominantly " + dominant + " regime (" + regimeCount[dominant] + " of " + seriesArr.length + " series), suggesting " + domRead + ".";
+            } else {
+              synth += "Mixed regime distribution suggests transitional or heterogeneous dynamics across structural drivers.";
+            }
+            
+            var synthLines = doc.splitTextToSize(synth, W-m*2);
+            doc.text(synthLines, m, py); py += synthLines.length*4.5 + 4;
+            
+            // Reading guide footer
+            doc.setFontSize(7);doc.setFont("helvetica","italic");doc.setTextColor(120,135,160);
+            var rg = doc.splitTextToSize("Reading guide: C ranges -1 to +1; |C| > 0.7 indicates strong coupling. Regimes — regulated (locked in), bifurcating (splitting), critical (inflection), transition (actively changing).", W-m*2);
+            doc.text(rg,m,py);
+          } catch(e) { console.error("Coupling decomp err:",e); }
+        }
+        
+        // Batch 7f Capital Efficiency / ROIC (Pro500 only)
+        if(typeof tier!=="undefined" && tier==="pro500"){
+          try {
+            doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;
+            doc.setFillColor(167,139,250);doc.rect(0,0,W,3,"F");
+            doc.setTextColor(167,139,250);doc.setFontSize(9);doc.setFont("helvetica","bold");
+            doc.text("CAPITAL EFFICIENCY",m,py);py+=8;
+            doc.setTextColor(241,245,249);doc.setFontSize(16);doc.setFont("helvetica","bold");
+            doc.text("Return on Invested Capital",m,py);py+=4;
+            doc.setFontSize(8);doc.setFont("helvetica","italic");doc.setTextColor(140,150,180);
+            doc.text("How effectively the firm generates after-tax operating returns relative to capital deployed.",m,py);py+=8;
+            
+            // Section intro
+            doc.setFontSize(9);doc.setFont("helvetica","italic");doc.setTextColor(160,184,208);
+            var introCE = doc.splitTextToSize("Capital efficiency separates firms that compound capital from those that consume it. ROIC compares after-tax operating profit (NOPAT) against the capital actually at work in the business (invested capital). When ROIC consistently exceeds the cost of capital, the firm is creating shareholder value; when it falls short, capital is being destroyed even as accounting profits look respectable.", W-m*2);
+            doc.text(introCE,m,py); py += introCE.length*4 + 6;
+            
+            // Compute
+            var ceRev = gv(IS,"revenue");
+            var ceOpInc = gv(IS,"operating_income");
+            var ceNI = gv(IS,"net_income");
+            var ceTax = gv(IS,"tax_expense");
+            var cePretax = gv(IS,"pretax_income");
+            var ceTA = gv(BS,"total_assets");
+            var ceCL = gv(BS,"current_liabilities");
+            
+            // Effective tax rate
+            var taxRate = null, taxRateNote = "";
+            if(ceTax!=null && cePretax!=null && cePretax>0){
+              var effRate = ceTax/cePretax;
+              if(effRate<0) effRate = 0;
+              if(effRate>0.5) effRate = 0.5;
+              taxRate = effRate;
+              taxRateNote = "Effective rate from data: " + (effRate*100).toFixed(1) + "%";
+            } else {
+              taxRate = 0.25;
+              taxRateNote = "Effective rate unavailable; using 25% blended fallback";
+            }
+            
+            var ceRows = [];
+            // NOPAT
+            if(ceOpInc!=null){
+              var nopat = ceOpInc * (1 - taxRate);
+              ceRows.push({label:"NOPAT", val:"$"+(nopat/1e9).toFixed(2)+"B", interp:"Operating Income × (1 − effective tax rate). "+taxRateNote+"."});
+              // ROIC
+              if(ceTA!=null && ceCL!=null){
+                var invCap = ceTA - ceCL;
+                if(invCap>0){
+                  var roic = (nopat/invCap)*100;
+                  ceRows.push({label:"ROIC", val:roic.toFixed(2)+"%", interp: roic>15?"Strong capital returns. NOPAT yield well above typical 8-10% cost-of-capital benchmark.":roic>10?"Solid capital returns. NOPAT yield above typical cost-of-capital benchmark.":roic>5?"Modest capital returns. NOPAT yield near or below cost-of-capital benchmark; value creation marginal.":"Weak capital returns. NOPAT yield below typical cost-of-capital; potential value destruction."});
+                  ceRows.push({label:"Invested Capital", val:"$"+(invCap/1e9).toFixed(2)+"B", interp:"Total Assets − Current Liabilities. The capital structure deployed in operations after netting short-term obligations."});
+                }
+              }
+            }
+            // Asset Turnover
+            if(ceRev!=null && ceTA!=null && ceTA>0){
+              var aTurn = ceRev/ceTA;
+              ceRows.push({label:"Asset Turnover", val:aTurn.toFixed(2)+"×", interp: aTurn>1.5?"High asset productivity. Each dollar of assets generates significant revenue — typical of capital-light operations.":aTurn>0.8?"Moderate asset productivity. Typical for diversified businesses.":aTurn>0.4?"Low asset productivity. Heavy fixed-asset base relative to revenue — typical of capital-intensive industries.":"Very low asset productivity. Investigate whether assets are productive or whether balance sheet is bloated."});
+            }
+            // ROA (restated)
+            if(ceNI!=null && ceTA!=null && ceTA>0){
+              var roa = (ceNI/ceTA)*100;
+              ceRows.push({label:"Return on Assets", val:roa.toFixed(2)+"%", interp: roa>10?"Strong overall asset return. Both productivity and margin contributing.":roa>5?"Solid overall asset return.":roa>2?"Modest asset return. Margin or turnover may be limiting.":"Weak asset return. Both productivity and margin under pressure."});
+            }
+            
+            if(ceRows.length===0){
+              doc.setFontSize(9);doc.setFont("helvetica","italic");doc.setTextColor(160,184,208);
+              doc.text("Insufficient data for capital efficiency computation.",m,py);
+            } else {
+              ceRows.forEach(function(row){
+                if(py>250){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
+                doc.setFillColor(15,25,40);doc.rect(m,py,W-m*2,16,"F");
+                doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(241,245,249);
+                doc.text(row.label,m+3,py+5);
+                doc.setFontSize(11);doc.setFont("helvetica","bold");doc.setTextColor(167,139,250);
+                doc.text(row.val,m+60,py+5);
+                doc.setFontSize(8);doc.setFont("helvetica","normal");doc.setTextColor(160,184,208);
+                var iLines=doc.splitTextToSize(row.interp,W-m*2-95);
+                doc.text(iLines.slice(0,2),m+90,py+5);
+                if(iLines.length>1)doc.text(iLines[1]||"",m+90,py+10);
+                py+=18;
+              });
+              py += 4;
+              
+              // Conclusion paragraph
+              if(py>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
+              doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(167,139,250);
+              doc.text("STRUCTURAL READ",m,py);py+=6;
+              doc.setFontSize(9);doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
+              
+              var ceConcl = "";
+              var roicVal = null, atVal = null, roaVal = null;
+              ceRows.forEach(function(r){
+                if(r.label==="ROIC") roicVal = parseFloat(r.val);
+                if(r.label==="Asset Turnover") atVal = parseFloat(r.val);
+                if(r.label==="Return on Assets") roaVal = parseFloat(r.val);
+              });
+              if(roicVal!=null){
+                if(roicVal>15) ceConcl += "Capital efficiency is strong: ROIC of "+roicVal.toFixed(1)+"% materially exceeds typical 8-10% cost-of-capital benchmarks, indicating active value creation. ";
+                else if(roicVal>10) ceConcl += "Capital efficiency is solid: ROIC of "+roicVal.toFixed(1)+"% is above typical cost-of-capital benchmarks. ";
+                else if(roicVal>5) ceConcl += "Capital efficiency is marginal: ROIC of "+roicVal.toFixed(1)+"% is near or below typical cost-of-capital, leaving little value creation cushion. ";
+                else ceConcl += "Capital efficiency is weak: ROIC of "+roicVal.toFixed(1)+"% sits below typical cost-of-capital benchmarks, suggesting potential value destruction. ";
+              }
+              if(atVal!=null && roaVal!=null){
+                if(atVal<0.5 && roaVal<5) ceConcl += "Both turnover and margin are low, suggesting structural rather than cyclical headwinds. ";
+                else if(atVal>1.2 && roaVal>8) ceConcl += "Both turnover and margin are robust, suggesting capital-light operations with healthy economics. ";
+              }
+              ceConcl += "Cost-of-capital benchmarks vary by sector; institutional analysts typically use a sector-specific WACC for precise value-creation assessment.";
+              
+              var ccLines = doc.splitTextToSize(ceConcl, W-m*2);
+              doc.text(ccLines, m, py);
+            }
+          } catch(e) { console.error("Capital efficiency err:",e); }
+        }
+        
+        // Batch 7f Conclusion / Key Observations (Pro + Pro500)
+        if(typeof tier!=="undefined" && (tier==="pro" || tier==="pro500")){
+          try {
+            doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;
+            var ccRGB = (tier==="pro500")?[167,139,250]:[0,200,255];
+            doc.setFillColor(ccRGB[0],ccRGB[1],ccRGB[2]);doc.rect(0,0,W,3,"F");
+            doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);doc.setFontSize(9);doc.setFont("helvetica","bold");
+            doc.text("CONCLUSION",m,py);py+=8;
+            doc.setTextColor(241,245,249);doc.setFontSize(16);doc.setFont("helvetica","bold");
+            doc.text("Key Observations",m,py);py+=4;
+            doc.setFontSize(8);doc.setFont("helvetica","italic");doc.setTextColor(140,150,180);
+            doc.text("Synthesis of the structural and financial views above.",m,py);py+=10;
+            
+            var iscC = (D.isc && D.isc.C!=null)?D.isc.C:null;
+            var iscRegime = (D.isc && D.isc.regime)?D.isc.regime:"unknown";
+            var iscStab = (D.isc && D.isc.stability_score!=null)?D.isc.stability_score:null;
+            
+            // Para 1 (both tiers): Verdict synthesis
+            doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);
+            doc.text("Structural Verdict",m,py);py+=5;
+            doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
+            var p1 = D.ticker + " is classified as " + iscRegime + " by the ISC framework";
+            if(iscC!=null) p1 += " (coupling C=" + iscC.toFixed(3) + ")";
+            if(iscStab!=null) p1 += " with a stability score of " + iscStab.toFixed(0) + "/100";
+            p1 += ". ";
+            if(iscRegime==="regulated") p1 += "The firm’s structural drivers are tightly locked into the broader system, indicating stability across the seven-layer cascade. Regime transitions historically remain unlikely while this signature persists.";
+            else if(iscRegime==="bifurcating") p1 += "The firm’s structural drivers are showing splitting dynamics, indicating divergence from the broader system. This regime has historically preceded both expansion and contraction phases; directional read requires the sector and traditional-metrics context above.";
+            else if(iscRegime==="critical") p1 += "The firm sits at a critical structural inflection. This regime has historically preceded major regime transitions in our 45-case dataset — in either direction. Close monitoring of the seven-layer cascade is warranted.";
+            else if(iscRegime==="transition") p1 += "The firm is actively transitioning between regimes. Traditional metrics may lag this structural signal; the cascade view above describes which layers are leading the shift.";
+            else p1 += "Regime classification is incomplete; refer to the seven-layer cascade above for granular structural signals.";
+            var p1L = doc.splitTextToSize(p1, W-m*2);
+            doc.text(p1L,m,py);py+=p1L.length*4.5+5;
+            
+            // Para 2 (both tiers): Traditional metrics summary
+            if(py>240){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
+            doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);
+            doc.text("Traditional Metrics",m,py);py+=5;
+            doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
+            var TR = D.traditional || {};
+            var altmanZ = (TR.altman_z && TR.altman_z.val!=null)?TR.altman_z.val:null;
+            var piotF = (TR.piotroski_f && TR.piotroski_f.val!=null)?TR.piotroski_f.val:null;
+            var icov = (TR.interest_coverage && TR.interest_coverage.val!=null)?TR.interest_coverage.val:null;
+            var p2 = "";
+            if(altmanZ!=null) p2 += "Altman Z-Score of " + altmanZ.toFixed(2) + " " + (altmanZ>3?"places the firm in the safe zone":(altmanZ>1.8?"places the firm in the grey zone":"places the firm in the distress zone")) + ". ";
+            if(piotF!=null) p2 += "Piotroski F-Score of " + piotF.toFixed(0) + "/9 " + (piotF>=7?"indicates strong fundamentals":(piotF>=4?"indicates mixed fundamentals":"indicates weak fundamentals")) + ". ";
+            if(icov!=null) p2 += "Interest coverage of " + icov.toFixed(1) + "× " + (icov>6?"is healthy":(icov>3?"is adequate":"is thin")) + ". ";
+            if(p2==="") p2 = "Traditional metrics are partially unavailable; the cascade and PE-style analyses above provide the structural read.";
+            else p2 += "Traditional metrics describe the firm’s financial state; the structural cascade describes the dynamics shaping that state.";
+            var p2L = doc.splitTextToSize(p2, W-m*2);
+            doc.text(p2L,m,py);py+=p2L.length*4.5+5;
+            
+            // Pro500 only: Para 3 (PE/credit synthesis) and Para 4 (structural observation)
+            if(tier==="pro500"){
+              if(py>220){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
+              doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);
+              doc.text("Earnings Quality & Capital Efficiency",m,py);py+=5;
+              doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
+              var p3 = "The PE-style analysis above examines whether reported profits are reinforced by underlying cash dynamics. Quality of Earnings, EBITDA durability, and Working Capital efficiency together describe the cash-conversion machinery beneath the income statement; Capital Efficiency / ROIC describes whether deployed capital is generating returns above its cost. Convergent strength across these views indicates a firm whose accounting reflects economic reality. Convergent weakness, particularly when CFO/NI, EBITDA/Interest, and ROIC all deteriorate together, has appeared in late-stage cases including Enron Q3 2001 and WorldCom Q1 2002.";
+              var p3L = doc.splitTextToSize(p3, W-m*2);
+              doc.text(p3L,m,py);py+=p3L.length*4.5+5;
+              
+              if(py>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
+              doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);
+              doc.text("Coupling Decomposition Read",m,py);py+=5;
+              doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
+              var p4 = "The per-series coupling decomposition above identifies which structural drivers are carrying the firm’s overall coupling signature. When income statement and balance sheet series show divergent regimes, the firm is in a state of structural reorganization — stable on one dimension, shifting on another. Reading the regime mix alongside the traditional metrics provides a more complete picture than either view alone, and has historically improved lead time on regime transitions by 1-5 quarters relative to traditional credit analysis.";
+              var p4L = doc.splitTextToSize(p4, W-m*2);
+              doc.text(p4L,m,py);py+=p4L.length*4.5+5;
+            }
+            
+            // Closing line (both tiers, softened)
+            if(py>250){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
+            doc.setFontSize(8);doc.setFont("helvetica","italic");doc.setTextColor(140,150,180);
+            var closer = doc.splitTextToSize("Individual outcomes vary; this report describes structural signals and financial state, not predictions. See the legal disclaimer at the end of this report.", W-m*2);
+            doc.text(closer,m,py);
+          } catch(e) { console.error("Conclusion err:",e); }
+        }
+        
       // Footer all pages - Batch 7c Pro500 differentiation
       var pg=doc.internal.getNumberOfPages();
       var isProEdition = (typeof tier!=='undefined' && tier==='pro500');
