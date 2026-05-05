@@ -2089,6 +2089,67 @@ function buildCascadeSignature(layers, d, r, C){
   sumHtml+='</div>';
   return sumHtml;
 }
+function renderPeerCharts(rows, lockState){
+  // rows[0] is subject, rest are peers
+  // lockState: 'full' | 'values' | 'none'
+  if(!rows||rows.length<2)return;
+  // ----- BAR CHART -----
+  var barCtx=document.getElementById('peerBarChart');
+  if(barCtx){
+    var sortedRows=rows.slice().sort(function(a,b){return (b.C||-2)-(a.C||-2);});
+    var barLabels=sortedRows.map(function(p){return p.isSubject?p.ticker+' ' + String.fromCharCode(9745):(lockState==='full'||lockState==='values'?'Peer '+(sortedRows.indexOf(p)+1):p.ticker);});
+    var barData=sortedRows.map(function(p){return p.C!=null?p.C:0;});
+    var barColors=sortedRows.map(function(p){
+      if(p.isSubject)return '#00C8FF';
+      if(p.C>0.3)return 'rgba(239,68,68,.7)';
+      if(p.C>-0.1)return 'rgba(245,158,11,.7)';
+      return 'rgba(16,185,129,.7)';
+    });
+    var barBorders=sortedRows.map(function(p){
+      if(p.isSubject)return '#00C8FF';
+      if(p.C>0.3)return '#EF4444';
+      if(p.C>-0.1)return '#F59E0B';
+      return '#10B981';
+    });
+    charts.peerBar=new Chart(barCtx,{
+      type:'bar',
+      data:{labels:barLabels,datasets:[{label:'ISC C',data:barData,backgroundColor:barColors,borderColor:barBorders,borderWidth:1.5}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){return 'C = '+(ctx.parsed.x>=0?'+':'')+ctx.parsed.x.toFixed(3);}}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280',font:{size:9},callback:function(v){return (v>=0?'+':'')+v.toFixed(1);}},min:-1,max:1},y:{grid:{display:false},ticks:{color:'#9CA3AF',font:{size:10}}}}}
+    });
+  }
+  // ----- REGIME DONUT -----
+  var regCtx=document.getElementById('peerRegimeChart');
+  if(regCtx){
+    var nBif=rows.filter(function(p){return p.C!=null && p.C>0.3;}).length;
+    var nTrans=rows.filter(function(p){return p.C!=null && p.C>-0.1 && p.C<=0.3;}).length;
+    var nReg=rows.filter(function(p){return p.C!=null && p.C<=-0.1;}).length;
+    charts.peerRegime=new Chart(regCtx,{
+      type:'doughnut',
+      data:{labels:['Bifurcating','Transitioning','Regulated'],datasets:[{data:[nBif,nTrans,nReg],backgroundColor:['#EF4444','#F59E0B','#10B981'],borderColor:'rgba(7,16,30,.9)',borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:true,position:'bottom',labels:{color:'#9CA3AF',font:{size:10},boxWidth:10,padding:6}},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){var pct=ctx.parsed/(nBif+nTrans+nReg)*100;return ctx.label+': '+ctx.parsed+' ('+pct.toFixed(0)+'%)';}}}}}
+    });
+  }
+  // ----- RADAR OVERLAY -----
+  var radCtx=document.getElementById('peerRadarChart');
+  if(radCtx){
+    function clamp(v,lo,hi){if(v==null||isNaN(v))return 0;return Math.max(lo,Math.min(hi,v));}
+    function rN(p){return [clamp((p.altZ||0)/4*100,0,100),clamp(0,0,100),clamp((p.fcfM||0)/30*100,0,100),clamp((p.opM||0)/30*100,0,100),clamp((p.revG||0)/40*100,0,100)];}
+    var subjVals=rN(rows[0]);
+    var peerVals=rows.slice(1).filter(function(p){return p.altZ!=null;});
+    var avgVals=[0,0,0,0,0];
+    if(peerVals.length>0){
+      peerVals.forEach(function(p){var v=rN(p);for(var i=0;i<5;i++)avgVals[i]+=v[i];});
+      for(var i=0;i<5;i++)avgVals[i]=avgVals[i]/peerVals.length;
+    }
+    var subjColor=rows[0].C>0.3?'#EF4444':rows[0].C>-0.1?'#F59E0B':'#10B981';
+    var subjBg=rows[0].C>0.3?'rgba(239,68,68,.18)':rows[0].C>-0.1?'rgba(245,158,11,.18)':'rgba(16,185,129,.18)';
+    charts.peerRadar=new Chart(radCtx,{
+      type:'radar',
+      data:{labels:['Altman Z','Solvency','FCF Margin','Op Margin','Rev Growth'],datasets:[{label:rows[0].ticker,data:subjVals,backgroundColor:subjBg,borderColor:subjColor,borderWidth:2,pointBackgroundColor:subjColor,pointRadius:3},{label:'Peer Avg',data:avgVals,backgroundColor:'rgba(167,139,250,.10)',borderColor:'#A78BFA',borderWidth:1.5,borderDash:[5,5],pointBackgroundColor:'#A78BFA',pointRadius:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#9CA3AF',font:{size:10},boxWidth:10,padding:6,usePointStyle:true}},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1}},scales:{r:{beginAtZero:true,suggestedMax:100,grid:{color:'rgba(255,255,255,.06)'},angleLines:{color:'rgba(255,255,255,.06)'},pointLabels:{color:'#9CA3AF',font:{size:9}},ticks:{display:false,stepSize:25}}}}
+    });
+  }
+}
 function renderPeers(d){
   var area=document.getElementById('peersArea');
   if(!area)return;
@@ -2125,6 +2186,13 @@ function renderPeers(d){
   html+='<div class="card-hi" style="margin-bottom:14px">';
   html+='<div class="sb-lbl" style="margin-bottom:6px">Peer Comparison '+EMDASH+' '+subjSector+'</div>';
   html+='<div style="font-size:12px;color:var(--dim);margin-bottom:14px">Snapshot data as of last quarterly update. Tier: '+(typeof tier!=="undefined"?tier:'free')+(tierLimit>=99?' '+EMDASH+' unlimited peers':' '+EMDASH+' '+tierLimit+' peer'+(tierLimit>1?'s':'')+' visible')+'.</div>';
+  // Charts grid (3 columns: bar, regime, radar)
+  var chartBlur=lockState==='full'?'filter:blur(6px);user-select:none;pointer-events:none':'';
+  html+='<div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:14px;margin-bottom:18px;'+chartBlur+'">';
+  html+='<div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">ISC Coupling C - Sector Ranking</div><div style="position:relative;height:180px"><canvas id="peerBarChart"></canvas></div></div>';
+  html+='<div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Sector Regime Mix</div><div style="position:relative;height:180px"><canvas id="peerRegimeChart"></canvas></div></div>';
+  html+='<div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">'+ticker+' vs Peer Average</div><div style="position:relative;height:180px"><canvas id="peerRadarChart"></canvas></div></div>';
+  html+='</div>';
   // Table
   html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
   html+='<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08)">';
@@ -2204,6 +2272,8 @@ function renderPeers(d){
   else html+='Mixed sector profile '+EMDASH+' worth watching individual companies rather than the sector as a whole.';
   html+='</div></div></div>';
   area.innerHTML=html;
+  // Defer Chart.js construction so canvas elements are in DOM
+  setTimeout(function(){try{renderPeerCharts(rows, getPeerLockState());}catch(e){console.warn('renderPeerCharts failed:',e);}},0);
 }
 function renderTabCommentaries(d){
   var IS=d.income_statement||{}, BS=d.balance_sheet||{}, CF=d.cash_flow||{}, TM=d.traditional||{}, isc=d.isc||{};
