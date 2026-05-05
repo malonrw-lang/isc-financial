@@ -495,9 +495,92 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
   </div>
 
   <footer style="border-top:1px solid var(--bdr);padding:28px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
-    <div style="font-size:12px;color:var(--dim);line-height:1.7">&#169; 2026 The Filter Lab LLC &#183; Spring TX &#183; Not financial advice &#183; AI assistance disclosed<br><a href="https://doi.org/10.5281/zenodo.18940081" style="color:var(--blue)">doi.org/10.5281/zenodo.18940081</a></div>
+    <div style="font-size:12px;color:var(--dim);line-height:1.7">&#169; 2026 The Filter Lab LLC &#183; Spring TX &#183; Not financial advice &#183; AI assistance disclosed<br>
+      <a href="javascript:showPage('terms')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Terms of Service</a>
+      <a href="javascript:showPage('privacy')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Privacy Policy</a>
+      <a href="javascript:showPage('disclaimer')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Disclaimer</a><br><a href="https://doi.org/10.5281/zenodo.18940081" style="color:var(--blue)">doi.org/10.5281/zenodo.18940081</a></div>
     <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--dim);font-style:italic">Before the numbers lie.</div>
   </footer>
+    <div id="pg-disclaimer" class="page hidden">
+    <div style="max-width:780px;margin:0 auto;padding:48px 28px">
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px 16px;margin-bottom:24px;font-size:12px;color:#A0B8D0">
+        <strong style="color:var(--amber)">DRAFT &#8212; Pending final legal review.</strong> This page is provided for early-access testing. Final language will be reviewed by counsel before public launch.
+      </div>
+      <h1 style="font-size:28px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em">Disclaimer</h1>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:18px">Effective: May 2026</div>
+      <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Not Investment Advice</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">The Filter Lab LLC and ISC Financial provide structural analysis tools for educational and informational purposes only. We are NOT a registered investment advisor, broker-dealer, or financial planner. Nothing on this site constitutes investment, legal, tax, or accounting advice.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">About ISC</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">ISC (Isomorphic Systems Consolidation) is a research framework that measures coupling patterns in financial time series. While ISC has shown statistical accuracy on a curated set of 45 historical cases (AUC 0.96), past patterns do not predict future outcomes for any individual company. Markets are complex adaptive systems subject to many factors ISC does not measure.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">No Recommendations</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">ISC Financial does not recommend any particular security, sector, strategy, or transaction. References to specific tickers, sectors, or historical companies (Enron, WorldCom, Spirit Airlines, etc.) are illustrative of the framework only and do not constitute recommendations to buy, sell, or hold those or any related securities.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">No Warranty</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">Analysis results are provided AS IS without warranty of any kind, express or implied. We do not warrant that results are accurate, complete, current, or fit for any particular purpose. Data is sourced from third parties (SEC EDGAR, Yahoo Finance) and may contain errors, omissions, or delays.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">User Assumes All Risk</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">You are solely responsible for your investment decisions. You should consult a licensed financial advisor, tax professional, and/or legal counsel before acting on any analysis from this site. Past performance is not indicative of future results. You may lose money &#8212; including all of your invested capital.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">AI Disclosure</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">This site uses artificial intelligence (Claude by Anthropic) for educational analysis. AI-generated content may contain errors, fabrications, or outdated information. AI outputs are not a substitute for professional advice.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Limitation of Liability</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">To the maximum extent permitted by law, The Filter Lab LLC, its officers, employees, contractors, and affiliates shall not be liable for any direct, indirect, incidental, consequential, or punitive damages arising from your use of this site, including but not limited to investment losses, lost profits, or data inaccuracies.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Jurisdiction</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">The Filter Lab LLC is a Texas LLC. Use of this site constitutes acceptance of the laws of the State of Texas as governing law. By using ISC Financial, you acknowledge you have read, understood, and agree to this disclaimer.</p>
+      <div style="margin-top:32px;padding-top:18px;border-top:1px solid var(--bdr);font-size:11px;color:var(--dim)">Questions? Email <a href="mailto:malonrw@gmail.com" style="color:var(--cyan)">malonrw@gmail.com</a>.</div>
+    </div>
+  </div>
+    <div id="pg-privacy" class="page hidden">
+    <div style="max-width:780px;margin:0 auto;padding:48px 28px">
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px 16px;margin-bottom:24px;font-size:12px;color:#A0B8D0">
+        <strong style="color:var(--amber)">DRAFT &#8212; Pending final legal review.</strong> This page is provided for early-access testing. Final language will be reviewed by counsel before public launch.
+      </div>
+      <h1 style="font-size:28px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em">Privacy Policy</h1>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:18px">Effective: May 2026</div>
+      <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">What We Collect</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">ISC Financial collects: (1) ticker queries you submit; (2) chat messages to the AI Analyst feature; (3) basic usage analytics such as page views and session duration; (4) email and payment information when you create a paid account. Free tier use does not require an account or personally identifiable information.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Data Sources</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">We retrieve company financial data from public sources: SEC EDGAR (filings) and Yahoo Finance (market data). We do not permanently store this data; it is fetched fresh per analysis.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">What We Do Not Do</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">We do NOT sell your data. We do NOT share your data with advertisers. We do NOT use your queries to train AI models without explicit consent.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Third-Party Services</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">AI Analyst chat messages are sent to Anthropic's Claude API for processing under Anthropic's privacy policy. When paid tiers launch, payment processing will be handled by Stripe. Hosting infrastructure is provided by Vercel and Render (no separate data access).</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Cookies</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">We use minimal cookies for session management. No advertising or tracking cookies. We do not use Google Analytics or similar broad analytics tools.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Your Rights</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">You may request deletion of any account-associated data by emailing malonrw@gmail.com. We will respond within 30 days. EU/UK users have additional rights under GDPR including data portability and the right to be forgotten.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Children</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">This service is not directed to anyone under 18. We do not knowingly collect data from minors.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Changes</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">We may update this policy. Material changes will be communicated via email to account holders. Continued use after changes constitutes acceptance.</p>
+      <div style="margin-top:32px;padding-top:18px;border-top:1px solid var(--bdr);font-size:11px;color:var(--dim)">Questions? Email <a href="mailto:malonrw@gmail.com" style="color:var(--cyan)">malonrw@gmail.com</a>.</div>
+    </div>
+  </div>
+    <div id="pg-terms" class="page hidden">
+    <div style="max-width:780px;margin:0 auto;padding:48px 28px">
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px 16px;margin-bottom:24px;font-size:12px;color:#A0B8D0">
+        <strong style="color:var(--amber)">DRAFT &#8212; Pending final legal review.</strong> This page is provided for early-access testing. Final language will be reviewed by counsel before public launch.
+      </div>
+      <h1 style="font-size:28px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em">Terms of Service</h1>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:18px">Effective: May 2026</div>
+      <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Acceptance</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">By accessing ISC Financial (operated by The Filter Lab LLC), you agree to these Terms. If you do not agree, do not use the service.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Service Description</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">ISC Financial provides structural financial analysis tools based on the Isomorphic Systems Consolidation research framework. The service is provided for educational and informational purposes only. See our Disclaimer for limitations on the nature of this analysis.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Account & Acceptable Use</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">Free tier use does not require an account. Paid tiers require an account. You agree to: (a) provide accurate registration information; (b) keep credentials secure; (c) not attempt to reverse-engineer, scrape, or otherwise exploit the service; (d) not use the service for any unlawful purpose. We may suspend or terminate accounts for violations.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Subscription & Refunds</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">Paid tiers are billed monthly via Stripe (when launched). You may cancel anytime; cancellation takes effect at the end of the current billing period. Refunds are issued at our discretion within 14 days of charge for unused periods. Free trials convert to paid subscriptions automatically unless cancelled before the trial ends.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Intellectual Property</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">The ISC framework, methodology, source code, and brand are property of The Filter Lab LLC and Ryan W. Malone. The Zenodo-archived research papers under DOI 10.5281/zenodo.18940081 are released under their respective open-access licenses. You may not copy, redistribute, or commercialize the service or its outputs without permission.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Disclaimer of Warranties</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">The service is provided AS IS and AS AVAILABLE. We make no warranties of any kind, express or implied, including merchantability, fitness for a particular purpose, accuracy, or non-infringement. See our Disclaimer page for details on the educational nature of analysis outputs.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Limitation of Liability</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">To the maximum extent permitted by law, The Filter Lab LLC's total liability for any claim arising from your use of the service is limited to the amount you paid in the 12 months preceding the claim. We are not liable for indirect, incidental, consequential, or punitive damages, including investment losses.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Governing Law</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">These Terms are governed by the laws of the State of Texas. Disputes shall be resolved in the state or federal courts of Texas. You waive any right to participate in class actions to the extent permitted by law.</p>
+        <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Changes</h3>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">We may update these Terms. Material changes will be communicated via email to account holders or via in-product notice. Continued use after changes constitutes acceptance.</p>
+      <div style="margin-top:32px;padding-top:18px;border-top:1px solid var(--bdr);font-size:11px;color:var(--dim)">Questions? Email <a href="mailto:malonrw@gmail.com" style="color:var(--cyan)">malonrw@gmail.com</a>.</div>
+    </div>
+  </div>
 </div>
 
 <!-- &#9552;&#9552;&#9552; ANALYZER &#9552;&#9552;&#9552; -->
@@ -663,6 +746,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         </div>
 
         <!-- Tab Bar -->
+        <div id="iscLegalBanner" style="background:rgba(245,158,11,.06);border-bottom:1px solid rgba(245,158,11,.18);padding:8px 22px;font-size:11px;color:#A0B8D0;line-height:1.5;display:flex;align-items:center;gap:10px;flex-shrink:0"><span style="color:var(--amber);font-size:13px">&#9888;</span><span><strong style="color:var(--wh)">Not investment advice.</strong> ISC Financial provides structural analysis tools for educational use only. The Filter Lab LLC is not a registered investment advisor. Past patterns do not predict future outcomes. <a href="javascript:showPage('disclaimer')" style="color:var(--amber);text-decoration:underline">Full disclaimer &#8594;</a></span></div>
         <div class="tab-bar">
           <button class="tb on" onclick="swTab('overview',this)">Overview</button>
           <button class="tb" onclick="swTab('charts',this)">&#55357;&#56520; Charts</button>
@@ -1154,7 +1238,7 @@ function closeHelp() { document.getElementById('helpModal').classList.remove('op
    NAVIGATION
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 function showPage(pg, el) {
-  ['home','analyzer','pricing','about'].forEach(function(p){
+  ['home','analyzer','pricing','about','terms','privacy','disclaimer'].forEach(function(p){
     document.getElementById('pg-'+p).classList.toggle('hidden', p!==pg);
   });
   document.querySelectorAll('.nl').forEach(function(b){b.classList.remove('on');});
@@ -1970,6 +2054,14 @@ function renderAll(d){
     if(!vc)return;
     var warn='<div class="al al-a" style="margin-bottom:12px"><span style="font-size:16px;flex-shrink:0">'+WARN+'</span><div><strong style="color:var(--wh)">Data quality warning:</strong> '+iss.join(' ')+' Click Run Full Analysis again - the API may have returned a partial response.</div></div>';
     vc.innerHTML=warn+vc.innerHTML;
+  })();
+  // Append legal disclaimer to verdict card on every analysis
+  (function(){
+    var vc=document.getElementById('verdictCard');
+    if(!vc)return;
+    if(vc.innerHTML.indexOf('isc-verdict-disclaimer')>=0)return;
+    var disc='<div class="isc-verdict-disclaimer" style="margin-top:14px;padding:10px 12px;background:rgba(255,255,255,.02);border-left:2px solid rgba(245,158,11,.4);font-size:11px;color:var(--dim);line-height:1.6;font-style:italic">This analysis is computed from historical filings. It is not a recommendation to buy, sell, or hold any security and should not be construed as investment advice. Consult a licensed financial advisor before making investment decisions. <a href="javascript:showPage(\'disclaimer\')" style="color:var(--amber);text-decoration:underline;font-style:normal">Full disclaimer &#8594;</a></div>';
+    vc.innerHTML+=disc;
   })();
   // Reset chat
   document.getElementById('chatHistory').innerHTML='';chatCtx=[];
