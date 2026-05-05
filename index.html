@@ -3429,7 +3429,7 @@ function genPDF(){
         });
         py+=4;
         
-        // Pro500-only: Industry Context section (Batch 7d) â Batch 7f.1-min applied: skip when no sector data
+        // Pro500-only: Industry Context section (Batch 7d) Ã¢ÂÂ Batch 7f.1-min applied: skip when no sector data
           var icSectorAvailable = (function(){if(!D.sector || typeof KNOWN!=="object")return false;var sn=D.sector.toLowerCase();return Object.keys(KNOWN).some(function(t){return KNOWN[t] && KNOWN[t].sector && KNOWN[t].sector.toLowerCase()===sn;});})();
           if(icSectorAvailable){
         if(tier==='pro500'){
@@ -3678,8 +3678,86 @@ function genPDF(){
             
             // Section intro (Pro500 thorough)
             doc.setFontSize(9);doc.setFont("helvetica","italic");doc.setTextColor(160,184,208);
-            var introC = doc.splitTextToSize("The coupling coefficient (C) measures how strongly each series tracks the broader system, ranging from -1 to +1. Magnitudes above 0.7 indicate strong coupling. Each series is also classified by regime: regulated (locked in), bifurcating (splitting), critical (at inflection), or transition (actively changing). Decomposition reveals which structural drivers carry the firmÃÂ¢ÃÂÃÂs overall coupling signature.", W-m*2);
+            var introC = doc.splitTextToSize("The coupling coefficient (C) measures how strongly each series tracks the broader system, ranging from -1 to +1. Magnitudes above 0.7 indicate strong coupling. Each series is also classified by regime: regulated (locked in), bifurcating (splitting), critical (at inflection), or transition (actively changing). Decomposition reveals which structural drivers carry the firmÃÂÃÂ¢ÃÂÃÂÃÂÃÂs overall coupling signature.", W-m*2);
             doc.text(introC,m,py);py+=introC.length*4+4;
+            
+
+            // Batch 7g.b applied: Coupling Spectrum Bar (Pro500)
+            try {
+              var sbY = py;
+              var sbBarLeft = m + 11;
+              var sbBarW = 160;
+              var sbBarH = 8;
+              var sbBarY = sbY + 10;
+              // Eyebrow
+              doc.setFontSize(8);doc.setFont("helvetica","bold");doc.setTextColor(167,139,250);
+              doc.text("COUPLING SPECTRUM",m,sbY+3);
+              // Zone labels above bar
+              doc.setFontSize(7);doc.setFont("helvetica","normal");doc.setTextColor(140,150,180);
+              var sbRegLabelW = doc.getTextWidth("regulated");
+              var sbTraLabelW = doc.getTextWidth("transitioning");
+              var sbBifLabelW = doc.getTextWidth("bifurcating");
+              doc.text("regulated",     sbBarLeft + 36 - sbRegLabelW/2, sbBarY - 1);
+              doc.text("transitioning", sbBarLeft + 88 - sbTraLabelW/2, sbBarY - 1);
+              doc.text("bifurcating",   sbBarLeft + 132 - sbBifLabelW/2, sbBarY - 1);
+              // Color bar - three segments
+              doc.setFillColor(59,130,246);  doc.rect(sbBarLeft,        sbBarY, 72, sbBarH, "F");
+              doc.setFillColor(234,179,8);   doc.rect(sbBarLeft + 72,   sbBarY, 32, sbBarH, "F");
+              doc.setFillColor(249,115,22);  doc.rect(sbBarLeft + 104,  sbBarY, 56, sbBarH, "F");
+              // Scale tick marks below bar
+              doc.setDrawColor(140,150,180);doc.setLineWidth(0.3);
+              [0, 72, 104, 160].forEach(function(off){
+                doc.line(sbBarLeft + off, sbBarY + sbBarH, sbBarLeft + off, sbBarY + sbBarH + 1.5);
+              });
+              // Scale labels
+              doc.setFontSize(6);doc.setFont("helvetica","normal");doc.setTextColor(140,150,180);
+              var sbScaleY = sbBarY + sbBarH + 4;
+              ["-1.0","-0.10","+0.30","+1.0"].forEach(function(lbl, idx){
+                var offsets = [0, 72, 104, 160];
+                var labelW = doc.getTextWidth(lbl);
+                doc.text(lbl, sbBarLeft + offsets[idx] - labelW/2, sbScaleY);
+              });
+              // Compute needle position and color
+              var sbC = (D.isc && D.isc.C != null) ? D.isc.C : null;
+              var sbCDisplay, sbRegimeLabel, sbRegimeRGB;
+              if(sbC != null && !isNaN(sbC)){
+                var clampC = Math.max(-1, Math.min(1, sbC));
+                var needleX = sbBarLeft + ((clampC + 1) / 2) * sbBarW;
+                // Determine regime color from C
+                if(clampC < -0.10){      sbRegimeRGB = [59,130,246];  sbRegimeLabel = "REGULATED"; }
+                else if(clampC < 0.30){  sbRegimeRGB = [234,179,8];   sbRegimeLabel = "TRANSITIONING"; }
+                else {                   sbRegimeRGB = [249,115,22];  sbRegimeLabel = "BIFURCATING"; }
+                // Draw needle: vertical line + triangles top/bottom
+                doc.setDrawColor(40,40,40);doc.setLineWidth(0.6);
+                doc.line(needleX, sbBarY - 4, needleX, sbBarY + sbBarH + 4);
+                // Top triangle (pointing down into bar)
+                doc.setFillColor(40,40,40);
+                doc.triangle(needleX - 1.5, sbBarY - 4, needleX + 1.5, sbBarY - 4, needleX, sbBarY - 1.5, "F");
+                // Bottom triangle (pointing up into bar)
+                doc.triangle(needleX - 1.5, sbBarY + sbBarH + 4, needleX + 1.5, sbBarY + sbBarH + 4, needleX, sbBarY + sbBarH + 1.5, "F");
+                doc.setLineWidth(0.2);
+                sbCDisplay = "C = " + (sbC >= 0 ? "+" : "") + sbC.toFixed(3);
+              } else {
+                sbCDisplay = "C = N/A";
+                sbRegimeLabel = "INSUFFICIENT DATA";
+                sbRegimeRGB = [148,163,184];
+              }
+              // C value display - centered below bar
+              doc.setFontSize(14);doc.setFont("helvetica","bold");
+              doc.setTextColor(sbRegimeRGB[0],sbRegimeRGB[1],sbRegimeRGB[2]);
+              var cDispW = doc.getTextWidth(sbCDisplay);
+              doc.text(sbCDisplay, sbBarLeft + sbBarW/2 - cDispW/2, sbBarY + sbBarH + 14);
+              // Regime label - centered below C value
+              doc.setFontSize(9);doc.setFont("helvetica","bold");
+              var regLabelW = doc.getTextWidth(sbRegimeLabel);
+              doc.text(sbRegimeLabel, sbBarLeft + sbBarW/2 - regLabelW/2, sbBarY + sbBarH + 20);
+              // Reset draw color
+              doc.setDrawColor(0,0,0);
+              // Advance py past spectrum block
+              py = sbBarY + sbBarH + 26;
+            } catch(sbErr){
+              console.error("Spectrum bar render err:", sbErr);
+            }
             
             // Build series array
             var bs = D.isc.by_series;
@@ -3713,7 +3791,7 @@ function genPDF(){
                 return "Strong "+sign+" coupling.";
               }
               if(regime==="regulated") return "Very strong "+sign+" coupling under tight regulation.";
-              if(regime==="bifurcating") return "Very strong "+sign+" coupling, bifurcating ÃÂ¢ÃÂÃÂ high-amplitude drift.";
+              if(regime==="bifurcating") return "Very strong "+sign+" coupling, bifurcating ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ high-amplitude drift.";
               return "Very strong "+sign+" coupling.";
             }
             
@@ -3733,7 +3811,7 @@ function genPDF(){
               doc.setFillColor(11,20,34);doc.rect(m,py,W-m*2,12,"F");
               // Series name
               doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(241,245,249);
-              doc.text(s.name.length>22?s.name.substring(0,21)+"ÃÂ¢ÃÂÃÂ¦":s.name,m+3,py+4.5);
+              doc.text(s.name.length>22?s.name.substring(0,21)+"ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¦":s.name,m+3,py+4.5);
               // C value, color by sign+magnitude
               var aC = Math.abs(s.C);
               var cRGB = s.C>=0 ? (aC>0.7?[34,197,94]:aC>0.4?[132,204,22]:[148,163,184]) : (aC>0.7?[239,68,68]:aC>0.4?[249,115,22]:[148,163,184]);
@@ -3778,15 +3856,15 @@ function genPDF(){
             var regimeKeys = Object.keys(regimeCount);
             var dominant = regimeKeys.sort(function(a,b){return regimeCount[b]-regimeCount[a];})[0];
             
-            var synth = D.ticker + "ÃÂ¢ÃÂÃÂs coupling decomposition shows " + top2[0].name + " (C=" + top2[0].C.toFixed(3) + ") and " + (top2[1]?top2[1].name+" (C="+top2[1].C.toFixed(3)+")":"") + " as the most strongly coupled series. ";
+            var synth = D.ticker + "ÃÂÃÂ¢ÃÂÃÂÃÂÃÂs coupling decomposition shows " + top2[0].name + " (C=" + top2[0].C.toFixed(3) + ") and " + (top2[1]?top2[1].name+" (C="+top2[1].C.toFixed(3)+")":"") + " as the most strongly coupled series. ";
             if(highMag.length>0){
               synth += "Additional high-magnitude coupling appears in " + highMag.map(function(s){return s.name+" (C="+s.C.toFixed(3)+")";}).join(", ") + ". ";
             }
             if(isS.length>=2 && bsS.length>=2){
               if(isAvg<-0.3 && bsAvg>0.3){
-                synth += "Income statement series show predominantly regulated (negative C) coupling while balance sheet series show bifurcating (positive C) dynamics ÃÂ¢ÃÂÃÂ a structural signature of stable income generation paired with shifting balance sheet composition. ";
+                synth += "Income statement series show predominantly regulated (negative C) coupling while balance sheet series show bifurcating (positive C) dynamics ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ a structural signature of stable income generation paired with shifting balance sheet composition. ";
               } else if(isAvg>0.3 && bsAvg<-0.3){
-                synth += "Balance sheet series show predominantly regulated coupling while income statement series show bifurcating dynamics ÃÂ¢ÃÂÃÂ a signature of stable capital structure with shifting income dynamics. ";
+                synth += "Balance sheet series show predominantly regulated coupling while income statement series show bifurcating dynamics ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ a signature of stable capital structure with shifting income dynamics. ";
               }
             }
             var distParts = [];
@@ -3804,7 +3882,7 @@ function genPDF(){
             
             // Reading guide footer
             doc.setFontSize(7);doc.setFont("helvetica","italic");doc.setTextColor(120,135,160);
-            var rg = doc.splitTextToSize("Reading guide: C ranges -1 to +1; |C| > 0.7 indicates strong coupling. Regimes ÃÂ¢ÃÂÃÂ regulated (locked in), bifurcating (splitting), critical (inflection), transition (actively changing).", W-m*2);
+            var rg = doc.splitTextToSize("Reading guide: C ranges -1 to +1; |C| > 0.7 indicates strong coupling. Regimes ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ regulated (locked in), bifurcating (splitting), critical (inflection), transition (actively changing).", W-m*2);
             doc.text(rg,m,py);
           } catch(e) { console.error("Coupling decomp err:",e); }
         }
@@ -3852,21 +3930,21 @@ function genPDF(){
             // NOPAT
             if(ceOpInc!=null){
               var nopat = ceOpInc * (1 - taxRate);
-              ceRows.push({label:"NOPAT", val:"$"+(nopat/1e3).toFixed(2)+"B", interp:"Operating Income ÃÂÃÂ (1 ÃÂ¢ÃÂÃÂ effective tax rate). "+taxRateNote+"."});
+              ceRows.push({label:"NOPAT", val:"$"+(nopat/1e3).toFixed(2)+"B", interp:"Operating Income ÃÂÃÂÃÂÃÂ (1 ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ effective tax rate). "+taxRateNote+"."});
               // ROIC
               if(ceTA!=null && ceCL!=null){
                 var invCap = ceTA - ceCL;
                 if(invCap>0){
                   var roic = (nopat/invCap)*100;
                   ceRows.push({label:"ROIC", val:roic.toFixed(2)+"%", interp: roic>15?"Strong capital returns. NOPAT yield well above typical 8-10% cost-of-capital benchmark.":roic>10?"Solid capital returns. NOPAT yield above typical cost-of-capital benchmark.":roic>5?"Modest capital returns. NOPAT yield near or below cost-of-capital benchmark; value creation marginal.":"Weak capital returns. NOPAT yield below typical cost-of-capital; potential value destruction."});
-                  ceRows.push({label:"Invested Capital", val:"$"+(invCap/1e3).toFixed(2)+"B", interp:"Total Assets ÃÂ¢ÃÂÃÂ Current Liabilities. The capital structure deployed in operations after netting short-term obligations."});
+                  ceRows.push({label:"Invested Capital", val:"$"+(invCap/1e3).toFixed(2)+"B", interp:"Total Assets ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Current Liabilities. The capital structure deployed in operations after netting short-term obligations."});
                 }
               }
             }
             // Asset Turnover
             if(ceRev!=null && ceTA!=null && ceTA>0){
               var aTurn = ceRev/ceTA;
-              ceRows.push({label:"Asset Turnover", val:aTurn.toFixed(2)+"ÃÂÃÂ", interp: aTurn>1.5?"High asset productivity. Each dollar of assets generates significant revenue ÃÂ¢ÃÂÃÂ typical of capital-light operations.":aTurn>0.8?"Moderate asset productivity. Typical for diversified businesses.":aTurn>0.4?"Low asset productivity. Heavy fixed-asset base relative to revenue ÃÂ¢ÃÂÃÂ typical of capital-intensive industries.":"Very low asset productivity. Investigate whether assets are productive or whether balance sheet is bloated."});
+              ceRows.push({label:"Asset Turnover", val:aTurn.toFixed(2)+"ÃÂÃÂÃÂÃÂ", interp: aTurn>1.5?"High asset productivity. Each dollar of assets generates significant revenue ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ typical of capital-light operations.":aTurn>0.8?"Moderate asset productivity. Typical for diversified businesses.":aTurn>0.4?"Low asset productivity. Heavy fixed-asset base relative to revenue ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ typical of capital-intensive industries.":"Very low asset productivity. Investigate whether assets are productive or whether balance sheet is bloated."});
             }
             // ROA (restated)
             if(ceNI!=null && ceTA!=null && ceTA>0){
@@ -3949,9 +4027,9 @@ function genPDF(){
             if(iscC!=null) p1 += " (coupling C=" + iscC.toFixed(3) + ")";
             if(iscStab!=null) p1 += " with a stability score of " + iscStab.toFixed(0) + "/100";
             p1 += ". ";
-            if(iscRegime==="regulated") p1 += "The firmÃÂ¢ÃÂÃÂs structural drivers are tightly locked into the broader system, indicating stability across the seven-layer cascade. Regime transitions historically remain unlikely while this signature persists.";
-            else if(iscRegime==="bifurcating") p1 += "The firmÃÂ¢ÃÂÃÂs structural drivers are showing splitting dynamics, indicating divergence from the broader system. This regime has historically preceded both expansion and contraction phases; directional read requires the sector and traditional-metrics context above.";
-            else if(iscRegime==="critical") p1 += "The firm sits at a critical structural inflection. This regime has historically preceded major regime transitions in our 45-case dataset ÃÂ¢ÃÂÃÂ in either direction. Close monitoring of the seven-layer cascade is warranted.";
+            if(iscRegime==="regulated") p1 += "The firmÃÂÃÂ¢ÃÂÃÂÃÂÃÂs structural drivers are tightly locked into the broader system, indicating stability across the seven-layer cascade. Regime transitions historically remain unlikely while this signature persists.";
+            else if(iscRegime==="bifurcating") p1 += "The firmÃÂÃÂ¢ÃÂÃÂÃÂÃÂs structural drivers are showing splitting dynamics, indicating divergence from the broader system. This regime has historically preceded both expansion and contraction phases; directional read requires the sector and traditional-metrics context above.";
+            else if(iscRegime==="critical") p1 += "The firm sits at a critical structural inflection. This regime has historically preceded major regime transitions in our 45-case dataset ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ in either direction. Close monitoring of the seven-layer cascade is warranted.";
             else if(iscRegime==="transition" || iscRegime==="transitioning") p1 += "The firm is actively transitioning between regimes. Traditional metrics may lag this structural signal; the cascade view above describes which layers are leading the shift.";
             else p1 += "Regime classification is incomplete; refer to the seven-layer cascade above for granular structural signals.";
             var p1L = doc.splitTextToSize(p1, W-m*2);
@@ -3969,9 +4047,9 @@ function genPDF(){
             var p2 = "";
             if(altmanZ!=null) p2 += "Altman Z-Score of " + altmanZ.toFixed(2) + " " + (altmanZ>3?"places the firm in the safe zone":(altmanZ>1.8?"places the firm in the grey zone":"places the firm in the distress zone")) + ". ";
             if(piotF!=null) p2 += "Piotroski F-Score of " + piotF.toFixed(0) + "/9 " + (piotF>=7?"indicates strong fundamentals":(piotF>=4?"indicates mixed fundamentals":"indicates weak fundamentals")) + ". ";
-            if(icov!=null) p2 += "Interest coverage of " + icov.toFixed(1) + "ÃÂÃÂ " + (icov>6?"is healthy":(icov>3?"is adequate":"is thin")) + ". ";
+            if(icov!=null) p2 += "Interest coverage of " + icov.toFixed(1) + "ÃÂÃÂÃÂÃÂ " + (icov>6?"is healthy":(icov>3?"is adequate":"is thin")) + ". ";
             if(p2==="") p2 = "Traditional metrics are partially unavailable; the cascade and PE-style analyses above provide the structural read.";
-            else p2 += "Traditional metrics describe the firmÃÂ¢ÃÂÃÂs financial state; the structural cascade describes the dynamics shaping that state.";
+            else p2 += "Traditional metrics describe the firmÃÂÃÂ¢ÃÂÃÂÃÂÃÂs financial state; the structural cascade describes the dynamics shaping that state.";
             var p2L = doc.splitTextToSize(p2, W-m*2);
             doc.text(p2L,m,py);py+=p2L.length*4.5+5;
             
@@ -3989,7 +4067,7 @@ function genPDF(){
               doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);
               doc.text("Coupling Decomposition Read",m,py);py+=5;
               doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
-              var p4 = "The per-series coupling decomposition above identifies which structural drivers are carrying the firmÃÂ¢ÃÂÃÂs overall coupling signature. When income statement and balance sheet series show divergent regimes, the firm is in a state of structural reorganization ÃÂ¢ÃÂÃÂ stable on one dimension, shifting on another. Reading the regime mix alongside the traditional metrics provides a more complete picture than either view alone, and has historically improved lead time on regime transitions by 1-5 quarters relative to traditional credit analysis.";
+              var p4 = "The per-series coupling decomposition above identifies which structural drivers are carrying the firmÃÂÃÂ¢ÃÂÃÂÃÂÃÂs overall coupling signature. When income statement and balance sheet series show divergent regimes, the firm is in a state of structural reorganization ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ stable on one dimension, shifting on another. Reading the regime mix alongside the traditional metrics provides a more complete picture than either view alone, and has historically improved lead time on regime transitions by 1-5 quarters relative to traditional credit analysis.";
               var p4L = doc.splitTextToSize(p4, W-m*2);
               doc.text(p4L,m,py);py+=p4L.length*4.5+5;
             }
