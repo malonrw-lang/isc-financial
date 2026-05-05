@@ -1725,7 +1725,7 @@ function renderAll(d){
      val:null,
      st:'good'},
   ];
-  document.getElementById('cascadeArea').innerHTML=layers.map(function(l){
+  document.getElementById('cascadeArea').innerHTML=buildCascadeSignature(layers,d,r,C)+layers.map(function(l){
     var lc=l.st==='stress'?'var(--red)':l.st==='watch'?'var(--amber)':'var(--green)';
     var icon=l.st==='stress'?'&#10007;':l.st==='watch'?'&#9888;':'&#10003;';
     var featured=l.n.includes('&#9733;');
@@ -1959,6 +1959,76 @@ function destroyCharts(){
   Object.keys(charts).forEach(function(k){if(charts[k]){charts[k].destroy();charts[k]=null;}});
 }
 
+function buildCascadeSignature(layers, d, r, C){
+  if(!layers||layers.length<7)return '';
+  // Tally severity
+  var nStress=0, nWatch=0, nGood=0;
+  var stressedLayers=[];
+  layers.forEach(function(L){
+    if(L.st==='stress'){nStress++; stressedLayers.push(L.n.replace(/[^L0-9]/g,''));}
+    else if(L.st==='watch')nWatch++;
+    else nGood++;
+  });
+  // Build signature key from stressed/watch layer numbers
+  var stressed=layers.map(function(L,i){return L.st==='stress'?(i+1):null;}).filter(Boolean);
+  var watching=layers.map(function(L,i){return L.st==='watch'?(i+1):null;}).filter(Boolean);
+  var combined=stressed.concat(watching).sort(function(a,b){return a-b;});
+  // Recognize patterns
+  function has(arr,n){return arr.indexOf(n)>=0;}
+  var pattern='', narrative='', signatureColor='var(--dim)';
+  if(nStress===0 && nWatch===0){
+    pattern='Healthy Cascade';
+    signatureColor='var(--green)';
+    narrative=(d.company_name||d.ticker)+' is functioning across all 7 layers without measurable stress. Cash buffer absorbs short-term shocks (L1), market signals are stable (L2), debt is comfortably covered (L3), the ISC capital structure filter is in regulated regime (L4), operations generate sustainable margins (L5), retained earnings provide depth (L6), and management guidance has not produced credibility gaps (L7). This is the textbook resilient profile.';
+  }else if(has(stressed,4) && nStress===1 && nWatch<=1){
+    pattern='Pure ISC Bifurcation Signal';
+    signatureColor='var(--purple)';
+    narrative='The L4 ISC filter is signaling structural change while traditional layers (cash, debt coverage, margins, equity) still look acceptable. This is exactly the early-warning window ISC was designed to detect '+EMDASH+' the gap between when ISC sees structural deterioration and when conventional metrics catch up is typically 1'+ENDASH+'5 quarters. Watch L3 (debt coverage) and L5 (margins) for the cascade to spread.';
+  }else if(has(stressed,1) && has(stressed,3) && has(stressed,5)){
+    pattern='Spirit Airlines Pattern (L1+L3+L5)';
+    signatureColor='var(--red)';
+    narrative='Cash stress (L1), interest coverage failure (L3), and operating margin collapse (L5) together '+EMDASH+' the Spirit Airlines signature. Top-line revenue may still be growing, but each new dollar of revenue costs more to produce than it brings in, and the cash buffer cannot service the debt indefinitely. Historical resolution: 12'+ENDASH+'24 months to terminal event without a major restructuring.';
+  }else if(has(stressed,3) && has(stressed,5) && (has(stressed,7)||has(watching,7))){
+    pattern='WorldCom Pattern (L3+L5+L7)';
+    signatureColor='var(--red)';
+    narrative='Debt coverage stress (L3), margin compression (L5), and disclosure quality concerns (L7) together '+EMDASH+' the WorldCom signature. When operating margins are deteriorating AND interest coverage is below threshold AND earnings-to-cash conversion is poor, the surface financials are usually being held together by accounting choices that will eventually unwind. Historical resolution: 4'+ENDASH+'8 quarters to disclosure event.';
+  }else if(has(stressed,1) && has(stressed,4)){
+    pattern='Enron Pattern (L1+L4)';
+    signatureColor='var(--red)';
+    narrative='Working capital deficit (L1) combined with bifurcating ISC at L4 '+EMDASH+' the Enron signature. The L4 capital structure filter is amplifying stress while the L1 layer shows the underlying liquidity problem. When traditional metrics like Altman Z still look acceptable, off-balance-sheet structures may be hiding the true picture. Historical resolution: 4'+ENDASH+'5 quarters to disclosure event.';
+  }else if(nStress>=3){
+    pattern='Multi-Layer Stress';
+    signatureColor='var(--red)';
+    narrative=nStress+' layers are stressed simultaneously: '+stressed.map(function(n){return 'L'+n;}).join(', ')+'. Stress in multiple layers at once means the cascade is already in motion. The single most important predictor of recovery is whether the company has external capital access (parent, sponsor, or debt markets willing to lend) to bridge the operational gap. Without that, terminal event is a question of timing.';
+  }else if(nStress>=1){
+    pattern='Localized Stress';
+    signatureColor='var(--amber)';
+    narrative='Stress is concentrated in '+stressed.map(function(n){return 'L'+n;}).join(', ')+'. Stress in one layer typically cascades to adjacent layers within 2'+ENDASH+'4 quarters. ';
+    if(has(stressed,1))narrative+='Cash stress (L1) typically forces working capital cuts that propagate to L5 (margins) within 1'+ENDASH+'2 quarters. ';
+    if(has(stressed,3))narrative+='Debt coverage stress (L3) typically triggers covenant tightening that propagates to L4 (capital structure) within 2'+ENDASH+'4 quarters. ';
+    if(has(stressed,5))narrative+='Margin stress (L5) typically propagates upward to L4 (capital structure) and downward to L7 (disclosure quality) within 3'+ENDASH+'5 quarters. ';
+    narrative+='Watch the listed layers and the layers historically downstream of them.';
+  }else if(nWatch>=1){
+    pattern='Early Drift Points';
+    signatureColor='var(--amber)';
+    narrative=nWatch+' layer(s) on watch but no measurable stress. Drift in '+watching.map(function(n){return 'L'+n;}).join(', ')+' '+EMDASH+' worth tracking quarterly but not yet a structural concern. The transitioning regime sometimes precedes a regime break and sometimes self-corrects '+EMDASH+' the next 1'+ENDASH+'2 filings will tell.';
+  }
+  if(!pattern)return '';
+  // Build the summary card HTML
+  var sumHtml='';
+  sumHtml+='<div style="background:rgba(0,0,0,.18);border:1px solid '+signatureColor+';border-left-width:4px;border-radius:8px;padding:14px 18px;margin-bottom:16px">';
+  sumHtml+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">';
+  sumHtml+='<div style="flex:1"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Cascade Pattern</div>';
+  sumHtml+='<div style="font-size:15px;font-weight:700;color:'+signatureColor+'">'+pattern+'</div></div>';
+  sumHtml+='<div style="display:flex;gap:8px;font-family:var(--mono);font-size:11px">';
+  if(nStress>0)sumHtml+='<div style="background:rgba(239,68,68,.12);color:var(--red);padding:4px 10px;border-radius:4px;font-weight:700">'+nStress+' stressed</div>';
+  if(nWatch>0)sumHtml+='<div style="background:rgba(245,158,11,.12);color:var(--amber);padding:4px 10px;border-radius:4px;font-weight:700">'+nWatch+' watch</div>';
+  if(nGood>0)sumHtml+='<div style="background:rgba(16,185,129,.12);color:var(--green);padding:4px 10px;border-radius:4px;font-weight:700">'+nGood+' healthy</div>';
+  sumHtml+='</div></div>';
+  sumHtml+='<div style="font-size:13px;color:#A0B8D0;line-height:1.7">'+narrative+'</div>';
+  sumHtml+='</div>';
+  return sumHtml;
+}
 function renderTabCommentaries(d){
   var IS=d.income_statement||{}, BS=d.balance_sheet||{}, CF=d.cash_flow||{}, TM=d.traditional||{}, isc=d.isc||{};
   var r=(isc.regime||'').toLowerCase();
