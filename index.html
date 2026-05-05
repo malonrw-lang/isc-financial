@@ -1239,7 +1239,22 @@ function closeHelp() { document.getElementById('helpModal').classList.remove('op
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
    NAVIGATION
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function reparentLegalPages(){
+  ['terms','privacy','disclaimer'].forEach(function(p){
+    var el=document.getElementById('pg-'+p);
+    if(el && el.parentNode && el.parentNode.id==='pg-home'){
+      document.body.appendChild(el);
+    }
+  });
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',reparentLegalPages);
+}else{
+  reparentLegalPages();
+}
+
 function showPage(pg, el) {
+  if(typeof reparentLegalPages==='function')reparentLegalPages();
   ['home','analyzer','pricing','about','terms','privacy','disclaimer'].forEach(function(p){
     document.getElementById('pg-'+p).classList.toggle('hidden', p!==pg);
   });
