@@ -231,6 +231,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 /* TRIAL BANNER */
 .trial-banner{background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(245,158,11,.05));border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px}
 .trial-days{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--amber)}
+/* Legal page overlay - lets legal pages render even when nested inside pg-home */
+.legal-page-overlay { position:fixed !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important; z-index:100 !important; overflow-y:auto !important; background:var(--bg) !important; padding-top:60px !important; }
 </style>
 </head>
 <body>
@@ -1241,6 +1243,11 @@ function showPage(pg, el) {
   ['home','analyzer','pricing','about','terms','privacy','disclaimer'].forEach(function(p){
     document.getElementById('pg-'+p).classList.toggle('hidden', p!==pg);
   });
+  // Legal pages are nested inside pg-home; use overlay class to lift them above
+  ['terms','privacy','disclaimer'].forEach(function(p){
+    var elPg=document.getElementById('pg-'+p);
+    if(elPg) elPg.classList.toggle('legal-page-overlay', pg===p);
+  });
   document.querySelectorAll('.nl').forEach(function(b){b.classList.remove('on');});
   var t = document.getElementById('nl-'+pg);
   if(t) t.classList.add('on');
@@ -1475,9 +1482,9 @@ function rPlain(r,C,name,financials){
         +(fcf!=null&&fcf<0?' &#8212; negative free cash flow of '+Math.abs(Math.round(fcf/1000))+'B':'')
         +(intCov!=null&&intCov<2?' with interest coverage of only '+intCov.toFixed(1)+'x':'')
         +'. This is the high-conviction ISC signal &#8212; coupling C = '+(C!=null?C.toFixed(3):'N/A')+' AND financials deteriorating together. '
-        +'Both ISC and traditional metrics are pointing the same direction. This is the Enron/WorldCom/Spirit Airlines pattern. Elevated caution.';
+        +'Both ISC and traditional metrics are pointing the same direction. This pattern has appeared in historical cases including Enron, WorldCom, and Spirit Airlines. Past patterns do not predict individual outcomes; this is a structural signal, not a prediction.';
     } else {
-      return '<strong style="color:var(--red)">Structural stress detected.</strong> '+name+' is showing the amplifying pattern &#8212; small financial problems are feeding each other rather than being absorbed. ISC coupling C = '+(C!=null?C.toFixed(3):'N/A')+'. This is the pattern ISC detected before Enron (2001), WorldCom (2002), and Spirit Airlines (2022&#8211;2026). Cross-reference with the financial statement tabs to assess whether the signal is confirmed by deteriorating fundamentals.';
+      return '<strong style="color:var(--red)">Structural stress detected.</strong> '+name+' is showing the amplifying pattern &#8212; small financial problems are feeding each other rather than being absorbed. ISC coupling C = '+(C!=null?C.toFixed(3):'N/A')+'. This pattern has appeared in historical cases including Enron (2001), WorldCom (2002), and Spirit Airlines (2022&#8211;2026). Cross-reference with the financial statement tabs to assess whether the signal is confirmed by deteriorating fundamentals.';
     }
   }
   
