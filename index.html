@@ -2932,6 +2932,11 @@ function runDemo(name){
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 function genPDF(){
   if(!D)return;
+  // Batch 7a tier gate - free tier cannot generate PDFs
+  if(typeof tier!=='undefined' && tier==='free'){
+    alert('PDF reports are an Investor tier feature.\n\nUpgrade to Investor ($19.99/mo) to download structured analysis reports for any company.');
+    return;
+  }
   var btn=document.querySelector('.pdf-btn');
   btn.textContent='&#9203; Generating...';btn.disabled=true;
   var s=document.createElement('script');
@@ -2955,6 +2960,13 @@ function genPDF(){
       doc.text((D.company_name||D.ticker)+' ('+D.ticker+')',m,48);
       doc.setFontSize(10);
       doc.text([D.sector,D.industry,D.analysis_date].filter(Boolean).join('  &#183;  '),m,57);
+      // Batch 7a tier badge on cover
+      var tierLabel=(typeof tier!=='undefined'?tier:'investor').toUpperCase()+' REPORT';
+      var tierColor=(typeof tier!=='undefined'&&tier==='pro500')?[167,139,250]:(typeof tier!=='undefined'&&tier==='pro')?[0,200,255]:[16,185,129];
+      doc.setDrawColor(tierColor[0],tierColor[1],tierColor[2]);doc.setFillColor(tierColor[0],tierColor[1],tierColor[2]);
+      doc.roundedRect(W-m-44,11,38,8,1,1,'F');
+      doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(7,16,30);
+      doc.text(tierLabel,W-m-25,16.5,{align:'center'});
 
       // Verdict box
       doc.setFillColor(rgb[0],rgb[1],rgb[2],20);doc.setDrawColor(rgb[0],rgb[1],rgb[2]);doc.setLineWidth(0.5);
@@ -3051,6 +3063,35 @@ function genPDF(){
         doc.text('Not financial advice. Structural susceptibility signal only. AI assistance disclosed.  Page '+p+' of '+pg,m,287);
       }
 
+      // Batch 7a universal legal-disclaimer page (every tier)
+      doc.addPage();
+      doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');
+      doc.setFillColor(245,158,11);doc.rect(0,0,W,4,'F');
+      doc.setTextColor(245,158,11);doc.setFontSize(10);doc.setFont('helvetica','bold');
+      doc.text('IMPORTANT LEGAL DISCLAIMER',m,18);
+      doc.setTextColor(241,245,249);doc.setFontSize(20);doc.setFont('helvetica','bold');
+      doc.text('Not Investment Advice',m,32);
+      var legalY=44;
+      var legalSections=[
+        ['Not Investment Advice','The Filter Lab LLC and ISC Financial provide structural analysis tools for educational and informational purposes only. We are NOT a registered investment advisor, broker-dealer, or financial planner. Nothing in this report constitutes investment, legal, tax, or accounting advice.'],
+        ['About ISC','ISC (Isomorphic Systems Consolidation) is a research framework that measures coupling patterns in financial time series. While ISC has shown statistical accuracy on a curated set of 45 historical cases (AUC 0.96), past patterns do not predict future outcomes for any individual company.'],
+        ['No Recommendations','References to specific tickers, sectors, or historical companies are illustrative of the framework only and do not constitute recommendations to buy, sell, or hold any security.'],
+        ['No Warranty','Analysis results are provided AS IS without warranty. Data is sourced from third parties (SEC EDGAR, Yahoo Finance) and may contain errors, omissions, or delays.'],
+        ['User Assumes All Risk','You are solely responsible for your investment decisions. Consult a licensed financial advisor before acting on any analysis. Past performance is not indicative of future results.'],
+        ['Limitation of Liability','To the maximum extent permitted by law, The Filter Lab LLC shall not be liable for any direct, indirect, incidental, consequential, or punitive damages arising from use of this analysis, including investment losses.'],
+        ['AI Disclosure','This report uses artificial intelligence (Claude by Anthropic) for educational analysis. AI-generated content may contain errors. Not a substitute for professional advice.'],
+        ['Jurisdiction','The Filter Lab LLC is a Texas LLC. Use of this report and the underlying service constitutes acceptance of the laws of the State of Texas as governing law.']
+      ];
+      legalSections.forEach(function(sec){
+        if(legalY>250){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');legalY=20;}
+        doc.setFontSize(9.5);doc.setFont('helvetica','bold');doc.setTextColor(241,245,249);
+        doc.text(sec[0],m,legalY);legalY+=5;
+        doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(160,184,208);
+        var legalLines=doc.splitTextToSize(sec[1],W-m*2);
+        doc.text(legalLines,m,legalY);legalY+=legalLines.length*4+4;
+      });
+      doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(107,114,128);
+      doc.text('Full disclaimer: '+location.origin+'/?page=disclaimer  &#183;  Questions: malonrw@gmail.com',m,265);
       doc.save((D.ticker||'ISC')+'_ISC_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
       btn.textContent='&#11015; Download PDF Report';btn.disabled=false;
     }catch(err){btn.textContent='&#11015; Download PDF Report';btn.disabled=false;console.error(err);}
