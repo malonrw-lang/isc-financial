@@ -1622,7 +1622,7 @@ function renderAll(d){
 
   // FLAGS
   var flags=[];
-  if(C!=null&&C>0.3)flags.push({t:'Bifurcating Coupling &#8212; Structural Stress',d:'C='+C.toFixed(3)+'. Financial dynamics are amplifying. This is the pre-collapse pattern. ISC triggered at this level before Enron, WorldCom, and Spirit Airlines.',c:'al-r'});
+  if(C!=null&&C>0.3){var __hg=(typeof detectHyperGrowth!=='undefined')?detectHyperGrowth(d,r,C):null;if(__hg){flags.push({t:String.fromCharCode(9650)+' Phase Transition Detected - Hyper-Growth',d:'C='+C.toFixed(3)+'. ISC mathematics flag a regime change, but underlying fundamentals are exceptional. The same coupling signature appears before structural collapses (Enron, WorldCom, Spirit) AND before once-in-a-generation positive transformations (NVIDIA 2023-2025, early Tesla, AWS pivot). Direction depends on whether margins and moats hold as scale increases.',c:'al-b'});}else{flags.push({t:'Bifurcating Coupling - Structural Stress',d:'C='+C.toFixed(3)+'. Financial dynamics are amplifying. This is the pre-collapse pattern. ISC triggered at this level before Enron, WorldCom, and Spirit Airlines.',c:'al-r'});}}
   if(altZ!=null&&altZ<1.81)flags.push({t:'Altman Z in Distress Zone',d:'Z='+altZ.toFixed(2)+'. Below 1.81 is the traditional distress threshold. Note: ISC typically leads this signal by 1&#8211;5 quarters.',c:'al-r'});
   if(intCov!=null&&intCov<1.5)flags.push({t:'Interest Coverage Critical',d:intCov.toFixed(1)+'x. Earnings barely cover interest payments. Severe leverage stress at ISC Layer 3.',c:'al-r'});
   var revG=gv(IS,'revenue_growth');
@@ -2014,7 +2014,6 @@ function isPeerLocked(){
 function getPeerLockState(){
   var t=(typeof tier!=='undefined'?tier:'free');
   if(t==='pro500'||t==='pro')return 'none';
-  if(t==='investor')return 'values';
   return 'full';
 }
 function fmtMcap(m){if(m==null)return '';if(m>=1000)return '$'+(m/1000).toFixed(1)+'T';return '$'+m.toFixed(0)+'B';}
@@ -2156,11 +2155,12 @@ function renderPeers(d){
   });
   html+='</tbody></table></div>';
   // Lock overlay for free tier
-  // Values-locked banner (investor tier - names visible, metrics blurred)
-  if(getPeerLockState()==='values'){
+  // Investor tier banner (rows visible, all values blurred - upgrade-to-Pro nudge)
+  var __currentTier=(typeof tier!=='undefined'?tier:'free');
+  if(__currentTier==='investor'){
     html+='<div style="margin-top:14px;padding:12px 14px;background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.2);border-radius:8px;display:flex;align-items:center;gap:14px;font-size:12px">';
     html+='<div style="font-size:18px">' + String.fromCharCode(128274) + '</div>';
-    html+='<div style="flex:1;color:#A0B8D0">Peer ISC values and traditional metrics are unlocked on Pro tier. Names and sectors visible on Investor.</div>';
+    html+='<div style="flex:1;color:#A0B8D0">'+visiblePeers.length+' peers in your sector identified. Upgrade to Pro tier to unlock peer names, ISC values, and traditional metrics.</div>';
     html+='<button onclick="showPage(\'pricing\')" style="background:var(--purple);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">Upgrade to Pro</button>';
     html+='</div>';
   }
@@ -2168,7 +2168,7 @@ function renderPeers(d){
     html+='<div style="margin-top:14px;padding:14px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:8px;display:flex;align-items:center;gap:14px">';
     html+='<div style="font-size:24px">' + String.fromCharCode(128274) + '</div>';
     html+='<div style="flex:1"><div style="font-size:13px;color:var(--wh);font-weight:700;margin-bottom:4px">Peer values blurred on Free tier</div>';
-    html+='<div style="font-size:12px;color:#A0B8D0">Upgrade to Investor tier to see all 5 peer names, or Pro tier to unlock peer ISC values and traditional metrics. Peers are pre-selected by sector + market cap similarity.</div></div>';
+    html+='<div style="font-size:12px;color:#A0B8D0">Upgrade to Investor tier to see how many peers are in your sector. Upgrade to Pro tier to unlock peer names, ISC values, and traditional metrics. Peers are pre-selected by sector + market cap similarity.</div></div>';
     html+='<button onclick="showPage(\'pricing\')" style="background:var(--purple);color:#fff;border:none;border-radius:6px;padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">View plans</button>';
     html+='</div>';
   }
