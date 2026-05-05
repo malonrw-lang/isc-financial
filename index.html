@@ -1510,9 +1510,21 @@ function renderAll(d){
     banner.id='demoBanner';
     banner.style.cssText='background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;line-height:1.6';
     banner.innerHTML='<div style="display:flex;align-items:flex-start;gap:12px"><div style="font-size:18px;line-height:1.2">' + String.fromCharCode(128202) + '</div><div style="flex:1"><div style="color:var(--purple);font-weight:700;margin-bottom:4px">Historical demo ' + EMDASH + ' '+lbl+'</div><div style="color:#A0B8D0">'+blurb+' Click "Run Full Analysis" to fetch live EDGAR data instead.</div></div></div>';
-    var verdictCard=document.getElementById('verdictCard');
-    if(verdictCard&&verdictCard.parentNode){
-      verdictCard.parentNode.insertBefore(banner,verdictCard);
+    // Demo banner outside tab content - finds tab-bar and inserts banner BEFORE it,
+    // so the banner stays visible regardless of which tab is active
+    var tabBar=document.querySelector('.tab-bar');
+    if(tabBar&&tabBar.parentNode){
+      // Remove any prior demo banner first to avoid duplicates on re-render
+      var priorBanner=document.getElementById('demoBannerHost');
+      if(priorBanner&&priorBanner.parentNode)priorBanner.parentNode.removeChild(priorBanner);
+      banner.id='demoBannerHost';
+      tabBar.parentNode.insertBefore(banner,tabBar);
+    }else{
+      // Fallback: inject before verdictCard if tab-bar somehow not found
+      var verdictCard=document.getElementById('verdictCard');
+      if(verdictCard&&verdictCard.parentNode){
+        verdictCard.parentNode.insertBefore(banner,verdictCard);
+      }
     }
   })();
   var desc=document.getElementById('cmpDesc');
@@ -1957,6 +1969,15 @@ function renderAll(d){
   })();
   // Reset chat
   document.getElementById('chatHistory').innerHTML='';chatCtx=[];
+  // Remove any prior demo banner if this is not a demo analysis
+  (function(){
+    var dt=String(d.analysis_date||'');
+    var isDemoData=dt==='2001-Q3'||dt==='2002-Q1'||dt==='2022-FY';
+    if(!isDemoData){
+      var prior=document.getElementById('demoBannerHost');
+      if(prior&&prior.parentNode)prior.parentNode.removeChild(prior);
+    }
+  })();
   // Render statement-tab commentary (2c)
   try{renderTabCommentaries(d);}catch(e){console.warn('renderTabCommentaries failed:',e);}
   try{renderPeers(d);}catch(e){console.warn('renderPeers failed:',e);}
@@ -1977,9 +1998,11 @@ function findPeers(ticker, sector, maxN){
     if(!s)return s;
     var x=String(s).trim();
     if(x==='Consumer Discretionary'||x==='Consumer Cyclical')return 'Consumer Cyclical';
-    if(x==='Communication Services'||x==='Communications')return 'Communication Services';
+    if(x==='Communication Services'||x==='Communications'||x==='Telecommunications')return 'Communication Services';
     if(x==='Financial Services'||x==='Financials')return 'Financial Services';
     if(x==='Healthcare'||x==='Health Care')return 'Healthcare';
+    if(x==='Airlines'||x==='Aerospace & Defense'||x==='Industrials')return 'Industrials';
+    if(x==='Energy Trading'||x==='Oil & Gas'||x==='Energy')return 'Energy';
     return x;
   }
   var targetSector=normSector(sector);
@@ -2751,7 +2774,7 @@ function runDemo(name){
   }else if(name==='worldcom'){
     d=mkSim('WCOM');
     d.company_name='WorldCom Inc (Historical '+EMDASH+' Q1 2002)';
-    d.sector='Telecommunications'; d.industry='Long Distance & Internet';
+    d.sector='Communication Services'; d.industry='Telecom - Long Distance & Internet';
     d.analysis_date='2002-Q1'; d.isSimulation=false;
     d.data_sources={edgar:true,yfinance:true};
     d.isc.C=0.448; d.isc.regime='bifurcating'; d.isc.stability_score=18;
@@ -2768,7 +2791,7 @@ function runDemo(name){
   }else{
     d=mkSim('SAVE');
     d.company_name='Spirit Airlines (Historical '+EMDASH+' FY 2022)';
-    d.sector='Airlines'; d.industry='Ultra Low Cost Carrier';
+    d.sector='Industrials'; d.industry='Airlines - Ultra Low Cost Carrier';
     d.analysis_date='2022-FY'; d.isSimulation=false;
     d.data_sources={edgar:true,yfinance:true};
     d.isc.C=0.541; d.isc.regime='bifurcating'; d.isc.stability_score=12;
