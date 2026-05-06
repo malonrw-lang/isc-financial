@@ -566,7 +566,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">No Recommendations</h3>
         <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">ISC Financial does not recommend any particular security, sector, strategy, or transaction. References to specific tickers, sectors, or historical companies (Enron, WorldCom, Spirit Airlines, etc.) are illustrative of the framework only and do not constitute recommendations to buy, sell, or hold those or any related securities.</p>
         <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">No Warranty</h3>
-        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">Analysis results are provided AS IS without warranty of any kind, express or implied. We do not warrant that results are accurate, complete, current, or fit for any particular purpose. Data is sourced from third parties (SEC EDGAR, Yahoo Finance) and may contain errors, omissions, or delays.</p>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">Analysis results are provided AS IS without warranty of any kind, express or implied. We do not warrant that results are accurate, complete, current, or fit for any particular purpose. Data is sourced from third parties (SEC EDGAR, Tiingo) and may contain errors, omissions, or delays.</p>
         <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">User Assumes All Risk</h3>
         <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">You are solely responsible for your investment decisions. You should consult a licensed financial advisor, tax professional, and/or legal counsel before acting on any analysis from this site. Past performance is not indicative of future results. You may lose money &#8212; including all of your invested capital.</p>
         <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">AI Disclosure</h3>
@@ -588,7 +588,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
       <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">What We Collect</h3>
         <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">ISC Financial collects: (1) ticker queries you submit; (2) chat messages to the AI Analyst feature; (3) basic usage analytics such as page views and session duration; (4) email and payment information when you create a paid account. Free tier use does not require an account or personally identifiable information.</p>
         <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Data Sources</h3>
-        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">We retrieve company financial data from public sources: SEC EDGAR (filings) and Yahoo Finance (market data). We do not permanently store this data; it is fetched fresh per analysis.</p>
+        <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">We retrieve company financial data from public sources: SEC EDGAR (filings) and Tiingo (market data). We do not permanently store this data; it is fetched fresh per analysis.</p>
         <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">What We Do Not Do</h3>
         <p style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:10px">We do NOT sell your data. We do NOT share your data with advertisers. We do NOT use your queries to train AI models without explicit consent.</p>
         <h3 style="font-size:15px;font-weight:700;color:var(--wh);margin:18px 0 8px">Third-Party Services</h3>
@@ -698,7 +698,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <div id="uploadStatus" style="font-size:11px;color:var(--green);margin-top:4px;display:none"></div>
         </div>
         <div id="edgar-info" style="margin-top:6px;font-size:11px;color:var(--dim);line-height:1.6">Pulls directly from SEC EDGAR. Works for any US public company with 10-K/10-Q filings.</div>
-        <div id="history-info" style="margin-top:6px;font-size:11px;color:var(--dim);line-height:1.6;display:none">Uses Yahoo Finance price history to compute ISC on stock price volatility and momentum.</div>
+        <div id="history-info" style="margin-top:6px;font-size:11px;color:var(--dim);line-height:1.6;display:none">Uses Tiingo daily price history to compute the variance EWS on stock price dynamics.</div>
       </div>
 
       <!-- Window -->
@@ -820,7 +820,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
             <div id="verdictCard" class="verdict-card"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div class="card">
-                <div class="sb-lbl" style="margin-bottom:10px">Variance EWS Score <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
+                <div class="sb-lbl" style="margin-bottom:10px">Variance Early Warning Signal (EWS) <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
                 <div id="gaugeArea"></div>
               </div>
               <div class="card">
@@ -843,7 +843,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <div id="t-charts" class="tab-content hidden">
             <div class="card-hi">
               <div class="sb-lbl" style="margin-bottom:4px">Price History &#8212; 12 Months <button class="mhelp" onclick="showHelp('price-chart')">?</button></div>
-              <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Daily closing price from Yahoo Finance. Shows price trend alongside ISC regime periods.</div>
+              <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Daily closing prices from Tiingo. Shows price trend alongside variance EWS regime periods.</div>
               <div class="chart-wrap"><canvas id="priceChart" height="180"></canvas></div>
             </div>
             <div style="display:grid;grid-template-columns:1fr;gap:14px">
@@ -882,8 +882,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
                 <div id="heatmapArea" style="min-height:220px"></div>
               </div>
               <div class="card">
-                <div class="sb-lbl" style="margin-bottom:10px">ISC Coupling Spread <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
-                <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Distribution of coupling values across financial series. Narrow box = concentrated signal. Wide box = broad-based regime change.</div>
+                <div class="sb-lbl" style="margin-bottom:10px">Series Trend Spread <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
+                <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Distribution of trend strength across this company's financial series. Each dot is one series (revenue, op income, etc.). Magnitude near 1 = strong trend; near 0 = noise.</div>
                 <div id="boxplotArea" style="min-height:220px"></div>
               </div>
             </div>
@@ -1261,7 +1261,7 @@ var HELP = {
   'data-sources': {
     title: '&#55357;&#56522; Data Sources Explained',
     body: `<div style="margin-bottom:14px"><strong style="color:var(--cyan)">&#55357;&#56522; EDGAR (Default)</strong><br><span style="font-size:13px;color:var(--dim)">Pulls real financial statements directly from SEC EDGAR filings (10-K annual reports and 10-Q quarterly reports). Works for any US public company. ISC coupling is computed on quarterly financial time series &#8212; revenue, operating income, net income, cash flow.</span></div>
-    <div style="margin-bottom:14px"><strong style="color:var(--cyan)">&#55357;&#56520; Price History</strong><br><span style="font-size:13px;color:var(--dim)">Uses Yahoo Finance daily price history to compute ISC on stock price volatility and momentum. Useful when EDGAR data is thin (new companies, thin filers). ISC on price captures market-level structural dynamics rather than accounting-level dynamics.</span></div>
+    <div style="margin-bottom:14px"><strong style="color:var(--cyan)">&#55357;&#56520; Price History</strong><br><span style="font-size:13px;color:var(--dim)">Uses Tiingo daily price history to compute the variance Early Warning Signal (EWS) on stock price dynamics. Useful when EDGAR fundamentals are thin (new companies, foreign filers). The variance EWS captures market-level structural dynamics rather than accounting-level dynamics.</span></div>
     <div><strong style="color:var(--cyan)">&#11014; Upload (CSV)</strong><br><span style="font-size:13px;color:var(--dim)">Upload your own financial data as a CSV file. This is designed for:<br>&#8226; Private companies not on EDGAR<br>&#8226; Custom financial time series<br>&#8226; Non-US companies<br>&#8226; Proprietary datasets<br><br>Format: First column = dates, remaining columns = financial metrics. ISC will compute coupling on each numeric column.</span></div>`
   },
   'analysis-window': {
@@ -1281,7 +1281,7 @@ var HELP = {
   },
   'price-chart': {
     title: '&#55357;&#56520; Price History Chart',
-    body: `<p style="margin-bottom:12px">The price chart shows 12 months of daily closing prices from Yahoo Finance. The background shading indicates the current ISC regime &#8212; green for regulated, amber for transitioning, red for bifurcating.</p>
+    body: `<p style="margin-bottom:12px">The price chart shows 12 months of daily closing prices from Tiingo. The background shading indicates the current variance EWS regime &#8212; green for stable, amber for elevated/rising, red for distressed.</p>
     <p style="margin-bottom:12px"><strong>What to look for:</strong> A declining price in a bifurcating ISC regime confirms the structural deterioration is showing up in market valuations. A stable or rising price in a bifurcating regime is the most dangerous signal &#8212; it means the market hasn't priced in the structural risk yet. That's the early window.</p>
     <p style="font-size:12px;color:var(--dim)">Enron in 2001: Price near highs. ISC already bifurcating. The market didn't know what ISC could already detect.</p>`
   },
@@ -2906,7 +2906,12 @@ function renderCharts(d){
     hHtml+='</div>';
     heatArea.innerHTML=hHtml;
   }
-  // Box-and-whisker (ISC Coupling Spread)
+  // Box-and-whisker (Series Trend Spread) — Batch 7h.8
+  // Plots distribution of trend_rho (Spearman correlation of each fundamental
+  // series with time) across all available series. Range is [-1, +1].
+  // |rho| close to 1 = strong directional trend; close to 0 = noise.
+  // Colors reflect magnitude (not direction): a strongly trending company is
+  // "concentrated signal" regardless of whether the trend is up or down.
   var boxArea=document.getElementById('boxplotArea');
   if(boxArea){
     var bs=isc.by_series||{};
@@ -2925,24 +2930,28 @@ function renderCharts(d){
       var minV=sorted[0]; var maxV=sorted[n-1];
       var iqr=q3-q1;
       var w=320,h=180,pad=24;
-      var domMin=Math.min(-0.7,minV-0.1); var domMax=Math.max(0.7,maxV+0.1);
+      // Domain fixed at [-1, +1] — trend_rho's natural range
+      var domMin=-1; var domMax=1;
       function xs(v){return pad+(v-domMin)/(domMax-domMin)*(w-pad*2);}
       var midY=h/2;
       var svg='<svg viewBox="0 0 '+w+' '+h+'" width="100%" preserveAspectRatio="xMidYMid meet">';
       svg+='<rect x="'+pad+'" y="'+(midY-2)+'" width="'+(w-pad*2)+'" height="4" fill="rgba(255,255,255,.04)"/>';
-      [-0.5,-0.1,0.3].forEach(function(tick){var x=xs(tick);var col=tick==-0.1?'#F59E0B':tick==0.3?'#EF4444':'#10B981';svg+='<line x1="'+x+'" y1="'+(midY-30)+'" x2="'+x+'" y2="'+(midY+30)+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3" opacity="0.4"/>';svg+='<text x="'+x+'" y="'+(midY+50)+'" text-anchor="middle" fill="'+col+'" font-size="9" opacity="0.7">'+tick.toFixed(1)+'</text>';});
-      var boxColor=med>0.3?'#EF4444':med>-0.1?'#F59E0B':'#10B981';
+      // Tick marks: 0 (no trend), ±0.6 (strong trend either direction)
+      [-0.6,0,0.6].forEach(function(tick){var x=xs(tick);var col=tick==0?'#6B7280':'#9CA3AF';svg+='<line x1="'+x+'" y1="'+(midY-30)+'" x2="'+x+'" y2="'+(midY+30)+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3" opacity="0.4"/>';svg+='<text x="'+x+'" y="'+(midY+50)+'" text-anchor="middle" fill="'+col+'" font-size="9" opacity="0.7">'+tick.toFixed(1)+'</text>';});
+      // Box color reflects magnitude of median trend (regardless of direction)
+      var medMag=Math.abs(med);
+      var boxColor=medMag>0.6?'#EF4444':medMag>0.3?'#F59E0B':'#10B981';
       svg+='<line x1="'+xs(minV)+'" y1="'+(midY-12)+'" x2="'+xs(minV)+'" y2="'+(midY+12)+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(maxV)+'" y1="'+(midY-12)+'" x2="'+xs(maxV)+'" y2="'+(midY+12)+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(minV)+'" y1="'+midY+'" x2="'+xs(q1)+'" y2="'+midY+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(q3)+'" y1="'+midY+'" x2="'+xs(maxV)+'" y2="'+midY+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<rect x="'+xs(q1)+'" y="'+(midY-22)+'" width="'+(xs(q3)-xs(q1))+'" height="44" fill="'+boxColor+'" fill-opacity="0.18" stroke="'+boxColor+'" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(med)+'" y1="'+(midY-22)+'" x2="'+xs(med)+'" y2="'+(midY+22)+'" stroke="'+boxColor+'" stroke-width="2.5"/>';
-      seriesVals.forEach(function(sv){var ptColor=sv.v>0.3?'#EF4444':sv.v>-0.1?'#F59E0B':'#10B981';svg+='<circle cx="'+xs(sv.v)+'" cy="'+midY+'" r="3" fill="'+ptColor+'" fill-opacity="0.85" stroke="'+ptColor+'" stroke-width="1"><title>'+sv.n+': '+sv.v.toFixed(3)+'</title></circle>';});
+      seriesVals.forEach(function(sv){var ptMag=Math.abs(sv.v);var ptColor=ptMag>0.6?'#EF4444':ptMag>0.3?'#F59E0B':'#10B981';svg+='<circle cx="'+xs(sv.v)+'" cy="'+midY+'" r="3" fill="'+ptColor+'" fill-opacity="0.85" stroke="'+ptColor+'" stroke-width="1"><title>'+sv.n+': '+sv.v.toFixed(3)+'</title></circle>';});
       svg+='<text x="'+pad+'" y="20" fill="#9CA3AF" font-size="10">min: '+minV.toFixed(3)+'</text>';
       svg+='<text x="'+(w-pad)+'" y="20" text-anchor="end" fill="#9CA3AF" font-size="10">max: '+maxV.toFixed(3)+'</text>';
       svg+='<text x="'+(w/2)+'" y="20" text-anchor="middle" fill="'+boxColor+'" font-size="11" font-weight="700">median: '+med.toFixed(3)+'</text>';
-      svg+='<text x="'+(w/2)+'" y="'+(h-4)+'" text-anchor="middle" fill="#6B7280" font-size="9">'+seriesVals.length+' series '+EMDASH+' IQR '+iqr.toFixed(3)+(iqr<0.2?' (concentrated)':iqr<0.5?' (moderate)':' (broad-based)')+'</text>';
+      svg+='<text x="'+(w/2)+'" y="'+(h-4)+'" text-anchor="middle" fill="#6B7280" font-size="9">'+seriesVals.length+' series '+EMDASH+' IQR '+iqr.toFixed(3)+(iqr<0.3?' (concentrated)':iqr<0.7?' (moderate)':' (broad-based)')+'</text>';
       svg+='</svg>';
       boxArea.innerHTML=svg;
     }
@@ -4458,7 +4467,7 @@ function genPDF(){
         ['',"The Filter Lab LLC and ISC Financial provide structural analysis tools for educational and informational purposes only. We are NOT a registered investment advisor, broker-dealer, or financial planner. Nothing in this report constitutes investment, legal, tax, or accounting advice."],
         ['About ISC','ISC (Isomorphic Systems Consolidation) is a research framework that measures coupling patterns in financial time series. While ISC has shown statistical accuracy on a curated set of 45 historical cases (AUC 0.96), past patterns do not predict future outcomes for any individual company.'],
         ['No Recommendations','References to specific tickers, sectors, or historical companies are illustrative of the framework only and do not constitute recommendations to buy, sell, or hold any security.'],
-        ['No Warranty','Analysis results are provided AS IS without warranty. Data is sourced from third parties (SEC EDGAR, Yahoo Finance) and may contain errors, omissions, or delays.'],
+        ['No Warranty','Analysis results are provided AS IS without warranty. Data is sourced from third parties (SEC EDGAR, Tiingo) and may contain errors, omissions, or delays.'],
         ['User Assumes All Risk','You are solely responsible for your investment decisions. Consult a licensed financial advisor before acting on any analysis. Past performance is not indicative of future results.'],
         ['Limitation of Liability','To the maximum extent permitted by law, The Filter Lab LLC shall not be liable for any direct, indirect, incidental, consequential, or punitive damages arising from use of this analysis, including investment losses.'],
         ['AI Disclosure','This report uses artificial intelligence (Claude by Anthropic) for educational analysis. AI-generated content may contain errors. Not a substitute for professional advice.'],
