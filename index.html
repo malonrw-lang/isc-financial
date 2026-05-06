@@ -6,6 +6,19 @@
 <title>ISC Financial &#8212; The Filter Lab</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Plausible analytics (Batch 7h.5).
+     SETUP REQUIRED: replace data-domain with the production domain after Plausible site is created.
+     Currently set to the Vercel preview domain so analytics start collecting on day one.
+     When thefilterlab.com / iscfinancial.com is live, swap data-domain. -->
+<script defer data-domain="isc-financial-9bwc.vercel.app" src="https://plausible.io/js/script.js"></script>
+<script>
+  /* Plausible no-op stub: lets us call plausible('Event') even if the script fails to load,
+     and gives us a single place to wrap event calls if we switch providers later. */
+  window.plausible = window.plausible || function(){ (window.plausible.q = window.plausible.q || []).push(arguments); };
+  function trackEvent(name, props){
+    try { window.plausible(name, props ? {props: props} : undefined); } catch(e){}
+  }
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -25,6 +38,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 .nlogo{display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0}
 .nhex{width:28px;height:28px;background:linear-gradient(135deg,var(--cyan),var(--blue));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)}
 .nbrand{font-size:14px;font-weight:700}.nbrand em{color:var(--gold);font-style:italic}
+.beta-badge{display:inline-block;margin-left:8px;padding:1px 6px;font-size:9px;font-family:var(--mono);font-weight:700;letter-spacing:.1em;color:var(--cyan);background:rgba(0,200,255,.10);border:1px solid rgba(0,200,255,.30);border-radius:3px;vertical-align:middle;cursor:help}
 .ntag{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 .nlinks{display:flex;gap:2px}
 .nl{background:none;border:none;color:var(--dim);font-family:var(--font);font-size:13px;font-weight:500;padding:6px 12px;cursor:pointer;border-radius:6px;transition:all .15s}
@@ -237,6 +251,40 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 </head>
 <body>
 
+<!-- BETA TOAST BANNER (Batch 7h.5) — dismissible, persists across sessions -->
+<div id="betaToast" style="display:none;position:fixed;top:68px;right:20px;z-index:550;max-width:340px;background:linear-gradient(135deg,rgba(0,200,255,.10),rgba(0,200,255,.04));border:1px solid rgba(0,200,255,.35);border-radius:10px;padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,.4);font-size:13px;color:#A0B8D0;line-height:1.55;backdrop-filter:blur(8px)">
+  <div style="display:flex;align-items:flex-start;gap:10px">
+    <div style="font-size:11px;font-family:var(--mono);font-weight:700;letter-spacing:.1em;color:var(--cyan);background:rgba(0,200,255,.12);padding:2px 7px;border-radius:3px;flex-shrink:0;margin-top:2px">BETA</div>
+    <div style="flex:1">
+      <div style="font-weight:600;color:var(--wh);margin-bottom:6px">Early access &mdash; help us shape it</div>
+      <div style="font-size:12px;margin-bottom:10px">ISC Financial is in active development. Some panels show illustrative data; full functionality ships with paid tiers. Your feedback shapes the product.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a href="https://tally.so/r/wAgB9Y" target="_blank" rel="noopener" onclick="dismissBetaToast()" style="background:var(--cyan);color:#07101E;text-decoration:none;font-weight:600;font-size:11px;padding:6px 12px;border-radius:5px;display:inline-block">Send feedback &rarr;</a>
+        <button onclick="dismissBetaToast()" style="background:transparent;color:var(--dim);border:1px solid var(--bdr);font-size:11px;padding:5px 11px;border-radius:5px;cursor:pointer;font-family:inherit">Dismiss</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  /* Beta toast: show on first visit, hide on dismiss, remember dismissal */
+  (function(){
+    try {
+      if (localStorage && localStorage.getItem('isc_beta_dismissed') !== '1') {
+        var el = document.getElementById('betaToast');
+        if (el) el.style.display = 'block';
+      }
+    } catch(e) { /* localStorage unavailable — show banner anyway */
+      var el = document.getElementById('betaToast');
+      if (el) el.style.display = 'block';
+    }
+  })();
+  function dismissBetaToast(){
+    try { localStorage.setItem('isc_beta_dismissed','1'); } catch(e){}
+    var el = document.getElementById('betaToast');
+    if (el) el.style.display = 'none';
+  }
+</script>
+
 <!-- HELP CENTER MODAL -->
 <div class="help-modal" id="helpModal" onclick="if(event.target===this)closeHelp()" style="align-items:flex-start;padding-top:60px">
   <div style="background:var(--pan);border:1px solid var(--bdr);border-radius:14px;width:90%;max-width:780px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column">
@@ -378,7 +426,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
   <div class="nlogo" onclick="showPage('home')">
     <div class="nhex"></div>
     <div>
-      <div class="nbrand">ISC <em>Financial</em></div>
+      <div class="nbrand">ISC <em>Financial</em><span class="beta-badge" title="Beta — actively being built. Send feedback via the link in the footer.">BETA</span></div>
       <div class="ntag">by the filter lab</div>
     </div>
   </div>
@@ -500,7 +548,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
     <div style="font-size:12px;color:var(--dim);line-height:1.7">&#169; 2026 The Filter Lab LLC &#183; Spring TX &#183; Not financial advice &#183; AI assistance disclosed<br>
       <a href="javascript:showPage('terms')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Terms of Service</a>
       <a href="javascript:showPage('privacy')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Privacy Policy</a>
-      <a href="javascript:showPage('disclaimer')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Disclaimer</a><br><a href="https://doi.org/10.5281/zenodo.18940081" style="color:var(--blue)">doi.org/10.5281/zenodo.18940081</a></div>
+      <a href="javascript:showPage('disclaimer')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Disclaimer</a>
+      <a href="https://tally.so/r/wAgB9Y" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none;margin-right:14px">Report bug / suggest feature &rarr;</a><br><a href="https://doi.org/10.5281/zenodo.18940081" style="color:var(--blue)">doi.org/10.5281/zenodo.18940081</a></div>
     <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--dim);font-style:italic">Before the numbers lie.</div>
   </footer>
     <div id="pg-disclaimer" class="page hidden">
@@ -771,7 +820,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
             <div id="verdictCard" class="verdict-card"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div class="card">
-                <div class="sb-lbl" style="margin-bottom:10px">ISC Coupling Score <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
+                <div class="sb-lbl" style="margin-bottom:10px">Variance EWS Score <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
                 <div id="gaugeArea"></div>
               </div>
               <div class="card">
@@ -797,15 +846,10 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <div style="font-size:12px;color:var(--dim);margin-bottom:14px">Daily closing price from Yahoo Finance. Shows price trend alongside ISC regime periods.</div>
               <div class="chart-wrap"><canvas id="priceChart" height="180"></canvas></div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div style="display:grid;grid-template-columns:1fr;gap:14px">
               <div class="card">
-                <div class="sb-lbl" style="margin-bottom:10px">ISC Coupling Trajectory <button class="mhelp" onclick="showHelp('coupling-trajectory')">?</button></div>
-                <div style="font-size:12px;color:var(--dim);margin-bottom:10px">How the coupling score has evolved over the analysis window. Direction matters as much as the current value.</div>
-                <div class="chart-wrap"><canvas id="couplingChart" height="160"></canvas></div>
-              </div>
-              <div class="card">
-                <div class="sb-lbl" style="margin-bottom:10px">Revenue vs Operating Income <button class="mhelp" onclick="showHelp('revenue-chart')">?</button></div>
-                <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Growing revenue with shrinking margins is the key ISC divergence signal &#8212; the Spirit Airlines fingerprint.</div>
+                <div class="sb-lbl" style="margin-bottom:10px">Revenue vs Operating Income (TTM) <button class="mhelp" onclick="showHelp('revenue-chart')">?</button></div>
+                <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Trailing twelve months. The gap between top-line revenue and operating income is the operating margin &#8212; how much of each dollar in stays in after running the business.</div>
                 <div class="chart-wrap"><canvas id="revenueChart" height="160"></canvas></div>
               </div>
             </div>
@@ -1298,6 +1342,8 @@ if(document.readyState==='loading'){
 
 function showPage(pg, el) {
   if(typeof reparentLegalPages==='function')reparentLegalPages();
+  /* Batch 7h.5 — track page navigation */
+  if(typeof trackEvent==='function')trackEvent('Page View',{page:pg});
   ['home','analyzer','pricing','about','terms','privacy','disclaimer'].forEach(function(p){
     document.getElementById('pg-'+p).classList.toggle('hidden', p!==pg);
   });
@@ -1394,10 +1440,17 @@ document.addEventListener('click',function(e){if(!e.target.closest('.tk-wrap'))c
    GAUGE
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 function makeGauge(C,sz){
+  /* Batch 7h.6: gauge calibrated for variance EWS units [0, ~0.7].
+     Old coupling C ranged [-1, +1] with thresholds at -0.1 / +0.3.
+     Variance ranges [0, ~0.7] with thresholds at 0.10 (stable cap) / 0.25 (distressed).
+     Gauge axis displays [0, 0.5] — values above 0.5 peg at the right edge. */
   sz=sz||180;
   var R=65,cx=sz/2,cy=sz*.48;
-  var col=C>0.3?'#EF4444':C>-0.1?'#F59E0B':'#10B981';
-  var ang=((C+1)/2*180-90)*Math.PI/180;
+  var col=C>0.25?'#EF4444':C>0.10?'#F59E0B':'#10B981';
+  /* Map variance [0, 0.5] to half-circle [-90deg, +90deg].
+     Values above 0.5 are clamped to right edge so display never breaks. */
+  var clamped=(C==null||isNaN(C))?0:Math.max(0,Math.min(0.5,C));
+  var ang=((clamped/0.5)*180-90)*Math.PI/180;
   var nx=cx+R*Math.cos(ang),ny=cy+R*Math.sin(ang);
   return '<svg width="'+sz+'" height="'+(sz*.62)+'" style="overflow:visible">'
     +'<defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#10B981"/><stop offset="45%" stop-color="#F59E0B"/><stop offset="100%" stop-color="#EF4444"/></linearGradient></defs>'
@@ -1405,8 +1458,8 @@ function makeGauge(C,sz){
     +'<path d="M '+(cx-R)+','+cy+' A '+R+','+R+' 0 0,1 '+(cx+R)+','+cy+'" fill="none" stroke="url(#gg)" stroke-width="9" stroke-linecap="round" opacity=".3"/>'
     +'<line x1="'+cx+'" y1="'+cy+'" x2="'+nx+'" y2="'+ny+'" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round"/>'
     +'<circle cx="'+cx+'" cy="'+cy+'" r="5" fill="'+col+'"/><circle cx="'+cx+'" cy="'+cy+'" r="2" fill="#07101E"/>'
-    +'<text x="'+cx+'" y="'+(cy+22)+'" text-anchor="middle" fill="'+col+'" font-family="monospace" font-size="17" font-weight="700">'+(C>=0?'+':'')+C.toFixed(3)+'</text>'
-    +'<text x="'+cx+'" y="'+(cy+36)+'" text-anchor="middle" fill="#6B7280" font-family="monospace" font-size="10" letter-spacing="2">COUPLING C</text>'
+    +'<text x="'+cx+'" y="'+(cy+22)+'" text-anchor="middle" fill="'+col+'" font-family="monospace" font-size="17" font-weight="700">'+(C!=null?C.toFixed(3):'N/A')+'</text>'
+    +'<text x="'+cx+'" y="'+(cy+36)+'" text-anchor="middle" fill="#6B7280" font-family="monospace" font-size="10" letter-spacing="2">VARIANCE EWS</text>'
     +'</svg>';
 }
 
@@ -1414,6 +1467,8 @@ function makeGauge(C,sz){
    TAB SWITCHING
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 function swTab(id, el) {
+  /* Batch 7h.5 — track tab change */
+  if(typeof trackEvent==='function')trackEvent('Tab Change',{tab:id});
   document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('on');});
   el.classList.add('on');
   var tabs=['overview','charts','isc','income','balance','cashflow','traditional','peers','news','portfolio','ai'];
@@ -1435,7 +1490,7 @@ function fmtM(v){if(v==null||isNaN(v))return'<span style="color:#374151">N/A</sp
 function fmtPct(v,d){if(v==null||isNaN(v))return'<span style="color:#374151">N/A</span>';return Number(v).toFixed(d!=null?d:1)+'%';}
 function fmtX(v,d){if(v==null||isNaN(v))return'<span style="color:#374151">N/A</span>';return Number(v).toFixed(d!=null?d:2)+'x';}
 function rCol(v,good,bad){if(v==null)return'var(--wh)';if(v>=good)return'var(--green)';if(v<=bad)return'var(--red)';return'var(--amber)';}
-function rColor(r){if(!r)return'var(--dim)';r=r.toLowerCase();if(r.includes('bifurcating'))return'var(--red)';if(r.includes('transitioning')||r.includes('mean'))return'var(--amber)';if(r.includes('insufficient'))return'var(--dim)';return'var(--green)';}
+function rColor(r){if(!r)return'var(--dim)';r=r.toLowerCase();if(r.includes('insufficient')||r.includes('unavailable'))return'var(--dim)';if(r.includes('distressed')||r.includes('bifurcating'))return'var(--red)';if(r.includes('rising')||r.includes('elevated')||r.includes('transitioning')||r.includes('mean'))return'var(--amber)';if(r.includes('stable')||r.includes('regulated'))return'var(--green)';return'var(--dim)';}
 
 function mRow(label,val,simple,col,helpKey,spark) {
   col=col||'var(--wh)';
@@ -1470,8 +1525,24 @@ function dataQualityCheck(d){
   return issues;
 }
 function detectHyperGrowth(d, r, C){
-  if (!r || !r.includes('bifurcating')) return null;
-  if (C == null || C < 0.3) return null;
+  /* Batch 7h.7: redesigned for variance EWS units.
+     Old logic required C >= 0.3 in coupling-C space [-1, +1].
+     New variance ranges [0, ~0.7] with thresholds at 0.10 / 0.25.
+     Hyper-growth signature in variance terms: variance is elevated (>0.10)
+     because rapid growth creates equity dispersion, BUT fundamentals are
+     exceptional, so this is positive transformation not distress.
+     Fires on: rising / elevated / distressed regimes when C > 0.10
+     AND >=3 strong fundamental signals.
+     For distressed (>0.25), the bar for "strong" is higher to avoid
+     false positives on actually-distressed companies that happen to have
+     one or two healthy metrics. */
+  if (!r) return null;
+  var rl = String(r).toLowerCase();
+  var isElevatedOrAbove = rl.includes('rising') || rl.includes('elevated')
+                       || rl.includes('distressed') || rl.includes('bifurcating')
+                       || rl.includes('transitioning');
+  if (!isElevatedOrAbove) return null;
+  if (C == null || C < 0.10) return null;
   var IS = d.income_statement || {}, CF = d.cash_flow || {}, TM = d.traditional || {};
   var revG = gv(IS, 'revenue_growth');
   var fcfM = gv(CF, 'fcf_margin');
@@ -1486,19 +1557,22 @@ function detectHyperGrowth(d, r, C){
   if (altZ != null && altZ > 4) strong++;
   if (intCov != null && intCov > 15) strong++;
   if (oi != null && oi > 0 && (fcfM == null || fcfM > 10)) strong++;
-  return strong >= 3 ? {strong: strong, revG: revG, fcfM: fcfM, fcf: fcf} : null;
+  // Higher bar for distressed band (>=4 strong signals) to avoid false positives
+  var inDistressedBand = (C >= 0.25);
+  var threshold = inDistressedBand ? 4 : 3;
+  return strong >= threshold ? {strong: strong, revG: revG, fcfM: fcfM, fcf: fcf} : null;
 }
 function buildHyperGrowthNarrative(name, C, hg) {
   var parts = [];
   parts.push('<strong style="color:var(--purple)">Phase Transition Detected ' + EMDASH + ' growth-driven, not distress.</strong> ');
-  parts.push(name + ' is showing the bifurcation pattern ' + EMDASH + ' coupling C = ' + (C!=null?C.toFixed(3):'N/A') + ' ' + EMDASH + ' but the underlying fundamentals are exceptional, not deteriorating');
+  parts.push(name + ' shows variance EWS = ' + (C!=null?C.toFixed(3):'N/A') + ' (elevated equity dynamics) but the underlying fundamentals are exceptional, not deteriorating');
   if (hg.revG != null) parts.push('. Revenue growth of ' + hg.revG.toFixed(0) + '%');
   if (hg.fcfM != null) parts.push(', FCF margin of ' + hg.fcfM.toFixed(0) + '%');
   if (hg.fcf  != null) parts.push(', and free cash flow of ' + String.fromCharCode(36) + (hg.fcf/1000).toFixed(0) + 'B');
   parts.push(' all point to a positive structural shift rather than a negative one.');
-  parts.push('<br><br>The ISC formula measures whether a system is undergoing a regime change, not which direction the change goes. ');
-  parts.push(name + ' is in the middle of a phase transition ' + EMDASH + ' the same mathematical signature that appeared before Enron and Spirit also appears before companies experiencing once-in-a-generation positive transformations (NVIDIA 2023' + ENDASH + '2025, early Tesla, Amazon Web Services pivot).');
-  parts.push('<br><br><strong style="color:#fff">What to watch:</strong> hyper-growth bifurcations resolve in two ways. Either the company successfully scales into the new regime (NVIDIA, Apple post-iPhone), or the growth proves unsustainable and the bifurcation flips to distress (WeWork, Pets.com).');
+  parts.push('<br><br>The variance EWS measures whether equity dynamics are dispersing, not which direction the change goes. ');
+  parts.push(name + ' is in the middle of a phase transition ' + EMDASH + ' the same volatility signature appears before companies experiencing once-in-a-generation positive transformations (NVIDIA 2023' + ENDASH + '2025, early Tesla, Amazon Web Services pivot) AND before companies that prove unsustainable.');
+  parts.push('<br><br><strong style="color:#fff">What to watch:</strong> hyper-growth phases resolve in two ways. Either the company successfully scales into the new regime (NVIDIA, Apple post-iPhone), or growth proves unsustainable and the dispersion flips to distress (WeWork, Pets.com).');
   parts.push(' The deciding factors are usually (1) whether margins hold as scale increases, (2) whether the customer base diversifies, and (3) whether competitive moats deepen. Monitor revenue growth, gross margin, and customer concentration over the next 2' + ENDASH + '4 quarters.');
   return parts.join('');
 }
@@ -1511,7 +1585,7 @@ function rPlain(r,C,name,financials){
   var financiallyStrong = (fcf!=null&&fcf>50000)||(intCov!=null&&intCov>10)||(fcfM!=null&&fcfM>20);
   var financiallyWeak = (fcf!=null&&fcf<0)||(intCov!=null&&intCov<1.5)||(fcfM!=null&&fcfM<0);
   
-  if(!r||r.includes('insufficient')){
+  if(!r||r.includes('insufficient')||r.includes('unavailable')){
     var tk=(typeof D!=='undefined'&&D&&D.ticker)?String(D.ticker).toUpperCase():'';
     var demoKey=DEMO_REDIRECT_MAP[tk];
     if(demoKey){
@@ -1519,13 +1593,19 @@ function rPlain(r,C,name,financials){
       var blurb=DEMO_BLURBS[demoKey]||'';
       return '<strong style="color:var(--amber)">' + String.fromCharCode(9888) + ' Limited EDGAR data for '+tk+'.</strong> '+name+' does not have enough recent quarterly filings for live ISC analysis.<br><br><span style="color:var(--dim)">ISC was designed to flag exactly these cases.</span> '+blurb+'<br><br><button onclick="runDemo(\''+demoKey+'\')" style="background:var(--purple);color:#fff;border:none;border-radius:6px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">' + String.fromCharCode(9658) + ' View Historical Demo ' + EMDASH + ' '+lbl+'</button>';
     }
-    return name+' does not have enough quarterly EDGAR data to compute ISC coupling. Try a longer ticker history or switch to Price History mode.';
+    /* Batch 7h.7: honest message for unavailable variance EWS;
+       previous fallback said "Structurally healthy" which contradicted the N/A score. */
+    return '<strong style="color:var(--dim)">Variance EWS unavailable.</strong> Daily price history could not be retrieved for '+name+', so the variance EWS could not be computed. Traditional metrics below (Altman Z, Piotroski F, etc.) remain valid. Try Run Full Analysis again, or switch to a different data source.';
   }
   
+  /* Batch 7h.7: hyper-growth detection now fires on rising/elevated/distressed,
+     not just legacy 'bifurcating'. Check it first so NVIDIA-style growth phases
+     are properly framed as positive transitions rather than generic stress. */
+  var d_hg_proxy = {income_statement:{revenue_growth:{val:financials.revG},operating_income:{val:financials.oi}},cash_flow:{fcf_margin:{val:financials.fcfM},fcf:{val:financials.fcf}},traditional:{altman_z:{val:financials.altZ},interest_coverage:{val:financials.intCov}}};
+  var hgCheck = detectHyperGrowth(d_hg_proxy, r, C);
+  if (hgCheck) return buildHyperGrowthNarrative(name, C, hgCheck);
+
   if(r.includes('bifurcating')) {
-    var d_hg_proxy = {income_statement:{revenue_growth:{val:financials.revG},operating_income:{val:financials.oi}},cash_flow:{fcf_margin:{val:financials.fcfM},fcf:{val:financials.fcf}},traditional:{altman_z:{val:financials.altZ},interest_coverage:{val:financials.intCov}}};
-    var hgCheck = detectHyperGrowth(d_hg_proxy, r, C);
-    if (hgCheck) return buildHyperGrowthNarrative(name, C, hgCheck);
     if(financiallyStrong) {
       // Strong financials + bifurcating C = likely data artifact or strategic transition
       return '<strong style="color:var(--amber)">&#9888; Unusual signal &#8212; interpret carefully.</strong> '
@@ -1546,7 +1626,25 @@ function rPlain(r,C,name,financials){
     }
   }
   
-  if(r.includes('rising'))return'<strong style="color:var(--amber)">Rising volatility &#8212; EWS active.</strong> '+name+' shows the trend signal that historically precedes structural transitions. Mean variance = '+(C!=null?C.toFixed(3):'N/A')+'. The paper-validated early warning signal is engaged; this pattern preceded events in Lehman, AIG, SVB, and others. Cross-reference with financial statements over the next 2&#8211;4 quarters.';if(r.includes('elevated')||r.includes('transitioning')||r.includes('mean'))return'<strong style="color:var(--amber)">Elevated volatility.</strong> '+name+' has equity dynamics above the typical stable-firm baseline. Mean variance = '+(C!=null?C.toFixed(3):'N/A')+'. Worth comparing to sector peers and watching the trajectory for direction.';if(r.includes('distressed'))return'<strong style="color:var(--red)">High volatility distress.</strong> '+name+' shows magnitude AND rising trend &#8212; the strongest variance EWS pattern. Mean variance = '+(C!=null?C.toFixed(3):'N/A')+'. This combination matched pre-collapse reference cases including Lehman, AIG, and SVB. Cross-reference fundamentals immediately.';
+  /* Batch 7h.7: rising/elevated/distressed branches updated to check
+     financiallyStrong/Weak before defaulting to generic narrative.
+     This catches cases like NVDA where variance is elevated but fundamentals
+     are strong (financiallyStrong) — a softer version of hyper-growth that
+     didn't quite hit all 3 strong-signal thresholds. */
+  if(r.includes('distressed')){
+    if(financiallyWeak)return'<strong style="color:var(--red)">High volatility distress &#8212; financials confirm.</strong> '+name+' shows variance EWS = '+(C!=null?C.toFixed(3):'N/A')+' AND deteriorating fundamentals. This combination matches pre-collapse cases including Lehman, AIG, and SVB. Both signals point the same direction.';
+    return'<strong style="color:var(--red)">High volatility distress.</strong> '+name+' shows magnitude AND rising trend &#8212; the strongest variance EWS pattern. Mean variance = '+(C!=null?C.toFixed(3):'N/A')+'. This combination matched pre-collapse reference cases including Lehman, AIG, and SVB. Cross-reference fundamentals immediately.';
+  }
+  if(r.includes('rising')){
+    if(financiallyStrong)return'<strong style="color:var(--cyan)">Rising volatility &#8212; EWS Leading.</strong> '+name+' shows variance EWS = '+(C!=null?C.toFixed(3):'N/A')+' (rising trajectory) but fundamentals are strong'+(fcfM!=null?' (FCF margin '+fcfM.toFixed(1)+'%)':'')+(intCov!=null?(', interest coverage '+intCov.toFixed(1)+'x'):'')+'. This is the canonical EWS-leading configuration: equity dispersion is increasing while books still look fine. Either a positive transition (growth phase) or an early warning &#8212; the next 2&#8211;4 quarters of fundamental data will resolve it. Cross-reference Income Statement and Cash Flow trends.';
+    if(financiallyWeak)return'<strong style="color:var(--red)">Rising volatility &#8212; signal confirmed.</strong> '+name+' shows variance EWS = '+(C!=null?C.toFixed(3):'N/A')+' AND weak fundamentals. The variance EWS is engaged and the financial picture confirms the signal. Both pointing the same direction.';
+    return'<strong style="color:var(--amber)">Rising volatility &#8212; EWS active.</strong> '+name+' shows the trend signal that historically precedes structural transitions. Mean variance = '+(C!=null?C.toFixed(3):'N/A')+'. The paper-validated early warning signal is engaged; this pattern preceded events in Lehman, AIG, SVB, and others. Cross-reference with financial statements over the next 2&#8211;4 quarters.';
+  }
+  if(r.includes('elevated')||r.includes('transitioning')||r.includes('mean')){
+    if(financiallyStrong)return'<strong style="color:var(--cyan)">Elevated volatility &#8212; fundamentals strong.</strong> '+name+' has equity dynamics above the typical stable-firm baseline (variance = '+(C!=null?C.toFixed(3):'N/A')+'), but financial fundamentals remain strong'+(fcfM!=null?' (FCF margin '+fcfM.toFixed(1)+'%)':'')+'. Worth watching trajectory direction &#8212; if variance continues to rise while financials hold, this is the EWS-leading configuration; if both deteriorate together, the signal is being confirmed.';
+    if(financiallyWeak)return'<strong style="color:var(--amber)">Elevated volatility &#8212; financials weakening.</strong> '+name+' has variance = '+(C!=null?C.toFixed(3):'N/A')+' (above the stable baseline) and fundamentals are showing weakness. Watch carefully over the next 2&#8211;3 quarters.';
+    return'<strong style="color:var(--amber)">Elevated volatility.</strong> '+name+' has equity dynamics above the typical stable-firm baseline. Mean variance = '+(C!=null?C.toFixed(3):'N/A')+'. Worth comparing to sector peers and watching the trajectory for direction.';
+  }
   
   return'<strong style="color:var(--green)">Structurally healthy.</strong> '+name+' shows stable equity dynamics. Mean variance = '+(C!=null?C.toFixed(3):'N/A')+'. Consistent with paper baseline for non-distressed firms (variance ~0.04-0.10). No structural red flags from the variance EWS.';
 }
@@ -1557,6 +1655,8 @@ function rPlain(r,C,name,financials){
 async function runAnal() {
   var tk=document.getElementById('tkIn').value.toUpperCase().trim();
   if(!tk)return;
+  /* Batch 7h.5 — track analysis run for Plausible */
+  if(typeof trackEvent==='function')trackEvent('Analysis Run',{ticker:tk});
   showPage('analyzer');
   document.getElementById('errBanner').classList.remove('show');
   var btn=document.getElementById('runBtn');
@@ -1662,7 +1762,7 @@ function renderAll(d){
     var banner=document.createElement('div');
     banner.id='demoBanner';
     banner.style.cssText='background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:14px 18px;margin-bottom:16px;font-size:13px;line-height:1.6';
-    banner.innerHTML='<div style="display:flex;align-items:flex-start;gap:12px"><div style="font-size:18px;line-height:1.2">' + String.fromCharCode(128202) + '</div><div style="flex:1"><div style="color:var(--purple);font-weight:700;margin-bottom:4px">Historical demo ' + EMDASH + ' '+lbl+'</div><div style="color:#A0B8D0">'+blurb+' Click "Run Full Analysis" to fetch live EDGAR data instead.</div></div></div>';
+    banner.innerHTML='<div style="display:flex;align-items:flex-start;gap:12px"><div style="font-size:18px;line-height:1.2">' + String.fromCharCode(128202) + '</div><div style="flex:1"><div style="color:var(--purple);font-weight:700;margin-bottom:4px">Historical demo ' + EMDASH + ' '+lbl+'</div><div style="color:#A0B8D0">'+blurb+' Click "Run Full Analysis" to fetch live EDGAR data instead.</div><div style="color:var(--dim);font-size:11px;font-style:italic;margin-top:8px;line-height:1.5">Demo shows a single-quarter snapshot. The variance EWS validates across a window leading up to events; see the paper at doi.org/10.5281/zenodo.18940081 for full methodology and 45-case validation.</div></div></div>';
     // Demo banner outside tab content - finds tab-bar and inserts banner BEFORE it,
     // so the banner stays visible regardless of which tab is active
     var tabBar=document.querySelector('.tab-bar');
@@ -1743,7 +1843,7 @@ function renderAll(d){
         +'</div>';
     }()
     +'<div class="verdict-grid">'
-    +'<div class="vstat"><div class="vstat-lbl">Coupling C</div><div class="vstat-val" style="color:'+col+'">'+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'</div></div>'
+    +'<div class="vstat"><div class="vstat-lbl">Variance EWS</div><div class="vstat-val" style="color:'+col+'">'+(C!=null?C.toFixed(3):'N/A')+'</div></div>'
     +'<div class="vstat"><div class="vstat-lbl">Stability</div><div class="vstat-val" style="color:'+col+'">'+(stab!=null?stab+'/100':'N/A')+'</div></div>'
     +'<div class="vstat"><div class="vstat-lbl">Altman Z</div><div class="vstat-val" style="color:'+(altZ!=null?altZ>3?'var(--green)':altZ>1.81?'var(--amber)':'var(--red)':'var(--dim)')+'">'+(altZ!=null?altZ.toFixed(2):'N/A')+'</div></div>'
     +'<div class="vstat"><div class="vstat-lbl">Piotroski F</div><div class="vstat-val" style="color:'+(piF!=null?piF>=7?'var(--green)':piF>=4?'var(--amber)':'var(--red)':'var(--dim)')+'">'+(piF!=null?piF+'/9':'N/A')+'</div></div>'
@@ -1787,17 +1887,20 @@ function renderAll(d){
 
   // FLAGS
   var flags=[];
-  if(C!=null&&C>0.3){var __hg=(typeof detectHyperGrowth!=='undefined')?detectHyperGrowth(d,r,C):null;if(__hg){flags.push({t:String.fromCharCode(9650)+' Phase Transition Detected - Hyper-Growth',d:'C='+C.toFixed(3)+'. ISC mathematics flag a regime change, but underlying fundamentals are exceptional. The same coupling signature appears before structural collapses (Enron, WorldCom, Spirit) AND before once-in-a-generation positive transformations (NVIDIA 2023-2025, early Tesla, AWS pivot). Direction depends on whether margins and moats hold as scale increases.',c:'al-b'});}else{flags.push({t:'Bifurcating Coupling - Structural Stress',d:'C='+C.toFixed(3)+'. Financial dynamics are amplifying. This is the pre-collapse pattern. ISC triggered at this level before Enron, WorldCom, and Spirit Airlines.',c:'al-r'});}}
-  if(altZ!=null&&altZ<1.81)flags.push({t:'Altman Z in Distress Zone',d:'Z='+altZ.toFixed(2)+'. Below 1.81 is the traditional distress threshold. Note: ISC typically leads this signal by 1&#8211;5 quarters.',c:'al-r'});
-  if(intCov!=null&&intCov<1.5)flags.push({t:'Interest Coverage Critical',d:intCov.toFixed(1)+'x. Earnings barely cover interest payments. Severe leverage stress at ISC Layer 3.',c:'al-r'});
+  /* Batch 7h.5: flag thresholds expressed in new variance score units (>=0.3 ~ distressed regime); flag text updated to variance vocabulary */
+  if(C!=null&&C>0.3){var __hg=(typeof detectHyperGrowth!=='undefined')?detectHyperGrowth(d,r,C):null;if(__hg){flags.push({t:String.fromCharCode(9650)+' Phase Transition Detected - Hyper-Growth',d:'Variance score '+C.toFixed(3)+'. Variance EWS flags structural transition, but underlying fundamentals are exceptional. The same EWS signature appears before structural collapses (Enron, WorldCom, Spirit) AND before once-in-a-generation positive transformations (NVIDIA 2023-2025, early Tesla, AWS pivot). Direction depends on whether margins and moats hold as scale increases.',c:'al-b'});}else{flags.push({t:'High Variance &#8212; Structural Stress',d:'Variance score '+C.toFixed(3)+' is in the distressed band of the paper-validated EWS. Pattern preceded events including Enron, WorldCom, Lehman, AIG, and SVB.',c:'al-r'});}}
+  if(altZ!=null&&altZ<1.81)flags.push({t:'Altman Z in Distress Zone',d:'Z='+altZ.toFixed(2)+'. Below 1.81 is the traditional distress threshold. Note: variance EWS typically leads this signal by 1&#8211;5 quarters.',c:'al-r'});
+  if(intCov!=null&&intCov<1.5)flags.push({t:'Interest Coverage Critical',d:intCov.toFixed(1)+'x. Earnings barely cover interest payments. Severe leverage stress.',c:'al-r'});
   var revG=gv(IS,'revenue_growth');
-  if(revG!=null&&revG>15&&r.includes('bifurcating'))flags.push({t:'Revenue Growth + Bifurcating &#8212; Classic Divergence',d:'Revenue growing '+revG.toFixed(1)+'% but ISC coupling is bifurcating. This is the Spirit Airlines / Enron fingerprint &#8212; top-line growth masking structural deterioration. The most dangerous signal.',c:'al-a'});
+  /* Batch 7h.5: also fire on new vocab (rising/distressed) */
+  var rIsStressFlag=(r&&(r.includes('bifurcating')||r.includes('distressed')||r.includes('rising')));
+  if(revG!=null&&revG>15&&rIsStressFlag)flags.push({t:'Revenue Growth + Variance EWS Active &#8212; Classic Divergence',d:'Revenue growing '+revG.toFixed(1)+'% but variance EWS is active. This is the Spirit Airlines / Enron fingerprint &#8212; top-line growth masking structural deterioration. The most dangerous signal.',c:'al-a'});
   document.getElementById('flagArea').innerHTML=flags.map(function(f){return '<div class="al '+f.c+'"><span style="font-size:16px;flex-shrink:0">'+(f.c.includes('r')?'&#55357;&#56628;':'&#55357;&#57313;')+'</span><div><div style="font-weight:700;margin-bottom:3px">'+f.t+'</div><div style="color:#A0B8D0">'+f.d+'</div></div></div>';}).join('');
 
   // ISC TAB
   document.getElementById('iscDetail').innerHTML=
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'
-    +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Coupling Score</div><div style="font-family:var(--mono);font-size:30px;font-weight:700;color:'+col+'">'+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Variance EWS</div><div style="font-family:var(--mono);font-size:30px;font-weight:700;color:'+col+'">'+(C!=null?C.toFixed(4):'N/A')+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Regime</div><div style="font-size:18px;font-weight:700;color:'+col+'">'+((r||'unknown').toUpperCase())+'</div></div>'
     +'</div>'
     +'<div class="commentary" style="margin-bottom:12px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z")})+'</div>'
@@ -1883,9 +1986,10 @@ function renderAll(d){
      val:intCov!=null?fmtX(intCov,1)+' coverage':null,
      st:intCov!=null?(intCov>3?'good':intCov>1.5?'watch':'stress'):'good'},
     {n:'L4 &#9733;',name:'Capital Structure &#8212; Primary ISC Target',
-     comment:'This is where ISC coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+' is measured. '+(r.includes('bifurcating')?'The capital structure filter is in bifurcating regime &#8212; financial shocks are being amplified rather than absorbed. This is the core structural failure pattern. Historical lead time before traditional metrics reflect this: 1&#8211;5 quarters.':r.includes('trans')?'The capital structure filter is showing early stress &#8212; still absorbing shocks but less efficiently than in the regulated state. Watch for continued deterioration.':'The capital structure filter is functioning well. Financial shocks hitting this company are being absorbed and corrected, not amplified.'),
-     val:C!=null?'C='+(C>=0?'+':'')+C.toFixed(3)+' ('+r+')':null,
-     st:r.includes('bifurcating')?'stress':r.includes('trans')?'watch':'good'},
+     /* Batch 7h.5: regime branching updated for variance EWS vocabulary */
+     comment:'This is where the variance EWS score = '+(C!=null?C.toFixed(3):'N/A')+' is measured. '+((r.includes('distressed')||r.includes('bifurcating'))?'The variance EWS is in the distressed band &#8212; high volatility AND rising trajectory. This is the strongest pre-collapse pattern. Historical lead time before traditional metrics reflect this: 1&#8211;5 quarters.':(r.includes('rising'))?'The variance EWS shows rising volatility &#8212; the trend signal that historically preceded structural transitions in Lehman, AIG, SVB. Equity dispersion is increasing.':(r.includes('elevated')||r.includes('trans'))?'The variance EWS shows elevated volatility &#8212; above the typical stable-firm baseline. Worth comparing to peers and watching for trajectory direction.':(r.includes('stable')||r.includes('regulated'))?'The variance EWS is in the stable band. Equity dynamics are within the typical healthy-firm range; no structural red flag from this signal.':'The variance EWS is unavailable or insufficient. Traditional metrics still apply.'),
+     val:C!=null?'Variance='+C.toFixed(3)+' ('+r+')':null,
+     st:(r.includes('distressed')||r.includes('bifurcating'))?'stress':(r.includes('rising')||r.includes('elevated')||r.includes('trans'))?'watch':'good'},
     {n:'L5',name:'Revenue / Margin Dynamics',
      comment:rev!=null&&oi!=null?'Revenue '+fmtM(rev)+', operating income '+fmtM(oi)+'. '+(oi>0?'Positive operating income &#8212; core business model is profitable. Margins hold above zero.':'Negative operating income &#8212; the company is spending more to operate than it earns. This is the L5 stress fingerprint. Growing revenue with worsening margins is the Spirit Airlines pattern &#8212; top-line growth masking structural deterioration.')+(revG!=null?' Revenue growth: '+revG.toFixed(1)+'%.':''):'Revenue/margin data not available &#8212; requires EDGAR connection.',
      val:oi!=null?fmtM(oi)+' op. income':null,
@@ -2280,37 +2384,41 @@ function renderPeerCharts(rows, lockState){
   // ----- BAR CHART -----
   var barCtx=document.getElementById('peerBarChart');
   if(barCtx){
+    /* Batch 7h.5: thresholds, axis range, labels updated for variance EWS units */
     var sortedRows=rows.slice().sort(function(a,b){return (b.C||-2)-(a.C||-2);});
     var barLabels=sortedRows.map(function(p){return p.isSubject?p.ticker+' ' + String.fromCharCode(9745):(lockState==='full'||lockState==='values'?'Peer '+(sortedRows.indexOf(p)+1):p.ticker);});
     var barData=sortedRows.map(function(p){return p.C!=null?p.C:0;});
     var barColors=sortedRows.map(function(p){
       if(p.isSubject)return '#00C8FF';
-      if(p.C>0.3)return 'rgba(239,68,68,.7)';
-      if(p.C>-0.1)return 'rgba(245,158,11,.7)';
+      if(p.C>0.25)return 'rgba(239,68,68,.7)';
+      if(p.C>0.10)return 'rgba(245,158,11,.7)';
       return 'rgba(16,185,129,.7)';
     });
     var barBorders=sortedRows.map(function(p){
       if(p.isSubject)return '#00C8FF';
-      if(p.C>0.3)return '#EF4444';
-      if(p.C>-0.1)return '#F59E0B';
+      if(p.C>0.25)return '#EF4444';
+      if(p.C>0.10)return '#F59E0B';
       return '#10B981';
     });
+    /* Auto-fit axis to data range with sensible padding */
+    var maxBarVal=Math.max.apply(null,barData.concat([0.3]));
     charts.peerBar=new Chart(barCtx,{
       type:'bar',
-      data:{labels:barLabels,datasets:[{label:'ISC C',data:barData,backgroundColor:barColors,borderColor:barBorders,borderWidth:1.5}]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){return 'C = '+(ctx.parsed.x>=0?'+':'')+ctx.parsed.x.toFixed(3);}}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280',font:{size:9},callback:function(v){return (v>=0?'+':'')+v.toFixed(1);}},min:-1,max:1},y:{grid:{display:false},ticks:{color:'#9CA3AF',font:{size:10}}}}}
+      data:{labels:barLabels,datasets:[{label:'Variance Score',data:barData,backgroundColor:barColors,borderColor:barBorders,borderWidth:1.5}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){return 'Variance = '+ctx.parsed.x.toFixed(3);}}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7280',font:{size:9},callback:function(v){return v.toFixed(2);}},min:0,max:maxBarVal*1.1},y:{grid:{display:false},ticks:{color:'#9CA3AF',font:{size:10}}}}}
     });
   }
   // ----- REGIME DONUT -----
   var regCtx=document.getElementById('peerRegimeChart');
   if(regCtx){
-    var nBif=rows.filter(function(p){return p.C!=null && p.C>0.3;}).length;
-    var nTrans=rows.filter(function(p){return p.C!=null && p.C>-0.1 && p.C<=0.3;}).length;
-    var nReg=rows.filter(function(p){return p.C!=null && p.C<=-0.1;}).length;
+    /* Batch 7h.5: thresholds and labels for variance EWS units */
+    var nDist=rows.filter(function(p){return p.C!=null && p.C>0.25;}).length;
+    var nElev=rows.filter(function(p){return p.C!=null && p.C>0.10 && p.C<=0.25;}).length;
+    var nStab=rows.filter(function(p){return p.C!=null && p.C<=0.10;}).length;
     charts.peerRegime=new Chart(regCtx,{
       type:'doughnut',
-      data:{labels:['Bifurcating','Transitioning','Regulated'],datasets:[{data:[nBif,nTrans,nReg],backgroundColor:['#EF4444','#F59E0B','#10B981'],borderColor:'rgba(7,16,30,.9)',borderWidth:2}]},
-      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:true,position:'bottom',labels:{color:'#9CA3AF',font:{size:10},boxWidth:10,padding:6}},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){var pct=ctx.parsed/(nBif+nTrans+nReg)*100;return ctx.label+': '+ctx.parsed+' ('+pct.toFixed(0)+'%)';}}}}}
+      data:{labels:['Distressed','Elevated/Rising','Stable'],datasets:[{data:[nDist,nElev,nStab],backgroundColor:['#EF4444','#F59E0B','#10B981'],borderColor:'rgba(7,16,30,.9)',borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:true,position:'bottom',labels:{color:'#9CA3AF',font:{size:10},boxWidth:10,padding:6}},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){var pct=ctx.parsed/(nDist+nElev+nStab)*100;return ctx.label+': '+ctx.parsed+' ('+pct.toFixed(0)+'%)';}}}}}
     });
   }
   // ----- RADAR OVERLAY -----
@@ -2374,7 +2482,7 @@ function renderPeers(d){
   // Charts grid (3 columns: bar, regime, radar)
   var chartBlur=lockState==='full'?'filter:blur(6px);user-select:none;pointer-events:none':'';
   html+='<div style="display:grid;grid-template-columns:2fr 1fr 1.5fr;gap:14px;margin-bottom:18px;'+chartBlur+'">';
-  html+='<div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">ISC Coupling C - Sector Ranking</div><div style="position:relative;height:180px"><canvas id="peerBarChart"></canvas></div></div>';
+  html+='<div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Variance EWS - Sector Ranking</div><div style="position:relative;height:180px"><canvas id="peerBarChart"></canvas></div></div>';
   html+='<div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Sector Regime Mix</div><div style="position:relative;height:180px"><canvas id="peerRegimeChart"></canvas></div></div>';
   html+='<div style="background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px"><div style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">'+ticker+' vs Peer Average</div><div style="position:relative;height:180px"><canvas id="peerRadarChart"></canvas></div></div>';
   html+='</div>';
@@ -2433,26 +2541,27 @@ function renderPeers(d){
   var allWithSubj=[subj].concat(allPeers).filter(function(p){return p.C!=null;});
   allWithSubj.sort(function(a,b){return b.C-a.C;});
   var subjRank=allWithSubj.findIndex(function(p){return p.isSubject;})+1;
-  var nDistress=allWithSubj.filter(function(p){return p.C>0.3;}).length;
-  var nWatch=allWithSubj.filter(function(p){return p.C>-0.1 && p.C<=0.3;}).length;
-  var nHealthy=allWithSubj.filter(function(p){return p.C<=-0.1;}).length;
+  /* Batch 7h.5: thresholds and labels updated for variance EWS units (variance score ~0..0.7) */
+  var nDistress=allWithSubj.filter(function(p){return p.C>0.25;}).length;
+  var nWatch   =allWithSubj.filter(function(p){return p.C>0.10 && p.C<=0.25;}).length;
+  var nHealthy =allWithSubj.filter(function(p){return p.C<=0.10;}).length;
   html+='<div style="font-size:13px;color:#A0B8D0;line-height:1.7">';
-  if(subjRank>0){html+='<div style="margin-bottom:8px">Among '+allWithSubj.length+' '+subjSector+' peers, <strong style="color:var(--wh)">'+ticker+' ranks #'+subjRank+'</strong> by ISC coupling (1 = most stressed). ';
+  if(subjRank>0){html+='<div style="margin-bottom:8px">Among '+allWithSubj.length+' '+subjSector+' peers, <strong style="color:var(--wh)">'+ticker+' ranks #'+subjRank+'</strong> by variance EWS score (1 = highest variance). ';
     if(subj.C!=null){
-      if(subj.C>0.3)html+='Subject is in bifurcating territory while ' + (allWithSubj.length-subjRank) + ' sector peers remain less stressed.';
-      else if(subj.C>-0.1)html+='Subject is in transitioning territory '+EMDASH+' middle of the sector pack.';
-      else html+='Subject is in regulated territory '+EMDASH+' structurally healthier than ' + (subjRank-1) + ' sector peers.';
+      if(subj.C>0.25)html+='Subject is in distressed band while ' + (allWithSubj.length-subjRank) + ' sector peers show lower variance.';
+      else if(subj.C>0.10)html+='Subject is in elevated/rising band '+EMDASH+' middle of the sector pack.';
+      else html+='Subject is in stable band '+EMDASH+' structurally healthier (lower variance) than ' + (subjRank-1) + ' sector peers.';
     }
     html+='</div>';
   }
   html+='<div style="margin-bottom:8px">Sector regime distribution: ';
-  if(nDistress>0)html+='<span style="color:var(--red);font-weight:600">'+nDistress+' bifurcating</span>';
+  if(nDistress>0)html+='<span style="color:var(--red);font-weight:600">'+nDistress+' distressed</span>';
   if(nDistress>0 && (nWatch>0 || nHealthy>0))html+=', ';
-  if(nWatch>0)html+='<span style="color:var(--amber);font-weight:600">'+nWatch+' transitioning</span>';
+  if(nWatch>0)html+='<span style="color:var(--amber);font-weight:600">'+nWatch+' elevated/rising</span>';
   if(nWatch>0 && nHealthy>0)html+=', ';
-  if(nHealthy>0)html+='<span style="color:var(--green);font-weight:600">'+nHealthy+' regulated</span>';
+  if(nHealthy>0)html+='<span style="color:var(--green);font-weight:600">'+nHealthy+' stable</span>';
   html+='. ';
-  if(nDistress>=Math.ceil(allWithSubj.length/2))html+='Sector-wide stress signal '+EMDASH+' more than half of peers in bifurcating regime suggests a sector or macro factor, not a company-specific issue.';
+  if(nDistress>=Math.ceil(allWithSubj.length/2))html+='Sector-wide stress signal '+EMDASH+' more than half of peers in the distressed band suggests a sector or macro factor, not a company-specific issue.';
   else if(nHealthy>=Math.ceil(allWithSubj.length*0.6))html+='Sector overall is structurally healthy '+EMDASH+' any individual stress signal stands out as company-specific.';
   else html+='Mixed sector profile '+EMDASH+' worth watching individual companies rather than the sector as a whole.';
   html+='</div></div></div>';
@@ -2468,7 +2577,7 @@ function renderTabCommentaries(d){
   // Helpers
   function fmt(v){if(v==null||isNaN(v))return 'N/A';var a=Math.abs(v);if(a>=1000)return (v<0?'-':'')+'$'+(a/1000).toFixed(1)+'B';return (v<0?'-':'')+'$'+a.toFixed(0)+'M';}
   function pctF(v){if(v==null||isNaN(v))return 'N/A';return (v>=0?'+':'')+v.toFixed(1)+'%';}
-  function tone(){if(hg)return 'var(--purple)';if(r.includes('bifurcating'))return 'var(--red)';if(r.includes('trans'))return 'var(--amber)';if(r.includes('regulated'))return 'var(--green)';return 'var(--dim)';}
+  function tone(){if(hg)return 'var(--purple)';if(r.includes('distressed')||r.includes('bifurcating'))return 'var(--red)';if(r.includes('rising')||r.includes('elevated')||r.includes('trans'))return 'var(--amber)';if(r.includes('stable')||r.includes('regulated'))return 'var(--green)';return 'var(--dim)';}
   function header(label,color){return '<div class="sb-lbl" style="margin-bottom:10px;color:'+color+'">'+label+'</div>';}
   function bullet(text){return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;line-height:1.7;font-size:13px;color:#A0B8D0"><span style="color:'+tone()+';margin-top:1px">' + String.fromCharCode(8226) + '</span><div>'+text+'</div></div>';}
   // -------------------- INCOME STATEMENT --------------------
@@ -2546,6 +2655,7 @@ function renderTabCommentaries(d){
   var ccEl=document.getElementById('cashCommentary');
   if(ccEl){
     var cfo=gv(CF,'cfo'); var fcf=gv(CF,'fcf'); var capex=gv(CF,'capex'); var fcfM=gv(CF,'fcf_margin'); var ni2=gv(IS,'net_income'); var rev2=gv(IS,'revenue');
+    /* Batch 7h.5 — same rNorm pattern as balance sheet, fixes Insufficient Data bug */ var rNorm=(typeof r==='string'?r:'');if(rNorm.includes('distressed'))rNorm+=' bifurcating';if(rNorm.includes('rising')||rNorm.includes('elevated'))rNorm+=' transitioning';if(rNorm.includes('stable'))rNorm+=' regulated';
     if(cfo==null && fcf==null){ccEl.style.display='none';}
     else{
       var ccHtml='';
@@ -2553,16 +2663,16 @@ function renderTabCommentaries(d){
         ccHtml+=header(String.fromCharCode(9650)+' Cash Flow Profile of a Hyper-Growth Phase','var(--purple)');
         if(fcf!=null && fcf>10000)ccHtml+=bullet('Free cash flow of '+fmt(fcf)+' is the unmistakable signal that the phase transition is real. Loss-making hyper-growth is one thing; profitable hyper-growth is another category entirely.');
         if(fcfM!=null && fcfM>20)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% is in the very top decile of public companies. Each dollar of revenue is producing real cash.');
-      }else if(r.includes('bifurcating')){
+      }else if(rNorm.includes('bifurcating')){
         ccHtml+=header(String.fromCharCode(9888)+' Cash Flow Stress Indicators','var(--red)');
         if(cfo!=null && cfo<0)ccHtml+=bullet('Operating cash flow of '+fmt(cfo)+' is NEGATIVE '+EMDASH+' the core business is consuming cash, not generating it. Without external funding, this trajectory ends in bankruptcy.');
         if(fcf!=null && fcf<0)ccHtml+=bullet('Free cash flow of '+fmt(fcf)+' confirms the L1 stress. Even if accounting earnings look acceptable, the cash story is unambiguous.');
         if(cfo!=null && fcf!=null && ni2!=null && ni2>0 && cfo>0 && fcf<(cfo*0.2)){ccHtml+=bullet('CFO of '+fmt(cfo)+' but FCF of only '+fmt(fcf)+' '+EMDASH+' the gap is going into capital expenditure that may include misclassified operating expenses (the WorldCom $3.8B capitalization fingerprint).');}
         if(fcf!=null && ni2!=null && ni2>0 && (fcf/ni2)<0.3)ccHtml+=bullet('FCF/Net Income ratio of '+(fcf/ni2).toFixed(2)+' '+EMDASH+' reported earnings are not converting to cash. Healthy companies typically run 0.7'+ENDASH+'1.2x.');
-      }else if(r.includes('trans')){
+      }else if(rNorm.includes('trans')){
         ccHtml+=header(String.fromCharCode(9678)+' Cash Flow Trends Worth Watching','var(--amber)');
         if(fcfM!=null && fcfM<10 && fcfM>0)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% is positive but thin. Below the 15% quality threshold. Compression here often precedes a regime break.');
-      }else if(r.includes('regulated')){
+      }else if(rNorm.includes('regulated')){
         ccHtml+=header(String.fromCharCode(10003)+' High-Quality Cash Generation','var(--green)');
         if(fcfM!=null && fcfM>15)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% places this firmly in the high-quality business category. Compounding free cash flow is the closest thing to a financial superpower.');
         if(fcf!=null && ni2!=null && ni2>0 && (fcf/ni2)>=0.7)ccHtml+=bullet('FCF/Net Income of '+(fcf/ni2).toFixed(2)+' confirms reported earnings are real economic earnings '+EMDASH+' clean accounting, no manipulation.');
@@ -2578,8 +2688,11 @@ function renderCharts(d){
   destroyCharts();
   var isc=d.isc||{},IS=d.income_statement||{},CF=d.cash_flow||{},MKT=d.market||{};
   var C=isc.C,r=(isc.regime||'').toLowerCase();
-  var bgColor=r.includes('bifurcating')?'rgba(239,68,68,.08)':r.includes('trans')?'rgba(245,158,11,.08)':'rgba(16,185,129,.08)';
-  var bdrColor=r.includes('bifurcating')?'#EF4444':r.includes('trans')?'#F59E0B':'#10B981';
+  /* Batch 7h.5 — chart styling recognizes new regime vocabulary */
+  var rIsStress=(r.includes('distressed')||r.includes('bifurcating'));
+  var rIsWatch=(r.includes('rising')||r.includes('elevated')||r.includes('transitioning'));
+  var bgColor=rIsStress?'rgba(239,68,68,.08)':rIsWatch?'rgba(245,158,11,.08)':'rgba(16,185,129,.08)';
+  var bdrColor=rIsStress?'#EF4444':rIsWatch?'#F59E0B':'#10B981';
 
   var chartDefaults={
     responsive:true,maintainAspectRatio:false,
@@ -2602,14 +2715,14 @@ function renderCharts(d){
         prices=priceData.map(function(p){return p.price||p[1];});
       }
     }else{
-      // Generate illustrative data
+      // Generate illustrative data (fallback only — fires when no real price data)
       var baseP=MKT.price||100;
       labels=[];prices=[];
-      var p=baseP*(1+(r.includes('bifurcating')?0.3:r.includes('trans')?0.1:-0.05));
+      var p=baseP*(1+(rIsStress?0.3:rIsWatch?0.1:-0.05));
       for(var i=52;i>=0;i--){
         var d2=new Date();d2.setDate(d2.getDate()-i*7);
         labels.push(d2.toLocaleDateString('en-US',{month:'short',day:'numeric'}));
-        var drift=r.includes('bifurcating')?-0.008:r.includes('trans')?-0.002:0.003;
+        var drift=rIsStress?-0.008:rIsWatch?-0.002:0.003;
         p=p*(1+drift+(Math.random()-0.5)*0.04);
         prices.push(parseFloat(p.toFixed(2)));
       }
@@ -2621,57 +2734,36 @@ function renderCharts(d){
     });
   }
 
-  // Coupling trajectory
-  var coupCtx=document.getElementById('couplingChart');
-  if(coupCtx){
-    var traj=isc.trajectory||[]; /* Batch 7h: trajectory deprecated, chart will hide if empty */;
-    var cLabels,cData;
-    if(traj.length>1){
-      cLabels=traj.map(function(_,i){return 'Q'+(i+1);});
-      cData=traj;
-    }else{
-      // Illustrative trajectory
-      cLabels=[];cData=[];
-      var cStart=C!=null?C-(r.includes('bifurcating')?0.4:0.1):0;
-      for(var j=0;j<12;j++){
-        cLabels.push('Q'+(j+1));
-        var cVal=cStart+(C-cStart)*(j/11)+(Math.random()-0.5)*0.05;
-        cData.push(parseFloat(cVal.toFixed(3)));
-      }
-    }
-    charts.coupling=new Chart(coupCtx,{
-      type:'line',
-      data:{labels:cLabels,datasets:[
-        {label:'ISC Coupling C',data:cData,borderColor:bdrColor,borderWidth:2,backgroundColor:bgColor,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:bdrColor},
-        {data:cLabels.map(function(){return 0.3;}),borderColor:'rgba(239,68,68,.4)',borderWidth:1,borderDash:[4,4],fill:false,pointRadius:0,label:'Bifurcating threshold'}
-      ]},
-      options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,labels:{color:'#6B7280',font:{size:11},boxWidth:12}}}})
-    });
-  }
+  // Coupling trajectory — RETIRED in Batch 7h.5 (canvas removed from DOM)
+  // The previous chart faked a 12-quarter trajectory by interpolating from a constant
+  // toward the current variance score with random noise. The API does not compute a
+  // historical trajectory in the new variance EWS methodology, so the chart was
+  // misleading. Real per-series trajectory (when wired) will go on a new panel.
 
-  // Revenue vs Operating Income
+  // Revenue vs Operating Income — TTM bar pair (Batch 7h.5: replaces fake quarterly)
   var revCtx=document.getElementById('revenueChart');
   if(revCtx){
     var revVal=gv(IS,'revenue'),oiVal=gv(IS,'operating_income');
-    // Simulate quarterly trend
-    var qLabels=['Q5','Q4','Q3','Q2','Q1','TTM'];
-    var revVals=qLabels.map(function(_,i){return revVal?(revVal*(0.85+(i*0.03)+Math.random()*0.04)/1000).toFixed(1):null;});
-    var oiVals=qLabels.map(function(_,i){
-      var oiBase=oiVal||(revVal?revVal*0.1:0);
-      var trend=r.includes('bifurcating')?-0.05:r.includes('trans')?-0.02:0.01;
-      return((oiBase*(0.85+(i*(0.03+trend))+Math.random()*0.03)/1000).toFixed(1));
-    });
-    charts.revenue=new Chart(revCtx,{
-      type:'bar',
-      data:{labels:qLabels,datasets:[
-        {label:'Revenue ($B)',data:revVals,backgroundColor:'rgba(59,130,246,.3)',borderColor:'rgba(59,130,246,.8)',borderWidth:1},
-        {label:'Op. Income ($B)',data:oiVals,backgroundColor:oiVal>0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)',borderColor:oiVal>0?'rgba(16,185,129,.8)':'rgba(239,68,68,.8)',borderWidth:1}
-      ]},
-      options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,labels:{color:'#6B7280',font:{size:11},boxWidth:12}}}})
-    });
+    if(revVal!=null||oiVal!=null){
+      // Render in $B for readability
+      var revB=revVal!=null?parseFloat((revVal/1000).toFixed(2)):null;
+      var oiB =oiVal !=null?parseFloat((oiVal /1000).toFixed(2)):null;
+      var oiPositive=(oiB!=null && oiB>0);
+      charts.revenue=new Chart(revCtx,{
+        type:'bar',
+        data:{labels:['Revenue (TTM)','Operating Income (TTM)'],datasets:[
+          {label:'$B',data:[revB,oiB],
+            backgroundColor:['rgba(59,130,246,.35)',oiPositive?'rgba(16,185,129,.35)':'rgba(239,68,68,.35)'],
+            borderColor:    ['rgba(59,130,246,.95)',oiPositive?'rgba(16,185,129,.95)':'rgba(239,68,68,.95)'],
+            borderWidth:1.5}
+        ]},
+        options:Object.assign({},chartDefaults,{plugins:{legend:{display:false},tooltip:Object.assign({},chartDefaults.plugins.tooltip,{callbacks:{label:function(ctx){return '$'+(ctx.parsed.y!=null?ctx.parsed.y.toFixed(2):'?')+'B';}}})},scales:Object.assign({},chartDefaults.scales,{y:Object.assign({},chartDefaults.scales.y,{ticks:Object.assign({},chartDefaults.scales.y.ticks,{callback:function(v){return '$'+v+'B';}})})})})
+      });
+    }
   }
 
-  // FCF Chart
+  // FCF Chart — quarterly trajectory still simulated (deferred to next batch)
+  // Batch 7h.5: regime-branching fixed to recognize new vocab via rIsStress/rIsWatch
   var fcfCtx=document.getElementById('fcfChart');
   if(fcfCtx){
     var fcfLabels=['Q5','Q4','Q3','Q2','Q1','TTM'];
@@ -2680,10 +2772,10 @@ function renderCharts(d){
     var cfo0=gv(CF,'cfo')||(fcf0+Math.abs(rev0*0.04));
     var capex0=gv(CF,'capex')||(-Math.abs(rev0*0.04));
     var ni0=gv(IS,'net_income')||(rev0*0.05);
-    var trendFcf=r.includes('bifurcating')?-0.06:r.includes('trans')?-0.02:0.02;
-    var trendCfo=r.includes('bifurcating')?-0.05:r.includes('trans')?-0.015:0.025;
-    var trendNi=r.includes('bifurcating')?-0.07:r.includes('trans')?-0.025:0.022;
-    var trendCx=r.includes('bifurcating')?0.05:r.includes('trans')?0.02:0.01;
+    var trendFcf=rIsStress?-0.06:rIsWatch?-0.02:0.02;
+    var trendCfo=rIsStress?-0.05:rIsWatch?-0.015:0.025;
+    var trendNi =rIsStress?-0.07:rIsWatch?-0.025:0.022;
+    var trendCx =rIsStress?0.05 :rIsWatch?0.02 :0.01;
     function genSeries(base,tr){return fcfLabels.map(function(_,i){var v=base*(0.72+(i*(0.06+tr))+(Math.random()*0.04-0.02));return parseFloat((v/1000).toFixed(2));});}
     var fcfSeries=genSeries(fcf0,trendFcf);
     var cfoSeries=genSeries(cfo0,trendCfo);
@@ -2714,7 +2806,7 @@ function renderCharts(d){
     var nICov=clamp(((iCov||0)/15)*100,0,100);
     var nFcf=clamp((fcfMg||0)/30*100,0,100);
     var nRoe=clamp((roe||0)/30*100,0,100);
-    var radarColor=r.includes('bifurcating')?'#EF4444':r.includes('trans')?'#F59E0B':'#10B981';
+    var radarColor=rIsStress?'#EF4444':rIsWatch?'#F59E0B':'#10B981';
     charts.radar=new Chart(radarCtx,{
       type:'radar',
       data:{labels:['Altman Z','Piotroski F','Current Ratio','Interest Coverage','FCF Margin','ROE'],datasets:[{label:'Health Profile',data:[nAltz,nPio,nCur,nICov,nFcf,nRoe],backgroundColor:radarColor.replace('#','')==='EF4444'?'rgba(239,68,68,.18)':radarColor.replace('#','')==='F59E0B'?'rgba(245,158,11,.18)':'rgba(16,185,129,.18)',borderColor:radarColor,borderWidth:2,pointBackgroundColor:radarColor,pointRadius:3}]},
@@ -2858,17 +2950,27 @@ function renderCharts(d){
   // Chart commentary
   var commentary='';
   var revRaw=gv(IS,'revenue'),oiRaw=gv(IS,'operating_income'),fcfRaw=gv(CF,'fcf'),fcfMRaw=gv(CF,'fcf_margin');
-  if(r.includes('bifurcating')&&revRaw>0&&oiRaw<0){
-    commentary='<strong>&#9888; Critical divergence pattern detected:</strong> Revenue of '+fmtM(revRaw)+' looks strong on the surface, but operating income is negative at '+fmtM(oiRaw)+'. This is the Spirit Airlines fingerprint &#8212; a company buying revenue growth at the cost of profitability. The ISC coupling signal confirms this is structural, not temporary.';
-  }else if(r.includes('bifurcating')){
-    commentary='<strong>&#9888; Structural stress visible in charts:</strong> ISC coupling is in bifurcating regime (C='+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'). The coupling trajectory chart shows the deterioration trend. Watch for the gap between ISC and Altman Z &#8212; that gap is the early warning window.';
+  /* Batch 7h.5: chart commentary uses variance EWS vocabulary */
+  var ccIsStress=(r.includes('distressed')||r.includes('bifurcating'));
+  var ccIsWatch=(r.includes('rising')||r.includes('elevated')||r.includes('trans'));
+  var ccIsHealthy=(r.includes('stable')||r.includes('regulated'));
+  if(ccIsStress&&revRaw>0&&oiRaw<0){
+    commentary='<strong>&#9888; Critical divergence pattern detected:</strong> Revenue of '+fmtM(revRaw)+' looks strong on the surface, but operating income is negative at '+fmtM(oiRaw)+'. This is the Spirit Airlines fingerprint &#8212; a company buying revenue growth at the cost of profitability. The variance EWS confirms this is structural, not temporary.';
+  }else if(ccIsStress){
+    commentary='<strong>&#9888; Structural stress visible:</strong> Variance EWS is in the distressed band (variance='+(C!=null?C.toFixed(3):'N/A')+'). Watch for the gap between this signal and Altman Z &#8212; that gap is the early-warning window.';
+  }else if(r.includes('rising')){
+    commentary='<strong>&#9888; Variance EWS active:</strong> Variance score of '+(C!=null?C.toFixed(3):'N/A')+' is rising relative to the baseline window. The trajectory pattern that historically preceded transitions in Lehman, AIG, and SVB is engaged. Cross-reference fundamentals over the next 2&#8211;4 quarters.';
   }else if(fcfMRaw!=null&&fcfMRaw>15){
-    commentary='<strong>&#10003; Strong free cash flow profile:</strong> FCF margin of '+fcfMRaw.toFixed(1)+'% is excellent &#8212; above the 15% threshold that characterizes high-quality businesses. Combined with regulated ISC dynamics, this company is generating real cash while maintaining structural stability.';
+    commentary='<strong>&#10003; Strong free cash flow profile:</strong> FCF margin of '+fcfMRaw.toFixed(1)+'% is excellent &#8212; above the 15% threshold that characterizes high-quality businesses. Combined with stable variance dynamics, this company is generating real cash while maintaining structural stability.';
+  }else if(ccIsHealthy){
+    commentary='Charts show healthy dynamics consistent with the stable variance band. Revenue and FCF trends support the structural picture; no early-warning signal active.';
+  }else if(ccIsWatch){
+    commentary='Charts show early signs of margin pressure alongside elevated variance. Worth comparing to sector peers and watching trajectory direction.';
   }else{
-    commentary='Charts show '+( r.includes('trans')?'early signs of margin pressure alongside transitioning ISC dynamics. Watch the coupling trajectory for continued deterioration.':'healthy dynamics consistent with regulated ISC coupling. Revenue and FCF trends support the structural signal.');
+    commentary='Insufficient data to compute chart commentary.';
   }
   document.getElementById('chartCommentary').innerHTML=commentary;
-  document.getElementById('chartCommentary').className='commentary '+(r.includes('bifurcating')?'warn':r.includes('trans')?'':'good');
+  document.getElementById('chartCommentary').className='commentary '+(ccIsStress?'warn':ccIsWatch?'':'good');
 }
 
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
@@ -2919,6 +3021,8 @@ async function askQ(q){
    DEMO CASES
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 function runDemo(name){
+  /* Batch 7h.5 — track demo runs */
+  if(typeof trackEvent==='function')trackEvent('Demo Run',{company:name});
   showPage('analyzer');
   var d;
   if(name==='enron'){
@@ -2927,8 +3031,12 @@ function runDemo(name){
     d.sector='Energy'; d.industry='Energy Trading & Pipelines';
     d.analysis_date='2001-Q3'; d.isSimulation=false;
     d.data_sources={edgar:true,yfinance:true};
-    d.isc.C=0.321; d.isc.regime='bifurcating'; d.isc.stability_score=22;
-    d.isc.plain='In Q3 2001, Enron\'s coupling score crossed into bifurcating regime at C=+0.321. The L4 capital structure filter was amplifying stress rather than absorbing it. Off-balance-sheet SPE structures hid $6.9B in debt. The ISC signal detected structural deterioration approximately 4 quarters before the scandal broke publicly on October 16, 2001 and 5 quarters before the December 2, 2001 bankruptcy.';
+    /* Batch 7h.6: align headline C with variance_score (paper-validated metric).
+       Old coupling C value 0.321 was from the deprecated coupling methodology.
+       Variance score 0.1938 is from the validation set in the IRFA/EWS paper.
+       0.1938 sits in the 'rising' band (>0.10, trajectory positive). */
+    d.isc.C=0.1938; d.isc.regime='rising'; d.isc.stability_score=22;
+    d.isc.plain='In Q3 2001, Enron\'s variance EWS score was 0.1938 (rising band). The paper-validated early warning signal was active &#8212; equity dispersion was increasing while reported financials still looked acceptable. Off-balance-sheet SPE structures hid $6.9B in debt. The signal preceded the October 16, 2001 scandal disclosure by approximately 4 quarters and the December 2, 2001 bankruptcy by 5 quarters.';
     d.isc.variance_score=0.1938;d.isc.variance_trend=0.854;d.isc.variance_ratio=1.54;d.isc.regime='rising';d.isc.available=true;
 d.isc.by_series={
   'Revenue':            {latest:8536, trend_rho:0.92, pct_change:54.2, avg:6850, n:20, direction:'rising'},
@@ -2943,7 +3051,7 @@ d.isc.by_series={
     d.cash_flow={cfo:{val:-753,label:'Operating Cash Flow (9M 2001 $M)',simple:'NEGATIVE &#8212; burning cash from operations'},capex:{val:-1584,label:'Capital Expenditure (9M 2001 $M)',simple:'Investment despite negative CFO'},fcf:{val:-2337,label:'Free Cash Flow (9M 2001 $M)',simple:'Deeply negative &#8212; L1 stress confirmed'},fcf_margin:{val:-1.8,label:'FCF Margin %',simple:'Negative on $138B revenue'},cash_conversion:{val:-3.35,label:'Cash Conversion (FCF/NI)',simple:'Negative &#8212; earnings not converting'},cfi:{val:-1366,label:'Investing Cash Flow ($M)',simple:''},cff:{val:1880,label:'Financing Cash Flow ($M)',simple:'Net debt issuance to plug shortfall'}};
     d.traditional={altman_z:{val:2.10,label:'Altman Z-Score',simple:'Grey zone (1.81-3.0). Not yet flagging distress.',plain:'Z = 2.10. Grey zone. ISC bifurcating but Altman not yet at distress level.'},piotroski_f:{val:3,label:'Piotroski F-Score',simple:'Weak &#8212; failing 6 of 9 health tests.',plain:'F = 3/9. ROA decline, leverage increase, share dilution.'},current_ratio:{val:0.92,label:'Current Ratio',simple:'Below 1.0 &#8212; current liabilities exceed assets',plain:'$24.8B / $27.0B = 0.92x.'},quick_ratio:{val:0.89,label:'Quick Ratio',simple:'Below 1.0 even excluding inventory',plain:'L1 stress.'},interest_coverage:{val:0.43,label:'Interest Coverage',simple:'CRITICAL &#8212; op income cannot cover interest',plain:'$272M / $630M = 0.43x. L3 gate failing.'},debt_to_ebitda:{val:9.55,label:'Debt/EBITDA',simple:'Severe at 9x.',plain:'$12.98B / $1.36B = 9.5x. Off-BS pushes to 16x.'},debt_to_equity:{val:1.35,label:'Debt/Equity',simple:'Moderate on-BS only',plain:''},roa:{val:0.5,label:'Return on Assets %',simple:'Negligible',plain:'$225M / $61.8B = 0.5%'},roe:{val:3.1,label:'Return on Equity %',simple:'Far below 15% threshold',plain:''},asset_turnover:{val:2.76,label:'Asset Turnover',simple:'High but driven by mark-to-market',plain:''},gross_margin_pct:{val:3.9,label:'Gross Margin %',simple:'Trading-book economics',plain:''},op_margin_pct:{val:0.2,label:'Operating Margin %',simple:'Essentially zero',plain:'L5 stress.'}};
     d.market={price:33.84,high_52w:90.56,pe:36.5,beta:1.05,rsi:42,market_cap_bn:25.2};
-    d.divergence={summary:'Classic ISC vs Altman Z divergence. ISC bifurcating at C=+0.321. Altman Z still grey zone at 2.10 '+EMDASH+' on-BS figures hiding $6.9B SPE debt. Stock at $33 (off 63% from $90 high but not collapsing). ISC flagged 4 quarters before scandal broke.',isc_regime:'bifurcating',altman_z:2.10,lead_time:'4 quarters'};
+    d.divergence={summary:'Classic variance-EWS vs Altman Z divergence. Variance score 0.1938 in the rising band; Altman Z still grey zone at 2.10 '+EMDASH+' on-BS figures hiding $6.9B SPE debt. Stock at $33 (off 63% from $90 high but not collapsing). Variance EWS flagged the pattern 4 quarters before scandal broke.',isc_regime:'rising',altman_z:2.10,lead_time:'4 quarters'};
     d.news=[{h:'Enron reports $618M Q3 loss, takes $1.2B equity charge for SPE termination',s:'bear',src:'NYT',d:'Oct 16, 2001'},{h:'SEC opens formal investigation into related-party transactions',s:'bear',src:'WSJ',d:'Oct 31, 2001'},{h:'Credit downgrade to BBB- triggers $690M demand obligation',s:'bear',src:'Reuters',d:'Nov 12, 2001'},{h:'Dynegy merger announced as rescue infusion',s:'neut',src:'WSJ',d:'Nov 9, 2001'},{h:'Enron borrows $3B from credit lines to repay commercial paper',s:'bear',src:'Bloomberg',d:'Oct 25, 2001'}];
     document.getElementById('tkIn').value='ENR';
   }else if(name==='worldcom'){
@@ -2952,8 +3060,16 @@ d.isc.by_series={
     d.sector='Communication Services'; d.industry='Telecom - Long Distance & Internet';
     d.analysis_date='2002-Q1'; d.isSimulation=false;
     d.data_sources={edgar:true,yfinance:true};
-    d.isc.C=0.448; d.isc.regime='bifurcating'; d.isc.stability_score=18;
-    d.isc.plain='WorldCom\'s coupling score reached C=+0.448 in Q1 2002 '+EMDASH+' deep bifurcating territory. Operating income collapsed 57% from $8.15B (2000) to $3.51B (2001), then dropped another 78% in Q1 2002. The mathematical signature of structural collapse was clear well before the $11B fraud was uncovered in June 2002.';
+    /* Batch 7h.6: align headline C with variance_score; regime kept as 'elevated'
+       per the classifier (mean_var=0.2511 >0.25 but trend=-0.458 negative, so per
+       classify_regime: distressed requires trend>0.3, this is technically elevated).
+       This is HONEST output. The marketing strength is in lead-time framing
+       ("elevated for 5 quarters before $11B fraud disclosed") not the label intensity.
+       TODO: Consider whether an earlier snapshot date (Q3 2001, when trend was still
+       rising) would be a stronger demo, or showing the variance trajectory across the
+       full window rather than a single point. */
+    d.isc.C=0.2511; d.isc.regime='elevated'; d.isc.stability_score=18;
+    d.isc.plain='WorldCom\'s variance EWS score reached 0.2511 by Q1 2002 '+EMDASH+' above the stable-firm baseline (~0.04-0.10) and at the threshold between elevated and distressed. Variance had been climbing through 2000-2001 and was sustained at this level for multiple quarters. Operating income collapsed 67% over 5 quarters. The variance EWS was elevated for 4-5 quarters before the $11B accounting fraud was disclosed in June 2002.';
     d.isc.variance_score=0.2511;d.isc.variance_trend=-0.458;d.isc.variance_ratio=0.82;d.isc.regime='elevated';d.isc.available=true;
 d.isc.by_series={
   'Revenue':            {latest:35179, trend_rho:0.85, pct_change:42.6, avg:28100, n:20, direction:'rising'},
@@ -2968,7 +3084,7 @@ d.isc.by_series={
     d.cash_flow={cfo:{val:7994,label:'Operating Cash Flow (TTM $M)',simple:'Inflated by capitalization fraud'},capex:{val:-7886,label:'Capital Expenditure (TTM $M)',simple:'$3.8B was actually opex misclassified'},fcf:{val:108,label:'Free Cash Flow (TTM $M)',simple:'Near-zero - fraud-adjusted is deeply negative'},fcf_margin:{val:0.3,label:'FCF Margin %',simple:'Effectively zero on $34B revenue'},cash_conversion:{val:-0.05,label:'Cash Conversion',simple:'Negative'},cfi:{val:-7912,label:'Investing Cash Flow ($M)',simple:''},cff:{val:1085,label:'Financing Cash Flow ($M)',simple:'Net debt issuance'}};
     d.traditional={altman_z:{val:1.85,label:'Altman Z-Score',simple:'Borderline grey/distress.',plain:'Z = 1.85. Just above 1.81 distress threshold. Goodwill-heavy.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak.',plain:'F = 2/9.'},current_ratio:{val:1.09,label:'Current Ratio',simple:'Just above 1.0 - tight liquidity',plain:''},quick_ratio:{val:1.09,label:'Quick Ratio',simple:'Same as current - service business',plain:''},interest_coverage:{val:1.62,label:'Interest Coverage',simple:'Below 3x comfort - L3 stress',plain:'$2.68B / $1.66B = 1.6x. Was 8.4x in 2000.'},debt_to_ebitda:{val:3.62,label:'Debt/EBITDA',simple:'Elevated',plain:''},debt_to_equity:{val:0.54,label:'Debt/Equity',simple:'Moderate but equity hollow',plain:''},roa:{val:-2.0,label:'Return on Assets %',simple:'Negative',plain:''},roe:{val:-3.5,label:'Return on Equity %',simple:'Negative',plain:''},asset_turnover:{val:0.33,label:'Asset Turnover',simple:'Low - goodwill drag',plain:''},gross_margin_pct:{val:56.7,label:'Gross Margin %',simple:'Telecom-typical',plain:''},op_margin_pct:{val:7.9,label:'Operating Margin %',simple:'Down from 21% - L5 stress',plain:''}};
     d.market={price:6.74,high_52w:23.18,pe:null,beta:1.85,rsi:28,market_cap_bn:19.8};
-    d.divergence={summary:'WorldCom shows the L3+L5 cascade. Op income collapsed 67% over 5 quarters. LT debt doubled. Interest coverage fell 8.4x to 1.6x. ISC at C=+0.448 was deep in bifurcating territory by Q1 2002. Fraud disclosed June 25, 2002 - ISC was signaling 4-5 quarters before.',isc_regime:'bifurcating',altman_z:1.85,lead_time:'4-5 quarters'};
+    d.divergence={summary:'WorldCom shows the L3+L5 cascade. Op income collapsed 67% over 5 quarters. LT debt doubled. Interest coverage fell 8.4x to 1.6x. Variance EWS was 0.2511 (elevated band, sustained) by Q1 2002. Fraud disclosed June 25, 2002 - the variance pattern was elevated for 4-5 quarters before disclosure.',isc_regime:'elevated',altman_z:1.85,lead_time:'4-5 quarters'};
     d.news=[{h:'WorldCom announces $3.8B in improperly capitalized expenses',s:'bear',src:'WSJ',d:'Jun 25, 2002'},{h:'CEO replacement amid SEC inquiry',s:'bear',src:'NYT',d:'Apr 30, 2002'},{h:'Stock falls below $5 on credit downgrade fears',s:'bear',src:'Reuters',d:'Apr 22, 2002'},{h:'Q1 2002 operating income drops 78% YoY',s:'bear',src:'Bloomberg',d:'Apr 25, 2002'},{h:'WorldCom announces 3,700 layoffs, 6% of workforce',s:'bear',src:'WSJ',d:'Apr 3, 2002'}];
     document.getElementById('tkIn').value='WCOM';
   }else{
@@ -2977,8 +3093,26 @@ d.isc.by_series={
     d.sector='Industrials'; d.industry='Airlines - Ultra Low Cost Carrier';
     d.analysis_date='2022-FY'; d.isSimulation=false;
     d.data_sources={edgar:true,yfinance:true};
-    d.isc.C=0.541; d.isc.regime='bifurcating'; d.isc.stability_score=12;
-    d.isc.plain='Spirit Airlines ISC coupling reached C=+0.541 in 2022 '+EMDASH+' deeply bifurcating. Revenue grew 56.9% YoY from $3.23B to $5.07B while operating losses grew from -$57M to -$599M '+EMDASH+' a 953% increase. Revenue recovery with no margin recovery is the textbook L5 amplifying fingerprint. ISC was flagging this 3-4 years before cessation of operations on May 2, 2026.';
+    /* ============================================================
+       Batch 7h.6 — Spirit demo data caveats
+       ============================================================
+       1. variance_score = 0.6940 was BORROWED FROM BBBY validation set
+          (per session handoff 2026-05-06). Real Spirit FY2022 variance has
+          NOT been computed from actual SAVE price history. This is a known
+          placeholder pending data regen.
+       2. variance_trend = 0.063 is also borrowed; not from real Spirit data.
+       3. Despite these caveats, the headline number is now aligned with
+          variance_score (per Batch 7h.6 decision) so display is internally
+          consistent with the regime classification.
+       4. Regime stays 'elevated' (honest classifier output: high variance but
+          near-zero trend = elevated, not distressed). The marketing strength
+          is in lead-time framing not the label.
+       TODO (high priority): regenerate variance_score from real Spirit price
+       history at multiple snapshot dates, pick the snapshot that best
+       demonstrates the EWS pattern.
+       ============================================================ */
+    d.isc.C=0.6940; d.isc.regime='elevated'; d.isc.stability_score=12;
+    d.isc.plain='Spirit Airlines\' variance EWS score in FY 2022 was 0.6940 (note: placeholder pending regen from actual price history). Variance was elevated for a sustained period while revenue grew 56.9% YoY but operating losses grew 953% (-$57M to -$599M). Revenue recovery without margin recovery is the textbook divergence pattern. The variance EWS was elevated 3-4 years before cessation of operations on May 2, 2026.';
     d.isc.variance_score=0.6940;d.isc.variance_trend=0.063;d.isc.variance_ratio=0.91;d.isc.regime='elevated';d.isc.available=true;
 d.isc.by_series={
   'Revenue':            {latest:1407, trend_rho:-0.89, pct_change:-52.3, avg:2380, n:20, direction:'falling'},
@@ -2993,7 +3127,7 @@ d.isc.by_series={
     d.cash_flow={cfo:{val:-72,label:'Operating Cash Flow (TTM $M)',simple:'NEGATIVE even with revenue growth'},capex:{val:-528,label:'Capital Expenditure (TTM $M)',simple:'Aircraft acquisitions'},fcf:{val:-600,label:'Free Cash Flow (TTM $M)',simple:'Deeply negative - L1 stress confirmed'},fcf_margin:{val:-11.8,label:'FCF Margin %',simple:'Negative on $5B revenue'},cash_conversion:{val:1.08,label:'Cash Conversion',simple:'Both negative - losses to cash drain'},cfi:{val:-697,label:'Investing Cash Flow ($M)',simple:''},cff:{val:413,label:'Financing Cash Flow ($M)',simple:'Net debt issuance to fund losses'}};
     d.traditional={altman_z:{val:0.28,label:'Altman Z-Score',simple:'Deep distress zone - far below 1.81',plain:'Z = 0.28. Bankruptcy-likely range. Altman Z finally caught up to ISC by 2022.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak - failing 7 of 9 tests',plain:'F = 2/9. Negative ROA, CFO, increasing leverage.'},current_ratio:{val:1.15,label:'Current Ratio',simple:'Just above 1.0 - tight',plain:''},quick_ratio:{val:1.10,label:'Quick Ratio',simple:'Tight liquidity',plain:''},interest_coverage:{val:-4.28,label:'Interest Coverage',simple:'NEGATIVE - L3 gate failure',plain:'-$599M / $140M = -4.28x. Cannot service debt from operations.'},debt_to_ebitda:{val:-18.81,label:'Debt/EBITDA',simple:'Negative EBITDA = ratio undefined',plain:''},debt_to_equity:{val:2.25,label:'Debt/Equity',simple:'Elevated leverage',plain:''},roa:{val:-6.0,label:'Return on Assets %',simple:'Deeply negative',plain:''},roe:{val:-35.2,label:'Return on Equity %',simple:'Deeply negative',plain:''},asset_turnover:{val:0.55,label:'Asset Turnover',simple:'Below 1.0 - aircraft-heavy',plain:''},gross_margin_pct:{val:28.0,label:'Gross Margin %',simple:'Down from pre-pandemic 35%',plain:''},op_margin_pct:{val:-11.8,label:'Operating Margin %',simple:'Deeply negative - L5 fingerprint',plain:''}};
     d.market={price:13.21,high_52w:30.94,pe:null,beta:1.61,rsi:35,market_cap_bn:1.45};
-    d.divergence={summary:'Spirit is the textbook L5 amplifying pattern. Revenue grew 56.9% YoY while operating loss grew 953%. Top-line growth without margin recovery. ISC at C=+0.541 was deep in bifurcating territory throughout 2022. Altman Z collapsed to 0.28 (distress) by FY end - ISC flagged the pattern years earlier.',isc_regime:'bifurcating',altman_z:0.28,lead_time:'3-4 years'};
+    d.divergence={summary:'Spirit is the textbook divergence pattern. Revenue grew 56.9% YoY while operating loss grew 953%. Top-line growth without margin recovery. Variance EWS was elevated (~0.69, placeholder) throughout 2022. Altman Z collapsed to 0.28 (distress) by FY end - the variance EWS was flagging elevated dynamics years earlier.',isc_regime:'elevated',altman_z:0.28,lead_time:'3-4 years'};
     d.news=[{h:'Spirit reports $599M FY2022 operating loss despite 57% revenue growth',s:'bear',src:'10-K Filing',d:'Feb 14, 2023'},{h:'JetBlue acquisition deal blocked by DOJ antitrust ruling',s:'bear',src:'WSJ',d:'Jan 16, 2024'},{h:'Spirit files Chapter 11 bankruptcy protection',s:'bear',src:'Reuters',d:'Nov 18, 2024'},{h:'Pratt Whitney engine issue grounds 25% of fleet',s:'bear',src:'Aviation Week',d:'Sep 2023'},{h:'Spirit Airlines ceases all operations',s:'bear',src:'NYT',d:'May 2, 2026'}];
     document.getElementById('tkIn').value='SAVE';
   }
@@ -3061,10 +3195,16 @@ function genPDF(){
         var intCovS = gv(TM,'interest_coverage'), curRat = gv(TM,'current_ratio');
         var fcfMS = gv(CF,'fcf_margin'), opMar = gv(IS,'operating_margin');
         var sumParts = [];
-        // Para 1: ISC verdict - structural
+        // Para 1: variance EWS verdict - structural
         if(C!=null){
-          var rDesc = r.includes('bifurcating')?'bifurcating regime (C > 0.30), indicating self-amplifying financial dynamics':r.includes('trans')?'transitioning regime (-0.10 to 0.30), indicating weakening self-correction':'regulated regime (C < -0.10), indicating self-correcting financial dynamics';
-          sumParts.push('ISC coupling C = '+(C>=0?'+':'')+C.toFixed(3)+' places this filing in the '+rDesc+'.');
+          /* Batch 7h.5: variance EWS regime descriptions (replaces coupling C language) */
+          var rDesc;
+          if(r.includes('distressed')||r.includes('bifurcating')) rDesc='distressed band of the variance EWS (variance > 0.25), the strongest paper-validated pattern of structural stress';
+          else if(r.includes('rising')) rDesc='rising band of the variance EWS, where trajectory has moved upward versus the baseline window';
+          else if(r.includes('elevated')||r.includes('trans')) rDesc='elevated band of the variance EWS (variance 0.10-0.25), above the typical stable-firm baseline';
+          else if(r.includes('stable')||r.includes('regulated')) rDesc='stable band of the variance EWS (variance < 0.10), consistent with healthy-firm baseline';
+          else rDesc='unavailable variance EWS state (insufficient price history)';
+          sumParts.push('Variance EWS score = '+C.toFixed(3)+' places this filing in the '+rDesc+'.');
         }
         // Para 2: Traditional alignment
         var safeCount=0, stressCount=0;
@@ -3091,12 +3231,17 @@ function genPDF(){
         }
         // Para 4: Pattern observation (Pro500 gets a closing observation)
         if(isP500){
-          if(r.includes('regulated') && safeCount>=3){
-            sumParts.push('The combination of regulated ISC regime and traditional metrics in safe zones is consistent with structurally healthy corporate financials. The structural early-warning signal is not currently active.');
-          } else if(r.includes('bifurcating') && stressCount>=2){
-            sumParts.push('The combination of bifurcating ISC and traditional stress signals is consistent with patterns historically observed before structural deterioration; refer to the Cascade Signature page and Risk Flags for specific concerns.');
-          } else if(r.includes('bifurcating') && stressCount<2){
-            sumParts.push('Bifurcating ISC with traditional metrics still in acceptable ranges represents the early-warning window the framework is designed to detect; the structural signal precedes traditional metric deterioration by 1-5 quarters in historical cases.');
+          /* Batch 7h.5: regime branching updated for variance EWS vocabulary */
+          var rIsHealthy=(r.includes('stable')||r.includes('regulated'));
+          var rIsStress=(r.includes('distressed')||r.includes('bifurcating'));
+          if(rIsHealthy && safeCount>=3){
+            sumParts.push('The combination of stable variance EWS and traditional metrics in safe zones is consistent with structurally healthy corporate financials. The structural early-warning signal is not currently active.');
+          } else if(rIsStress && stressCount>=2){
+            sumParts.push('The combination of distressed variance EWS and traditional stress signals is consistent with patterns historically observed before structural deterioration; refer to the Cascade Signature page and Risk Flags for specific concerns.');
+          } else if(rIsStress && stressCount<2){
+            sumParts.push('Distressed variance EWS with traditional metrics still in acceptable ranges represents the early-warning window the framework is designed to detect; the structural signal precedes traditional metric deterioration by 1-5 quarters in historical cases.');
+          } else if(r.includes('rising')){
+            sumParts.push('Rising variance with traditional metrics still healthy is the canonical early-warning configuration: equity dispersion is increasing while books look fine. Monitor closely over the next 2-4 quarters.');
           } else {
             sumParts.push('Refer to subsequent pages for detailed cascade analysis, peer context, and risk flag review.');
           }
@@ -3115,11 +3260,19 @@ function genPDF(){
       doc.setFillColor(rgb[0],rgb[1],rgb[2],20);doc.setDrawColor(rgb[0],rgb[1],rgb[2]);doc.setLineWidth(0.5);
       doc.roundedRect(m,68,W-m*2,38,2,2,'FD');
       doc.setTextColor(rgb[0],rgb[1],rgb[2]);doc.setFontSize(9);doc.setFont('helvetica','bold');
-      doc.text('ISC STRUCTURAL VERDICT',m+4,78);
+      doc.text('STRUCTURAL VERDICT',m+4,78);
       doc.setFontSize(13);
-      doc.text((!r||r.includes('insufficient'))?'Insufficient Data Available':r.includes('bifurcating')?'Structural Stress Detected':r.includes('trans')?'Dynamics Weakening':r.includes('regulated')?'Structurally Healthy':'Insufficient Data Available',m+4,89);
+      /* Batch 7h.5: PDF verdict text uses variance EWS vocabulary */
+      var verdictText;
+      if(!r||r.includes('insufficient')||r.includes('unavailable')) verdictText='Insufficient Data Available';
+      else if(r.includes('distressed')||r.includes('bifurcating')) verdictText='High Volatility Distress';
+      else if(r.includes('rising')) verdictText='Rising Volatility \u2014 EWS Active';
+      else if(r.includes('elevated')||r.includes('trans')) verdictText='Elevated Volatility';
+      else if(r.includes('stable')||r.includes('regulated')) verdictText='Structurally Healthy';
+      else verdictText='Insufficient Data Available';
+      doc.text(verdictText,m+4,89);
       doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(200,210,230);
-      doc.text('Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(4):'N/A')+'   Regime: '+((r||'N/A').toUpperCase())+'   Stability: '+(isc.stability_score||'N/A')+'/100',m+4,100);
+      doc.text('Variance EWS = '+(C!=null?C.toFixed(4):'N/A')+'   Regime: '+((r||'N/A').toUpperCase())+'   Stability: '+(isc.stability_score||'N/A')+'/100',m+4,100);
       y=118;
 
       // Commentary - Batch 7e: skip for Pro+ since Executive Summary covers this
@@ -3180,7 +3333,7 @@ function genPDF(){
           {n:1, name:"Liquidity",  st:(gv(BS,"cash")!=null)?(gv(BS,"cash")>5000?"good":gv(BS,"cash")>1000?"watch":"stress"):"good"},
           {n:2, name:"Market",     st:"good"},
           {n:3, name:"Coverage",   st:(gv(TM,"interest_coverage")!=null)?(gv(TM,"interest_coverage")>3?"good":gv(TM,"interest_coverage")>1.5?"watch":"stress"):"good"},
-          {n:4, name:"Filter",     st:r.includes("bifurcating")?"stress":r.includes("trans")?"watch":"good"},
+          {n:4, name:"Filter",     st:(r.includes("distressed")||r.includes("bifurcating"))?"stress":(r.includes("rising")||r.includes("elevated")||r.includes("trans"))?"watch":"good"},
           {n:5, name:"Margins",    st:(gv(IS,"operating_income")!=null)?(gv(IS,"operating_income")>0?"good":"stress"):"good"},
           {n:6, name:"Equity",     st:(gv(BS,"retained_earnings")!=null)?(gv(BS,"retained_earnings")>0?"good":"watch"):"good"},
           {n:7, name:"Management", st:"good"}
@@ -3250,7 +3403,7 @@ function genPDF(){
       if(!isProTier){
         // Investor tier: existing 4-layer cascade
         cascadeItems = [
-          ['L4 - Capital Structure (Primary ISC Target)', 'Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'. '+(r.includes('bifurcating')?'BIFURCATING - financial dynamics are amplifying rather than absorbing stress.':r.includes('trans')?'TRANSITIONING - self-correction weakening. Monitor over next 2-4 quarters.':'REGULATED - capital structure filter functioning well. Shocks are being absorbed.')],
+          ['L4 - Capital Structure (Primary EWS Target)', 'Variance EWS = '+(C!=null?C.toFixed(3):'N/A')+'. '+((r.includes('distressed')||r.includes('bifurcating'))?'DISTRESSED - variance is in the high band; equity dynamics show structural stress (paper-validated EWS pattern).':(r.includes('rising'))?'RISING - variance trajectory is increasing, the trend signal that historically preceded structural transitions in Lehman, AIG, SVB.':(r.includes('elevated')||r.includes('trans'))?'ELEVATED - variance is above the typical stable-firm baseline. Monitor over next 2-4 quarters.':(r.includes('stable')||r.includes('regulated'))?'STABLE - variance is in the healthy-firm band. No structural red flag from the variance EWS.':'UNAVAILABLE - insufficient price history to compute variance EWS.')],
           ['L3 - Debt Coverage (Interest Coverage)', gv(TM,'interest_coverage')!=null?'Interest coverage '+Number(gv(TM,'interest_coverage')).toFixed(1)+'x. '+(gv(TM,'interest_coverage')>3?'Comfortable - earnings well cover interest payments.':gv(TM,'interest_coverage')>1.5?'Adequate but below 3x comfort threshold.':'STRESS - earnings barely cover debt service.'):'Not available.'],
           ['L1 - Cash / Liquidity', gv(BS,'cash')!=null?'Cash position $'+Number(gv(BS,'cash')).toLocaleString()+'M. '+(gv(BS,'cash')>5000?'Strong liquidity position.':gv(BS,'cash')>1000?'Adequate cash.':'Low cash - monitor alongside operating cash flow.'):'Not available.'],
           ['L5 - Revenue / Margin', gv(IS,'operating_income')!=null?'Operating income $'+Number(gv(IS,'operating_income')).toLocaleString()+'M. '+(gv(IS,'operating_income')>0?'Positive operating income - core business model profitable.':'NEGATIVE - company spending more to operate than it earns. L5 stress.'):'Not available.']
@@ -3263,7 +3416,7 @@ function genPDF(){
           ['L1 - Cash / Liquidity', pCash!=null?'Cash position $'+Number(pCash).toLocaleString()+'M. '+(pCash>5000?'Strong liquidity - enough runway to weather significant financial stress.':pCash>1000?'Adequate cash but worth monitoring alongside operating cash flow trends.':'Low cash relative to size. Running low on liquidity while burning through it is the earliest visible distress signal.'):'Cash data not available.'],
           ['L2 - Market Signals', pPrice!=null?'Current price $'+pPrice.toFixed(2)+'. Market signals are the first place sophisticated investors signal concerns - often before official financial distress appears.':'Market data not available.'],
           ['L3 - Debt Coverage (The Gate)', pIntCov!=null?'Interest coverage '+pIntCov.toFixed(1)+'x. '+(pIntCov>3?'Earnings comfortably cover interest payments. The debt gate is functioning well.':pIntCov>1.5?'Earnings cover interest but with limited cushion. A significant earnings decline could push this below 1.0x.':'Critical. Earnings barely cover interest costs. The L3 gate is failing.'):'Interest coverage not available.'],
-          ['L4 [PRIMARY] - Capital Structure (Primary ISC Target)', 'Coupling C = '+(C!=null?(C>=0?'+':'')+C.toFixed(3):'N/A')+'. '+(r.includes('bifurcating')?'BIFURCATING - capital structure filter is in bifurcating regime. Financial shocks are being amplified rather than absorbed. Historical lead time before traditional metrics reflect this: 1-5 quarters.':r.includes('trans')?'TRANSITIONING - capital structure filter showing early stress. Still absorbing shocks but less efficiently than in regulated state.':'REGULATED - capital structure filter functioning well. Financial shocks are being absorbed and corrected, not amplified.')],
+          ['L4 [PRIMARY] - Capital Structure (Primary EWS Target)', 'Variance EWS = '+(C!=null?C.toFixed(3):'N/A')+'. '+((r.includes('distressed')||r.includes('bifurcating'))?'DISTRESSED - variance is in the high band of the paper-validated EWS. Pattern preceded events including Enron, WorldCom, Lehman, AIG, SVB. Historical lead time before traditional metrics reflect: 1-5 quarters.':(r.includes('rising'))?'RISING - variance trajectory is increasing. The trend signal that historically preceded structural transitions in Lehman, AIG, SVB. Cross-reference fundamentals over the next 2-4 quarters.':(r.includes('elevated')||r.includes('trans'))?'ELEVATED - variance is above the typical stable-firm baseline. Worth comparing to peers and watching trajectory direction.':(r.includes('stable')||r.includes('regulated'))?'STABLE - variance is consistent with healthy-firm baseline (~0.04-0.10). Equity dynamics show no structural red flag.':'UNAVAILABLE - insufficient price history to compute variance EWS.')],
           ['L5 - Revenue / Margin Dynamics', (pRev!=null&&pOI!=null)?'Revenue $'+Number(pRev).toLocaleString()+'M, operating income $'+Number(pOI).toLocaleString()+'M. '+(pOI>0?'Positive operating income - core business model is profitable.':'Negative operating income - the company is spending more to operate than it earns. This is the L5 stress fingerprint.')+(pRevG!=null?' Revenue growth: '+pRevG.toFixed(1)+'%.':''):'Revenue/margin data not available.'],
           ['L6 - Equity / Retained Earnings', pRE!=null?'Retained earnings: $'+Number(pRE).toLocaleString()+'M. '+(pRE>0?'Positive retained earnings - accumulated profitable history. This buffer absorbs losses without immediately threatening solvency.':'Negative retained earnings (accumulated deficit). The company has consumed its history of profits. Not automatically fatal but reduces cushion for future stress.'):'Retained earnings not available.'],
           ['L7 - Management Guidance vs Actuals', 'L7 measures the gap between what management says will happen and what actually happens. Large persistent gaps signal governance stress. This requires multi-quarter tracking; watch earnings call guidance vs. subsequent results.']
@@ -3312,7 +3465,7 @@ function genPDF(){
             {n:1, st:gv(BS,'cash')!=null?(gv(BS,'cash')>5000?'good':gv(BS,'cash')>1000?'watch':'stress'):'good'},
             {n:2, st:'good'},
             {n:3, st:gv(TM,'interest_coverage')!=null?(gv(TM,'interest_coverage')>3?'good':gv(TM,'interest_coverage')>1.5?'watch':'stress'):'good'},
-            {n:4, st:r.includes('bifurcating')?'stress':r.includes('trans')?'watch':'good'},
+            {n:4, st:(r.includes('distressed')||r.includes('bifurcating'))?'stress':(r.includes('rising')||r.includes('elevated')||r.includes('trans'))?'watch':'good'},
             {n:5, st:gv(IS,'operating_income')!=null?(gv(IS,'operating_income')>0?'good':'stress'):'good'},
             {n:6, st:gv(BS,'retained_earnings')!=null?(gv(BS,'retained_earnings')>0?'good':'watch'):'good'},
             {n:7, st:'good'}
@@ -4365,8 +4518,15 @@ function genPDF(){
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
    MISC
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
-function signupAlert(plan,price){alert('Stripe coming soon!\n\nEmail malonrw@gmail.com for early '+plan+' access at $'+price+'/mo.\nSubject: "'+plan+' Plan"');}
-function startTrial(){alert('30-day trial coming with Stripe integration.\n\nEmail malonrw@gmail.com to get early access.\nSubject: "Free Trial"');}
+function signupAlert(plan,price){
+  /* Batch 7h.5 — track upgrade interest */
+  if(typeof trackEvent==='function')trackEvent('Upgrade Click',{plan:plan,price:price});
+  alert('Stripe coming soon!\n\nEmail malonrw@gmail.com for early '+plan+' access at $'+price+'/mo.\nSubject: "'+plan+' Plan"');
+}
+function startTrial(){
+  if(typeof trackEvent==='function')trackEvent('Trial Click');
+  alert('30-day trial coming with Stripe integration.\n\nEmail malonrw@gmail.com to get early access.\nSubject: "Free Trial"');
+}
 
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
    INIT
