@@ -848,8 +848,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
             </div>
             <div style="display:grid;grid-template-columns:1fr;gap:14px">
               <div class="card">
-                <div class="sb-lbl" style="margin-bottom:10px">Revenue vs Operating Income (TTM) <button class="mhelp" onclick="showHelp('revenue-chart')">?</button></div>
-                <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Trailing twelve months. The gap between top-line revenue and operating income is the operating margin &#8212; how much of each dollar in stays in after running the business.</div>
+                <div class="sb-lbl" style="margin-bottom:10px">Revenue vs Operating Income <button class="mhelp" onclick="showHelp('revenue-chart')">?</button></div>
+                <div style="font-size:12px;color:var(--dim);margin-bottom:10px">Quarterly trend across the most recent 12 quarters of EDGAR filings (where available). The gap between top-line revenue and operating income is the operating margin &#8212; how much of each dollar in stays in after running the business. For banks, top line is Net Interest Income; for insurance, Premiums Earned; for REITs, Rental Income.</div>
                 <div class="chart-wrap"><canvas id="revenueChart" height="160"></canvas></div>
               </div>
             </div>
@@ -1579,11 +1579,35 @@ function buildHyperGrowthNarrative(name, C, hg) {
 function rPlain(r,C,name,financials){
   name=name||'This company';
   financials=financials||{};
-  var fcf=financials.fcf,intCov=financials.intCov,fcfM=financials.fcfM,rev=financials.rev;
-  
-  // Context check: are the financials strong despite C score?
-  var financiallyStrong = (fcf!=null&&fcf>50000)||(intCov!=null&&intCov>10)||(fcfM!=null&&fcfM>20);
-  var financiallyWeak = (fcf!=null&&fcf<0)||(intCov!=null&&intCov<1.5)||(fcfM!=null&&fcfM<0);
+  var fcf=financials.fcf,intCov=financials.intCov,fcfM=financials.fcfM,rev=financials.rev,altZ=financials.altZ,piotF=financials.piotF;
+
+  /* Batch 7h.11: balance-of-evidence approach to fundamentals classification.
+     Previously, ANY weak signal (e.g. negative FCF) flagged the firm as
+     "financiallyWeak" even when Altman Z and Piotroski were strong. That fired
+     on companies like Halliburton with strong-Z/strong-Piotroski but seasonally
+     negative FCF, producing a misleading "financials weakening" verdict.
+
+     New approach: tally up to 5 signals, classify as Strong/Weak only when the
+     evidence is decisive (>=3 signals lean the same way). Otherwise the narrative
+     falls through to the regime-only default which is appropriately neutral.
+
+     Signals counted (each can vote +1 strong, -1 weak, or 0 unknown/neutral):
+       1. Altman Z (>3 strong, <1.81 weak)
+       2. Piotroski F (>=7 strong, <=3 weak)
+       3. FCF (>50000 strong i.e. $50B+, <0 weak)
+       4. Interest Coverage (>10 strong, <1.5 weak)
+       5. FCF Margin (>20% strong, <0 weak)
+     Net score >=2 = Strong; <=-2 = Weak; otherwise neutral.
+  */
+  var sigStrong = 0, sigWeak = 0;
+  if (altZ != null) { if (altZ > 3) sigStrong++; else if (altZ < 1.81) sigWeak++; }
+  if (piotF != null) { if (piotF >= 7) sigStrong++; else if (piotF <= 3) sigWeak++; }
+  if (fcf != null) { if (fcf > 50000) sigStrong++; else if (fcf < 0) sigWeak++; }
+  if (intCov != null) { if (intCov > 10) sigStrong++; else if (intCov < 1.5) sigWeak++; }
+  if (fcfM != null) { if (fcfM > 20) sigStrong++; else if (fcfM < 0) sigWeak++; }
+  var net = sigStrong - sigWeak;
+  var financiallyStrong = (net >= 2);
+  var financiallyWeak = (net <= -2);
   
   if(!r||r.includes('insufficient')||r.includes('unavailable')){
     var tk=(typeof D!=='undefined'&&D&&D.ticker)?String(D.ticker).toUpperCase():'';
@@ -1822,7 +1846,7 @@ function renderAll(d){
   document.getElementById('verdictCard').innerHTML=
     '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">ISC Structural Verdict</div>'
     +(function(){/* Batch 7h.3 applied */ var hg=detectHyperGrowth(d,r,C);var t,c;if(!r||r.includes('insufficient')||r.includes('unavailable')){t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}else if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Hyper-Growth';c='var(--purple)';}else if(r.includes('distressed')||r.includes('bifurcating')){t=String.fromCharCode(9888)+' High Volatility Distress';c=col;}else if(r.includes('rising')){t=String.fromCharCode(9888)+' Rising Volatility '+EMDASH+' EWS Active';c=col;}else if(r.includes('elevated')||r.includes('trans')){t=String.fromCharCode(9678)+' Elevated Volatility';c=col;}else if(r.includes('stable')||r.includes('regulated')){t=CHECK+' Structurally Healthy';c=col;}else{t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';})()
-    +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z")})+'</div>'
+    +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z"),piotF:gv(TM,"piotroski_f")})+'</div>'
     +(d.isSimulation?'<div class="al al-a"><span>&#9888;</span><div>API warming up &#8212; estimated signal shown. <button onclick="runAnal()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-weight:700;text-decoration:underline">Click here to run again</button> for real EDGAR data.</div></div>':'')
     +function(){
       if(C==null) return '';
@@ -1953,7 +1977,7 @@ function renderAll(d){
     +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Variance EWS</div><div style="font-family:var(--mono);font-size:30px;font-weight:700;color:'+col+'">'+(C!=null?C.toFixed(4):'N/A')+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Regime</div><div style="font-size:18px;font-weight:700;color:'+col+'">'+((r||'unknown').toUpperCase())+'</div></div>'
     +'</div>'
-    +'<div class="commentary" style="margin-bottom:12px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z")})+'</div>'
+    +'<div class="commentary" style="margin-bottom:12px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z"),piotF:gv(TM,"piotroski_f")})+'</div>'
     +(isc.plain&&!isc.plain.includes('API warming')?'<div class="commentary" style="margin-bottom:0"><strong>ISC Analysis:</strong> '+isc.plain+'</div>':'');
 
   // KEY DRIVERS SECTION - what variables are most responsible
@@ -2863,25 +2887,64 @@ function renderCharts(d){
   // historical trajectory in the new variance EWS methodology, so the chart was
   // misleading. Real per-series trajectory (when wired) will go on a new panel.
 
-  // Revenue vs Operating Income — TTM bar pair (Batch 7h.5: replaces fake quarterly)
+  // Revenue vs Operating Income — Batch 7h.10: quarterly line chart from quarterly_history.
+  // Falls back to TTM bar pair when quarterly arrays aren't available (older API responses).
   var revCtx=document.getElementById('revenueChart');
   if(revCtx){
-    var revVal=gv(IS,'revenue'),oiVal=gv(IS,'operating_income');
-    if(revVal!=null||oiVal!=null){
-      // Render in $B for readability
-      var revB=revVal!=null?parseFloat((revVal/1000).toFixed(2)):null;
-      var oiB =oiVal !=null?parseFloat((oiVal /1000).toFixed(2)):null;
-      var oiPositive=(oiB!=null && oiB>0);
+    var qh=(d&&d.quarterly_history)||{};
+    var qRev=qh.revenue||[];
+    var qOI=qh.operating_income||[];
+    // Sector-aware: for banks, prefer NII; for insurance, premiums; for REITs, rental income
+    var sectorBucket_chart=d.sector_bucket||'industrial';
+    if(sectorBucket_chart==='bank' && qh.net_interest_income && qh.net_interest_income.length>=2){
+      qRev=qh.net_interest_income;
+    } else if(sectorBucket_chart==='insurance' && qh.premiums_earned && qh.premiums_earned.length>=2){
+      qRev=qh.premiums_earned;
+    } else if(sectorBucket_chart==='reit' && qh.rental_income && qh.rental_income.length>=2){
+      qRev=qh.rental_income;
+    }
+    var topLineLabel = (sectorBucket_chart==='bank') ? 'Net Interest Income'
+                      : (sectorBucket_chart==='insurance') ? 'Premiums Earned'
+                      : (sectorBucket_chart==='reit') ? 'Rental Income'
+                      : 'Revenue';
+    var hasQuarterly = qRev.length>=2 && qOI.length>=2;
+    if(hasQuarterly){
+      // Build labels from the longer of the two arrays. Each array is {date, val}.
+      function fmtDate(s){var d=new Date(s); var q=Math.floor(d.getMonth()/3)+1; return 'Q'+q+' '+(d.getFullYear()%100<10?'0':'')+(d.getFullYear()%100);}
+      // Use union of dates; align both arrays on the union
+      var allDates=Array.from(new Set(qRev.concat(qOI).map(function(x){return x.date;}))).sort();
+      function alignToDates(arr){var m={}; arr.forEach(function(x){m[x.date]=x.val;}); return allDates.map(function(d){return m[d]!=null?parseFloat((m[d]/1000).toFixed(2)):null;});}
+      var revData=alignToDates(qRev);
+      var oiData=alignToDates(qOI);
+      var labels=allDates.map(fmtDate);
+      // Color OpInc points by sign — green for positive, red for negative
+      var oiPointColors=oiData.map(function(v){return (v!=null && v<0)?'#EF4444':'#10B981';});
       charts.revenue=new Chart(revCtx,{
-        type:'bar',
-        data:{labels:['Revenue (TTM)','Operating Income (TTM)'],datasets:[
-          {label:'$B',data:[revB,oiB],
-            backgroundColor:['rgba(59,130,246,.35)',oiPositive?'rgba(16,185,129,.35)':'rgba(239,68,68,.35)'],
-            borderColor:    ['rgba(59,130,246,.95)',oiPositive?'rgba(16,185,129,.95)':'rgba(239,68,68,.95)'],
-            borderWidth:1.5}
+        type:'line',
+        data:{labels:labels,datasets:[
+          {label:topLineLabel,data:revData,borderColor:'rgba(59,130,246,.95)',backgroundColor:'rgba(59,130,246,.08)',borderWidth:2,tension:0.25,pointRadius:3,pointBackgroundColor:'rgba(59,130,246,.95)'},
+          {label:'Operating Income',data:oiData,borderColor:'rgba(16,185,129,.95)',backgroundColor:'rgba(16,185,129,.05)',borderWidth:2,tension:0.25,pointRadius:4,pointBackgroundColor:oiPointColors}
         ]},
-        options:Object.assign({},chartDefaults,{plugins:{legend:{display:false},tooltip:Object.assign({},chartDefaults.plugins.tooltip,{callbacks:{label:function(ctx){return '$'+(ctx.parsed.y!=null?ctx.parsed.y.toFixed(2):'?')+'B';}}})},scales:Object.assign({},chartDefaults.scales,{y:Object.assign({},chartDefaults.scales.y,{ticks:Object.assign({},chartDefaults.scales.y.ticks,{callback:function(v){return '$'+v+'B';}})})})})
+        options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,position:'top',labels:{color:'#9CA3AF',font:{size:10},boxWidth:14,padding:8,usePointStyle:true}},tooltip:Object.assign({},chartDefaults.plugins.tooltip,{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+(ctx.parsed.y!=null?ctx.parsed.y.toFixed(2):'?')+'B';}}})},scales:Object.assign({},chartDefaults.scales,{y:Object.assign({},chartDefaults.scales.y,{ticks:Object.assign({},chartDefaults.scales.y.ticks,{callback:function(v){return '$'+v+'B';}})})})})
       });
+    } else {
+      // Fallback: TTM bar pair when quarterly arrays unavailable
+      var revVal=gv(IS,'revenue'),oiVal=gv(IS,'operating_income');
+      if(revVal!=null||oiVal!=null){
+        var revB=revVal!=null?parseFloat((revVal/1000).toFixed(2)):null;
+        var oiB =oiVal !=null?parseFloat((oiVal /1000).toFixed(2)):null;
+        var oiPositive=(oiB!=null && oiB>0);
+        charts.revenue=new Chart(revCtx,{
+          type:'bar',
+          data:{labels:[topLineLabel+' (TTM)','Operating Income (TTM)'],datasets:[
+            {label:'$B',data:[revB,oiB],
+              backgroundColor:['rgba(59,130,246,.35)',oiPositive?'rgba(16,185,129,.35)':'rgba(239,68,68,.35)'],
+              borderColor:    ['rgba(59,130,246,.95)',oiPositive?'rgba(16,185,129,.95)':'rgba(239,68,68,.95)'],
+              borderWidth:1.5}
+          ]},
+          options:Object.assign({},chartDefaults,{plugins:{legend:{display:false},tooltip:Object.assign({},chartDefaults.plugins.tooltip,{callbacks:{label:function(ctx){return '$'+(ctx.parsed.y!=null?ctx.parsed.y.toFixed(2):'?')+'B';}}})},scales:Object.assign({},chartDefaults.scales,{y:Object.assign({},chartDefaults.scales.y,{ticks:Object.assign({},chartDefaults.scales.y.ticks,{callback:function(v){return '$'+v+'B';}})})})})
+        });
+      }
     }
   }
 
@@ -3243,9 +3306,9 @@ d.isc.by_series={
        history at multiple snapshot dates, pick the snapshot that best
        demonstrates the EWS pattern.
        ============================================================ */
-    d.isc.C=0.6940; d.isc.regime='elevated'; d.isc.stability_score=12;
-    d.isc.plain='Spirit Airlines\' variance EWS score in FY 2022 was 0.6940 (note: placeholder pending regen from actual price history). Variance was elevated for a sustained period while revenue grew 56.9% YoY but operating losses grew 953% (-$57M to -$599M). Revenue recovery without margin recovery is the textbook divergence pattern. The variance EWS was elevated 3-4 years before cessation of operations on May 2, 2026.';
-    d.isc.variance_score=0.6940;d.isc.variance_trend=0.063;d.isc.variance_ratio=0.91;d.isc.regime='elevated';d.isc.available=true;
+    d.isc.C=0.6940; d.isc.regime='distressed'; d.isc.stability_score=12;
+    d.isc.plain='Spirit Airlines\' variance EWS score in FY 2022 was 0.6940 (note: placeholder pending regen from actual price history) &#8212; in the distressed band of the EWS. Variance at this magnitude is extreme regardless of short-term trajectory. Revenue grew 56.9% YoY but operating losses grew 953% (-$57M to -$599M); revenue recovery without margin recovery is the textbook divergence pattern. The variance EWS was distressed 3-4 years before cessation of operations on May 2, 2026.';
+    d.isc.variance_score=0.6940;d.isc.variance_trend=0.063;d.isc.variance_ratio=0.91;d.isc.regime='distressed';d.isc.available=true;
 d.isc.by_series={
   'Revenue':            {latest:1407, trend_rho:-0.89, pct_change:-52.3, avg:2380, n:20, direction:'falling'},
   'Operating Income':   {latest:-440, trend_rho:-0.93, pct_change:-580.4, avg:120, n:20, direction:'falling'},
@@ -3259,7 +3322,7 @@ d.isc.by_series={
     d.cash_flow={cfo:{val:-72,label:'Operating Cash Flow (TTM $M)',simple:'NEGATIVE even with revenue growth'},capex:{val:-528,label:'Capital Expenditure (TTM $M)',simple:'Aircraft acquisitions'},fcf:{val:-600,label:'Free Cash Flow (TTM $M)',simple:'Deeply negative - L1 stress confirmed'},fcf_margin:{val:-11.8,label:'FCF Margin %',simple:'Negative on $5B revenue'},cash_conversion:{val:1.08,label:'Cash Conversion',simple:'Both negative - losses to cash drain'},cfi:{val:-697,label:'Investing Cash Flow ($M)',simple:''},cff:{val:413,label:'Financing Cash Flow ($M)',simple:'Net debt issuance to fund losses'}};
     d.traditional={altman_z:{val:0.28,label:'Altman Z-Score',simple:'Deep distress zone - far below 1.81',plain:'Z = 0.28. Bankruptcy-likely range. Altman Z finally caught up to ISC by 2022.'},piotroski_f:{val:2,label:'Piotroski F-Score',simple:'Weak - failing 7 of 9 tests',plain:'F = 2/9. Negative ROA, CFO, increasing leverage.'},current_ratio:{val:1.15,label:'Current Ratio',simple:'Just above 1.0 - tight',plain:''},quick_ratio:{val:1.10,label:'Quick Ratio',simple:'Tight liquidity',plain:''},interest_coverage:{val:-4.28,label:'Interest Coverage',simple:'NEGATIVE - L3 gate failure',plain:'-$599M / $140M = -4.28x. Cannot service debt from operations.'},debt_to_ebitda:{val:-18.81,label:'Debt/EBITDA',simple:'Negative EBITDA = ratio undefined',plain:''},debt_to_equity:{val:2.25,label:'Debt/Equity',simple:'Elevated leverage',plain:''},roa:{val:-6.0,label:'Return on Assets %',simple:'Deeply negative',plain:''},roe:{val:-35.2,label:'Return on Equity %',simple:'Deeply negative',plain:''},asset_turnover:{val:0.55,label:'Asset Turnover',simple:'Below 1.0 - aircraft-heavy',plain:''},gross_margin_pct:{val:28.0,label:'Gross Margin %',simple:'Down from pre-pandemic 35%',plain:''},op_margin_pct:{val:-11.8,label:'Operating Margin %',simple:'Deeply negative - L5 fingerprint',plain:''}};
     d.market={price:13.21,high_52w:30.94,pe:null,beta:1.61,rsi:35,market_cap_bn:1.45};
-    d.divergence={summary:'Spirit is the textbook divergence pattern. Revenue grew 56.9% YoY while operating loss grew 953%. Top-line growth without margin recovery. Variance EWS was elevated (~0.69, placeholder) throughout 2022. Altman Z collapsed to 0.28 (distress) by FY end - the variance EWS was flagging elevated dynamics years earlier.',isc_regime:'elevated',altman_z:0.28,lead_time:'3-4 years'};
+    d.divergence={summary:'Spirit is the textbook divergence pattern. Revenue grew 56.9% YoY while operating loss grew 953%. Top-line growth without margin recovery. Variance EWS was extreme (~0.69, placeholder) throughout 2022. Altman Z collapsed to 0.28 (distress) by FY end - the variance EWS was flagging structural distress years earlier.',isc_regime:'distressed',altman_z:0.28,lead_time:'3-4 years'};
     d.news=[{h:'Spirit reports $599M FY2022 operating loss despite 57% revenue growth',s:'bear',src:'10-K Filing',d:'Feb 14, 2023'},{h:'JetBlue acquisition deal blocked by DOJ antitrust ruling',s:'bear',src:'WSJ',d:'Jan 16, 2024'},{h:'Spirit files Chapter 11 bankruptcy protection',s:'bear',src:'Reuters',d:'Nov 18, 2024'},{h:'Pratt Whitney engine issue grounds 25% of fleet',s:'bear',src:'Aviation Week',d:'Sep 2023'},{h:'Spirit Airlines ceases all operations',s:'bear',src:'NYT',d:'May 2, 2026'}];
     document.getElementById('tkIn').value='SAVE';
   }
@@ -4668,7 +4731,7 @@ function sparkline(d,col,h,area){h=h||36;var w=90;if(!d||d.length<2)return"";var
 function makeTrend(val,regime,q){q=q||8;if(val==null)return null;var t=[],n=Math.abs(val)*0.05,v=val*0.78;for(var i=0;i<q;i++){var tg=val*(regime==="bifurcating"?0.98:1.0);v=v+(tg-v)*0.3+(Math.random()-0.48)*n;t.push(parseFloat(v.toFixed(2)));}return t;}
 function switchHelpTab(tab){["howto","encyc","support","ai"].forEach(function(t){var e=document.getElementById("help-"+t);if(e)e.style.display=t===tab?"block":"none";var b=document.getElementById("help-tab-"+t);if(b)b.classList.toggle("on",t===tab);});}
 var portfolio=[];try{portfolio=JSON.parse(localStorage.getItem("isc_portfolio")||"[]");}catch(e){}
-function addToPortfolio(data){if(!data||!data.ticker)return;var isc=data.isc||{},TM=data.traditional||{},CF=data.cash_flow||{};var entry={ticker:data.ticker,name:data.company_name||data.ticker,C:isc.C,regime:isc.regime||"unknown",altZ:gv(TM,"altman_z"),fcfM:gv(CF,"fcf_margin"),added:new Date().toISOString().slice(0,10)};portfolio=portfolio.filter(function(p){return p.ticker!==data.ticker;});portfolio.unshift(entry);if(portfolio.length>20)portfolio=portfolio.slice(0,20);try{localStorage.setItem("isc_portfolio",JSON.stringify(portfolio));}catch(e){}renderPortfolio();}
+function addToPortfolio(data){if(!data||!data.ticker)return;var isc=data.isc||{},TM=data.traditional||{},CF=data.cash_flow||{};var entry={ticker:data.ticker,name:data.company_name||data.ticker,C:isc.C,regime:isc.regime||"unknown",altZ:gv(TM,"altman_z"),piotF:gv(TM,"piotroski_f"),fcfM:gv(CF,"fcf_margin"),added:new Date().toISOString().slice(0,10)};portfolio=portfolio.filter(function(p){return p.ticker!==data.ticker;});portfolio.unshift(entry);if(portfolio.length>20)portfolio=portfolio.slice(0,20);try{localStorage.setItem("isc_portfolio",JSON.stringify(portfolio));}catch(e){}renderPortfolio();}
 function removeFromPortfolio(ticker){portfolio=portfolio.filter(function(p){return p.ticker!==ticker;});try{localStorage.setItem("isc_portfolio",JSON.stringify(portfolio));}catch(e){}renderPortfolio();}
 function renderPortfolio(){var grid=document.getElementById("portfolioGrid"),empty=document.getElementById("portfolioEmpty");if(!grid)return;if(!portfolio.length){grid.style.display="none";if(empty)empty.style.display="block";return;}if(empty)empty.style.display="none";grid.style.display="flex";grid.innerHTML=portfolio.map(function(p){var rc=p.regime&&p.regime.includes("bifurcating")?"#EF4444":p.regime&&p.regime.includes("trans")?"#F59E0B":"#10B981";var cStr=p.C!=null?(p.C>=0?"+":"")+p.C.toFixed(3):"N/A";var spark=p.C!=null?sparkline(makeTrend(p.C,p.regime,8),rc,28,false):"";return"<div style='display:flex;align-items:center;gap:10px;padding:11px 14px;background:rgba(255,255,255,.025);border:1px solid #1E3048;border-radius:9px;margin-bottom:7px'>  <div><div class='ptk' data-tk='"+p.ticker+"' style='font-family:monospace;font-weight:700;cursor:pointer;color:#00C8FF'>"+p.ticker+"</div><div style='font-size:11px;color:#6B7280'>"+p.name.substring(0,18)+"</div></div><span style='font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;background:"+rc+"22;color:"+rc+"'>"+( p.regime||"").toUpperCase().slice(0,4)+"</span><div>"+spark+"</div><div style='font-family:monospace;font-size:13px;font-weight:700;color:"+rc+"'>"+cStr+"</div><div style='font-size:11px;color:#6B7280;margin-left:auto'>"+(p.altZ!=null?("Z:"+p.altZ.toFixed(1)):"")+" "+(p.fcfM!=null?(p.fcfM.toFixed(0)+"%FCF"):"")+"</div><button class='prm-btn' data-rm='"+p.ticker+"' style='background:none;border:none;color:#555;cursor:pointer'>x</button></div>";}).join("");grid.querySelectorAll(".ptk").forEach(function(el){el.addEventListener("click",function(){setTk(this.getAttribute("data-tk"));runAnal();});});grid.querySelectorAll(".prm-btn").forEach(function(el){el.addEventListener("click",function(){removeFromPortfolio(this.getAttribute("data-rm"));});});}
 function miniBar(data,color,h){h=h||36;var w=90;if(!data||!data.length)return"";var valid=data.filter(function(x){return x!=null&&!isNaN(x);});if(!valid.length)return"";var mx=Math.max.apply(null,valid.map(Math.abs))||1;var bw=Math.floor(w/valid.length)-1;var bars=valid.map(function(v,i){var x=i*(bw+1);var bh=Math.round((Math.abs(v)/mx)*(h-2));var y=h-bh;var c2=v>=0?color:"#EF4444";return"<rect x='"+x+"' y='"+y+"' width='"+bw+"' height='"+bh+"' fill='"+c2+"' rx='1' opacity='0.8'/>";}).join("");return"<svg width='"+w+"' height='"+h+"' viewBox='0 0 "+w+" "+h+"'>"+bars+"</svg>";}
