@@ -715,7 +715,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 
       <button class="run-btn" id="runBtn" onclick="runAnal()">&#9654; Run Full Analysis</button>
       <div class="progress"><div class="progress-fill" id="pbFill"></div></div>
-      <div id="pdfWrap" class="hidden"><button class="pdf-btn" onclick="genPDF()">&#11015; Download PDF Report</button></div>
+      <div id="pdfWrap" class="hidden"><button class="pdf-btn" onclick="genPDF()">&#11015; Download Analyst Report</button></div>
 
       <!-- How To Use -->
       <div style="background:rgba(255,255,255,.02);border:1px solid var(--bdr);border-radius:8px;padding:12px">
@@ -1758,7 +1758,10 @@ async function runAnal() {
 
   try{
     var win=document.getElementById('winR').value;
-    var url=API+'/analyze/'+tk+'?window='+win;
+    /* Batch 7h.14: thread the dataSource toggle into the API URL so price-only
+       mode actually returns a different response shape. */
+    var apiMode=(dataSource==='history')?'price-only':'edgar';
+    var url=API+'/analyze/'+tk+'?window='+win+'&mode='+apiMode;
     var resp=await fetch(url);
     if(!resp.ok)throw new Error('API returned '+resp.status);
     var data=await resp.json();
@@ -1903,6 +1906,32 @@ function renderAll(d){
 
   // VERDICT
   var stab=isc.stability_score,altZ=gv(TM,'altman_z'),piF=gv(TM,'piotroski_f');
+
+  /* Batch 7h.14: price-only mode banner. When the API returned
+     analysis_mode='price-only', the user explicitly chose stocks-only mode,
+     so we add a clear banner at the top explaining that fundamentals are
+     intentionally not loaded. Does not appear for default EDGAR mode. */
+  (function(){
+    var pob=document.getElementById('priceOnlyBanner');
+    if(d.analysis_mode==='price-only'){
+      var msg=d.price_only_notice||'Stocks-only analysis. Fundamentals not loaded.';
+      var html='<div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.20);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#A0B8D0;line-height:1.6"><strong style="color:var(--purple)">&#9678; Price History mode.</strong> '+msg+'</div>';
+      if(pob){
+        pob.innerHTML=html;
+      } else {
+        // Inject before verdictCard
+        var vc=document.getElementById('verdictCard');
+        if(vc&&vc.parentNode){
+          var bn=document.createElement('div');
+          bn.id='priceOnlyBanner';
+          bn.innerHTML=html;
+          vc.parentNode.insertBefore(bn,vc);
+        }
+      }
+    } else if(pob){
+      pob.innerHTML='';  // Clear banner when switching back to EDGAR
+    }
+  })();
   (function(){var hg=detectHyperGrowth(d,r,C);var bgCol;if(!r||r.includes('insufficient')){bgCol='var(--dim)';}else if(hg){bgCol='var(--purple)';}else{bgCol=col;}document.getElementById('verdictCard').style.background=bgCol.replace(')',',0.06)').replace('var(--','rgba(');document.getElementById('verdictCard').style.border='1px solid '+bgCol.replace(')',',0.2)').replace('var(--','rgba(');})();
   document.getElementById('verdictCard').innerHTML=
     '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">Structural Read</div>'
@@ -1983,16 +2012,18 @@ function renderAll(d){
     if(fcfMV!=null){if(fcfMV>20)sStrong++;else if(fcfMV<0)sWeak++;}
     var fundNet=sStrong-sWeak;
     var fundLabel, fundColor, fundHint;
-    if(altzV==null && piotV==null){fundLabel='Insufficient data';fundColor='var(--dim)';fundHint='Filings could not be parsed.';}
+    if(d.analysis_mode==='price-only'){fundLabel='Not loaded';fundColor='var(--dim)';fundHint='Switch to EDGAR mode to load fundamentals.';}
+    else if(altzV==null && piotV==null){fundLabel='Insufficient data';fundColor='var(--dim)';fundHint='Filings could not be parsed.';}
     else if(fundNet>=2){fundLabel='Strong';fundColor='var(--green)';fundHint=sStrong+' of '+(sStrong+sWeak)+' fundamental signals lean strong.';}
     else if(fundNet<=-2){fundLabel='Weak';fundColor='var(--red)';fundHint=sWeak+' of '+(sStrong+sWeak)+' fundamental signals lean weak.';}
     else {fundLabel='Mixed';fundColor='var(--amber)';fundHint='No decisive fundamental lean.';}
 
     // Lens 3: Sector context (peer-relative)
-    var sectorBkt=d.sector_bucket||'industrial';
+    var sectorBkt=d.sector_bucket;  // null in price-only mode
     var sectorLabel, sectorColor, sectorHint;
     var sectorTxt=d.sector||'';
-    if(sectorBkt==='bank'){sectorLabel='Bank';sectorColor='var(--cyan)';sectorHint='Sector-specific metrics applied: NIM, Tier 1, efficiency ratio.';}
+    if(d.analysis_mode==='price-only'){sectorLabel=sectorTxt||'Sector unknown';sectorColor='var(--dim)';sectorHint='SIC-based classification not loaded in stocks-only mode.';}
+    else if(sectorBkt==='bank'){sectorLabel='Bank';sectorColor='var(--cyan)';sectorHint='Sector-specific metrics applied: NIM, Tier 1, efficiency ratio.';}
     else if(sectorBkt==='insurance'){sectorLabel='Insurance';sectorColor='var(--purple)';sectorHint='Sector-specific metrics applied: combined ratio, loss ratio.';}
     else if(sectorBkt==='reit'){sectorLabel='REIT';sectorColor='var(--gold)';sectorHint='Sector-specific metrics applied: FFO, NOI, NOI yield.';}
     else if(sectorBkt==='other'){sectorLabel='Financial (Other)';sectorColor='var(--dim)';sectorHint='Asset manager / broker-dealer template '+EMDASH+' some industrial metrics partial.';}
@@ -2000,10 +2031,13 @@ function renderAll(d){
 
     // Disagreement detector: when EWS reads stress but fundamentals strong,
     // or fundamentals weak but EWS calm — that's the framework's lead-time signal.
+    // Batch 7h.14: skip detector entirely when fundamentals aren't loaded.
     var disagreement='';
     var ewsStress=(r&&(r.includes('distressed')||r.includes('rising')||r.includes('elevated')));
     var ewsCalm=(r&&r.includes('stable'));
-    if(ewsStress && fundNet>=2){
+    if(d.analysis_mode==='price-only'){
+      // Skip — no fundamentals to triangulate against
+    } else if(ewsStress && fundNet>=2){
       disagreement='<div style="margin-top:10px;padding:10px 14px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.20);border-radius:6px;font-size:12px;color:#A0B8D0;line-height:1.6"><strong style="color:var(--cyan)">Lens divergence:</strong> Variance EWS is signaling stress while fundamentals remain strong. This is the canonical EWS-leading configuration — the framework\u2019s claim is that this gap historically precedes fundamental deterioration by 1\u20135 quarters. Cross-reference subsequent filings.</div>';
     } else if(ewsCalm && fundNet<=-2){
       disagreement='<div style="margin-top:10px;padding:10px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.20);border-radius:6px;font-size:12px;color:#A0B8D0;line-height:1.6"><strong style="color:var(--amber)">Lens divergence:</strong> Fundamentals are weak while the variance EWS is in the stable band. Atypical configuration — could indicate a value situation, post-distress recovery, or a market that has not yet repriced. Educational read only.</div>';
@@ -3566,7 +3600,8 @@ function genPDF(){
       var isc=D.isc||{},IS=D.income_statement||{},BS=D.balance_sheet||{},CF=D.cash_flow||{},TM=D.traditional||{},MKT=D.market||{};
       var C=isc.C,r=(isc.regime||'').toLowerCase();
       var W=210,m=18,y=0;
-      var rgb=C>0.3?[239,68,68]:C>-0.1?[245,158,11]:[16,185,129];
+      // Batch 7h.15: variance EWS color thresholds (was coupling C-range)
+      var rgb=C>0.25?[239,68,68]:C>0.10?[245,158,11]:[16,185,129];
 
       // Cover
       doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');
@@ -3574,7 +3609,7 @@ function genPDF(){
       doc.setTextColor(0,200,255);doc.setFontSize(10);doc.setFont('helvetica','bold');
       doc.text('ISC FINANCIAL  &#183;  THE FILTER LAB',m,18);
       doc.setTextColor(241,245,249);doc.setFontSize(26);doc.setFont('helvetica','bold');
-      doc.text('Structural Analysis Report',m,36);
+      doc.text('Analyst Report',m,36);
       doc.setFontSize(15);doc.setFont('helvetica','normal');doc.setTextColor(156,163,175);
       doc.text((D.company_name||D.ticker)+' ('+D.ticker+')',m,48);
       doc.setFontSize(10);
@@ -3699,23 +3734,148 @@ function genPDF(){
         y+=54;
       }
 
+      /* Batch 7h.15: Structural Triangulation summary box on cover.
+         Mirrors the on-screen Triangulation panel in compact form. */
+      (function(){
+        // Lens 1: Variance EWS
+        var ewsLabel, ewsRGB;
+        if(C==null){ewsLabel='Unavailable';ewsRGB=[140,150,170];}
+        else if(r&&r.includes('distressed')){ewsLabel='Distressed';ewsRGB=[239,68,68];}
+        else if(r&&r.includes('rising')){ewsLabel='Rising';ewsRGB=[245,158,11];}
+        else if(r&&r.includes('elevated')){ewsLabel='Elevated';ewsRGB=[245,158,11];}
+        else if(r&&r.includes('stable')){ewsLabel='Stable';ewsRGB=[16,185,129];}
+        else {ewsLabel='Insufficient';ewsRGB=[140,150,170];}
+
+        // Lens 2: Fundamental health (balance-of-evidence on 5 signals)
+        var fundLabel, fundRGB;
+        if(D.analysis_mode==='price-only'){fundLabel='Not loaded';fundRGB=[140,150,170];}
+        else {
+          var altzV=gv(TM,'altman_z'),piotV=gv(TM,'piotroski_f');
+          var fcfV=gv(CF,'fcf'),intCovV=gv(TM,'interest_coverage'),fcfMV=gv(CF,'fcf_margin');
+          var sStrong=0,sWeak=0;
+          if(altzV!=null){if(altzV>3)sStrong++;else if(altzV<1.81)sWeak++;}
+          if(piotV!=null){if(piotV>=7)sStrong++;else if(piotV<=3)sWeak++;}
+          if(fcfV!=null){if(fcfV>50000)sStrong++;else if(fcfV<0)sWeak++;}
+          if(intCovV!=null){if(intCovV>10)sStrong++;else if(intCovV<1.5)sWeak++;}
+          if(fcfMV!=null){if(fcfMV>20)sStrong++;else if(fcfMV<0)sWeak++;}
+          var net=sStrong-sWeak;
+          if(altzV==null && piotV==null){fundLabel='Insufficient';fundRGB=[140,150,170];}
+          else if(net>=2){fundLabel='Strong';fundRGB=[16,185,129];}
+          else if(net<=-2){fundLabel='Weak';fundRGB=[239,68,68];}
+          else {fundLabel='Mixed';fundRGB=[245,158,11];}
+        }
+
+        // Lens 3: Sector context
+        var sectorBkt=D.sector_bucket;
+        var sectorLabel, sectorRGB;
+        if(D.analysis_mode==='price-only'){sectorLabel=(D.sector||'Unknown').substring(0,18);sectorRGB=[140,150,170];}
+        else if(sectorBkt==='bank'){sectorLabel='Bank';sectorRGB=[0,200,255];}
+        else if(sectorBkt==='insurance'){sectorLabel='Insurance';sectorRGB=[167,139,250];}
+        else if(sectorBkt==='reit'){sectorLabel='REIT';sectorRGB=[245,158,11];}
+        else if(sectorBkt==='other'){sectorLabel='Financial';sectorRGB=[140,150,170];}
+        else {sectorLabel=(D.sector||'Industrial').substring(0,18);sectorRGB=[241,245,249];}
+
+        // Box (white background, 26mm tall, three equal columns)
+        var triY=y;
+        doc.setFillColor(245,247,250);doc.setDrawColor(220,225,232);doc.setLineWidth(0.3);
+        doc.roundedRect(m,triY,W-m*2,26,1.5,1.5,'FD');
+        doc.setFontSize(8);doc.setFont('helvetica','bold');doc.setTextColor(70,80,100);
+        doc.text('STRUCTURAL TRIANGULATION',m+3,triY+5);
+        doc.setFontSize(7);doc.setFont('helvetica','italic');doc.setTextColor(120,130,150);
+        doc.text('Three independent lenses on the same company',m+3,triY+10);
+
+        // Three columns
+        var colW=(W-m*2-6)/3;
+        var lenses=[
+          {name:'EQUITY DYNAMICS',label:ewsLabel,rgb:ewsRGB},
+          {name:'FUNDAMENTAL HEALTH',label:fundLabel,rgb:fundRGB},
+          {name:'SECTOR CONTEXT',label:sectorLabel,rgb:sectorRGB},
+        ];
+        lenses.forEach(function(L,i){
+          var x=m+3+colW*i+(i>0?2:0);
+          doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(120,130,150);
+          doc.text('LENS '+(i+1)+' \u00B7 '+L.name,x,triY+16);
+          doc.setFontSize(11);doc.setFont('helvetica','bold');doc.setTextColor(L.rgb[0],L.rgb[1],L.rgb[2]);
+          doc.text(L.label,x,triY+22);
+        });
+        y=triY+30;
+      })();
+
       // Metrics table
+      // Batch 7h.15: sector-aware. For banks/insurance/REITs, show sector-specific
+      // metrics. Industrial template stays as default. Price-only mode skips entirely.
       y+=4;doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(20);
       doc.text('Key Financial Metrics',m,y);y+=7;
-      var rows=[
-        ['Revenue (TTM)',gv(IS,'revenue')!=null?'$'+Number(gv(IS,'revenue')).toLocaleString()+'M':'N/A','Total annual sales'],
-        ['Operating Income',gv(IS,'operating_income')!=null?'$'+Number(gv(IS,'operating_income')).toLocaleString()+'M':'N/A','Core business profitability'],
-        ['Net Income',gv(IS,'net_income')!=null?'$'+Number(gv(IS,'net_income')).toLocaleString()+'M':'N/A','Bottom line after all costs'],
-        ['Free Cash Flow',gv(CF,'fcf')!=null?'$'+Number(gv(CF,'fcf')).toLocaleString()+'M':'N/A','Gold standard metric'],
-        ['FCF Margin',gv(CF,'fcf_margin')!=null?Number(gv(CF,'fcf_margin')).toFixed(1)+'%':'N/A','FCF as % of revenue'],
-        ['Altman Z-Score',gv(TM,'altman_z')!=null?Number(gv(TM,'altman_z')).toFixed(2)+' ('+(gv(TM,'altman_z')>3?'Safe':gv(TM,'altman_z')>1.81?'Grey Zone':'Distress')+')':'N/A','Classic bankruptcy predictor'],
-        ['Piotroski F',gv(TM,'piotroski_f')!=null?gv(TM,'piotroski_f')+'/9':'N/A','9-point health checklist'],
-        ['Interest Coverage',gv(TM,'interest_coverage')!=null?Number(gv(TM,'interest_coverage')).toFixed(1)+'x':'N/A','Earnings vs debt payments'],
-        ['Long-Term Debt',gv(BS,'long_term_debt')!=null?'$'+Number(gv(BS,'long_term_debt')).toLocaleString()+'M':'N/A','Bonds and loans >1 year'],
-        ['Cash',gv(BS,'cash')!=null?'$'+Number(gv(BS,'cash')).toLocaleString()+'M':'N/A','Money in bank right now'],
-        ['Price',MKT.price!=null?'$'+MKT.price.toFixed(2):'N/A','Current market price'],
-        ['Market Cap',MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A','Total market value'],
-      ];
+
+      var rows;
+      if(D.analysis_mode==='price-only'){
+        rows=[
+          ['Variance EWS',C!=null?C.toFixed(4):'N/A','Annualized rolling variance'],
+          ['Regime',(r||'N/A').toUpperCase(),'Variance EWS classification'],
+          ['Price',MKT.price!=null?'$'+MKT.price.toFixed(2):'N/A','Current market price'],
+          ['Market Cap',MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A','Total market value'],
+          ['52W High',MKT['52w_high']!=null?'$'+MKT['52w_high'].toFixed(2):'N/A','Highest price in last 52 weeks'],
+          ['52W Low',MKT['52w_low']!=null?'$'+MKT['52w_low'].toFixed(2):'N/A','Lowest price in last 52 weeks'],
+          ['Sector',D.sector||'N/A','Tiingo sector'],
+          ['Note','Price-only mode','Fundamentals not loaded'],
+        ];
+      } else {
+        var sb=D.sector_bucket||'industrial';
+        var sm=D.sector_metrics||{};
+        if(sb==='bank'){
+          rows=[
+            ['Net Interest Income',sm.net_interest_income!=null?'$'+Number(sm.net_interest_income).toLocaleString()+'M':'N/A','Core bank revenue'],
+            ['Net Interest Margin',sm.nim!=null?Number(sm.nim).toFixed(2)+'%':'N/A','NIM \u2014 spread between assets and liabilities'],
+            ['Tier 1 Capital Ratio',sm.tier_1_ratio!=null?Number(sm.tier_1_ratio).toFixed(2)+'%':'N/A','Regulatory capital strength'],
+            ['Efficiency Ratio',sm.efficiency_ratio!=null?Number(sm.efficiency_ratio).toFixed(1)+'%':'N/A','Lower is better; <60% is strong'],
+            ['Pre-Provision Net Revenue',sm.ppnr!=null?'$'+Number(sm.ppnr).toLocaleString()+'M':'N/A','Earning power before credit costs'],
+            ['Loan/Deposit Ratio',sm.loan_to_deposit!=null?Number(sm.loan_to_deposit).toFixed(2):'N/A','Liquidity check'],
+            ['Allowance/Loans',sm.allowance_to_loans!=null?Number(sm.allowance_to_loans).toFixed(2)+'%':'N/A','Reserve coverage'],
+            ['Net Income',gv(IS,'net_income')!=null?'$'+Number(gv(IS,'net_income')).toLocaleString()+'M':'N/A','Bottom line'],
+            ['Price',MKT.price!=null?'$'+MKT.price.toFixed(2):'N/A','Current market price'],
+            ['Market Cap',MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A','Total market value'],
+          ];
+        } else if(sb==='insurance'){
+          rows=[
+            ['Premiums Earned',sm.premiums_earned!=null?'$'+Number(sm.premiums_earned).toLocaleString()+'M':'N/A','Top line for insurers'],
+            ['Combined Ratio',sm.combined_ratio!=null?Number(sm.combined_ratio).toFixed(1)+'%':'N/A','Below 100% = underwriting profit'],
+            ['Loss Ratio',sm.loss_ratio!=null?Number(sm.loss_ratio).toFixed(1)+'%':'N/A','Claims as % of premiums'],
+            ['Expense Ratio',sm.expense_ratio!=null?Number(sm.expense_ratio).toFixed(1)+'%':'N/A','Operating expenses as % of premiums'],
+            ['Underwriting Profit',sm.underwriting_profit!=null?'$'+Number(sm.underwriting_profit).toLocaleString()+'M':'N/A','Profit from insurance operations alone'],
+            ['Investment Yield',sm.investment_yield!=null?Number(sm.investment_yield).toFixed(2)+'%':'N/A','Return on investment portfolio'],
+            ['Net Income',gv(IS,'net_income')!=null?'$'+Number(gv(IS,'net_income')).toLocaleString()+'M':'N/A','Bottom line'],
+            ['Price',MKT.price!=null?'$'+MKT.price.toFixed(2):'N/A','Current market price'],
+            ['Market Cap',MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A','Total market value'],
+          ];
+        } else if(sb==='reit'){
+          rows=[
+            ['Rental Income',sm.rental_income!=null?'$'+Number(sm.rental_income).toLocaleString()+'M':'N/A','Top line for REITs'],
+            ['Funds From Operations (FFO)',sm.ffo!=null?'$'+Number(sm.ffo).toLocaleString()+'M':'N/A','REIT-canonical earnings measure'],
+            ['Net Operating Income (NOI)',sm.noi!=null?'$'+Number(sm.noi).toLocaleString()+'M':'N/A','Property-level profitability'],
+            ['NOI Yield',sm.noi_yield!=null?Number(sm.noi_yield).toFixed(2)+'%':'N/A','NOI relative to real estate value'],
+            ['Debt/Real Estate',sm.debt_to_re!=null?Number(sm.debt_to_re).toFixed(2):'N/A','Leverage on the underlying portfolio'],
+            ['Net Income',gv(IS,'net_income')!=null?'$'+Number(gv(IS,'net_income')).toLocaleString()+'M':'N/A','Bottom line'],
+            ['Price',MKT.price!=null?'$'+MKT.price.toFixed(2):'N/A','Current market price'],
+            ['Market Cap',MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A','Total market value'],
+          ];
+        } else {
+          // Industrial template (default; also used for sb==='other' with caveats)
+          rows=[
+            ['Revenue (TTM)',gv(IS,'revenue')!=null?'$'+Number(gv(IS,'revenue')).toLocaleString()+'M':'N/A','Total annual sales'],
+            ['Operating Income',gv(IS,'operating_income')!=null?'$'+Number(gv(IS,'operating_income')).toLocaleString()+'M':'N/A','Core business profitability'],
+            ['Net Income',gv(IS,'net_income')!=null?'$'+Number(gv(IS,'net_income')).toLocaleString()+'M':'N/A','Bottom line after all costs'],
+            ['Free Cash Flow',gv(CF,'fcf')!=null?'$'+Number(gv(CF,'fcf')).toLocaleString()+'M':'N/A','Gold standard metric'],
+            ['FCF Margin',gv(CF,'fcf_margin')!=null?Number(gv(CF,'fcf_margin')).toFixed(1)+'%':'N/A','FCF as % of revenue'],
+            ['Altman Z-Score',gv(TM,'altman_z')!=null?Number(gv(TM,'altman_z')).toFixed(2)+' ('+(gv(TM,'altman_z')>3?'Safe':gv(TM,'altman_z')>1.81?'Grey Zone':'Distress')+')':'N/A','Classic bankruptcy predictor'],
+            ['Piotroski F',gv(TM,'piotroski_f')!=null?gv(TM,'piotroski_f')+'/9':'N/A','9-point health checklist'],
+            ['Interest Coverage',gv(TM,'interest_coverage')!=null?Number(gv(TM,'interest_coverage')).toFixed(1)+'x':'N/A','Earnings vs debt payments'],
+            ['Long-Term Debt',gv(BS,'long_term_debt')!=null?'$'+Number(gv(BS,'long_term_debt')).toLocaleString()+'M':'N/A','Bonds and loans >1 year'],
+            ['Cash',gv(BS,'cash')!=null?'$'+Number(gv(BS,'cash')).toLocaleString()+'M':'N/A','Money in bank right now'],
+            ['Price',MKT.price!=null?'$'+MKT.price.toFixed(2):'N/A','Current market price'],
+            ['Market Cap',MKT.market_cap_bn!=null?'$'+MKT.market_cap_bn+'B':'N/A','Total market value'],
+          ];
+        }
+      }
       rows.forEach(function(row,i){
         if(y>250){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');y=20;}
         doc.setFillColor(i%2===0?244:255,i%2===0?247:255,i%2===0?249:255);
@@ -3729,6 +3889,26 @@ function genPDF(){
         y+=11;
       });
 
+      // Batch 7h.15: price-only mode short-circuit. Skip the EDGAR-dependent
+      // deep-dive sections (Cascade, Statement-Level Commentary, Traditional
+      // Metrics, Quality of Earnings, etc.) which would render empty anyway.
+      // Jump straight to the legal disclaimer page.
+      var skipDeepDive = (D.analysis_mode === 'price-only');
+      if(skipDeepDive){
+        // Add a short note explaining the abbreviated report
+        if(y>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');y=20;}
+        y+=8;
+        doc.setFillColor(167,139,250,15);doc.setDrawColor(167,139,250);doc.setLineWidth(0.4);
+        doc.roundedRect(m,y,W-m*2,28,2,2,'FD');
+        doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(167,139,250);
+        doc.text('PRICE HISTORY MODE - ABBREVIATED REPORT',m+4,y+8);
+        doc.setFontSize(8.5);doc.setFont('helvetica','normal');doc.setTextColor(60,70,90);
+        var poNote=doc.splitTextToSize('This report was generated in stocks-only mode. Fundamental deep-dive sections (cascade analysis, statement-level commentary, traditional metrics evaluation, peer comparison, quality of earnings) require EDGAR filings and are not included. Re-run analysis in EDGAR mode to generate the full report.', W-m*2-8);
+        doc.text(poNote,m+4,y+15);
+        y+=34;
+      }
+
+      if(!skipDeepDive){
       // ISC Cascade Commentary
       if(y>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');y=20;}
       y+=8;doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(20,20,20);
@@ -3967,7 +4147,7 @@ function genPDF(){
             doc.text('Ticker',m+3,py+5);
             doc.text('Company',m+22,py+5);
             doc.text('Mkt Cap',m+82,py+5);
-            doc.text('ISC C',m+105,py+5);
+            doc.text('Variance',m+105,py+5);
             doc.text('Regime',m+125,py+5);
             doc.text('Altman Z',m+155,py+5);
             py+=7;
@@ -3982,7 +4162,7 @@ function genPDF(){
               doc.text(row.ticker||'-',m+3,py+5);
               doc.setTextColor(241,245,249);doc.text(row.name||'-',m+22,py+5);
               doc.text(row.mcap?'$'+row.mcap.toFixed(0)+'B':'-',m+82,py+5);
-              var cRGB=row.C>0.30?[239,68,68]:row.C>-0.10?[245,158,11]:[16,185,129];
+              var cRGB=row.C>0.25?[239,68,68]:row.C>0.10?[245,158,11]:[16,185,129];
               doc.setTextColor(cRGB[0],cRGB[1],cRGB[2]);
               doc.text(row.C!=null?(row.C>=0?'+':'')+row.C.toFixed(3):'-',m+105,py+5);
               doc.text((row.regime||'-').substring(0,10),m+125,py+5);
@@ -4422,8 +4602,14 @@ function genPDF(){
       }
 
 
-        // Batch 7f Coupling Decomposition (Pro500 only)
-        if(typeof tier!=="undefined" && tier==="pro500" && D.isc && D.isc.by_series){
+        // Batch 7h.15: Coupling Decomposition section DISABLED.
+        // The coupling C metric on EDGAR was paper-disconfirmed (r=0.039 in finance,
+        // AUC ~0.51-0.60 vs variance-only AUC=0.86-0.88). Migrated to variance EWS
+        // earlier today. The Pro500-tier deep dive will be replaced with a paper-
+        // validated alternative in a future session. Disabling here prevents the
+        // section from rendering even if D.isc.by_series is populated by older
+        // API responses.
+        if(false && typeof tier!=="undefined" && tier==="pro500" && D.isc && D.isc.by_series){
           try {
             doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;
             doc.setFillColor(167,139,250);doc.rect(0,0,W,3,"F");
@@ -4859,6 +5045,8 @@ function genPDF(){
         doc.text('Not financial advice. Structural susceptibility signal only. AI assistance disclosed.  Page '+p+' of '+pg,m,287);
       }
 
+      } // end if(!skipDeepDive)
+
       // Batch 7a universal legal-disclaimer page (every tier)
       doc.addPage();
       doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');
@@ -4888,7 +5076,7 @@ function genPDF(){
       });
       doc.setFontSize(7.5);doc.setFont('helvetica','italic');doc.setTextColor(107,114,128);
       doc.text('Full disclaimer: '+location.origin+'/?page=disclaimer  &#183;  Questions: malonrw@gmail.com',m,265);
-      doc.save((D.ticker||'ISC')+'_ISC_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
+      doc.save((D.ticker||'ISC')+'_Analyst_Report_'+new Date().toISOString().slice(0,10)+'.pdf');
       // Batch 7c JSON sidecar - Pro500 only
       if(typeof tier!=='undefined' && tier==='pro500'){
         try {
@@ -4920,10 +5108,10 @@ function genPDF(){
           setTimeout(function(){URL.revokeObjectURL(jsonUrl);},1000);
         } catch(jsonErr){ console.error('JSON sidecar error:',jsonErr); }
       }
-      btn.textContent='&#11015; Download PDF Report';btn.disabled=false;
-    }catch(err){btn.textContent='&#11015; Download PDF Report';btn.disabled=false;console.error(err);}
+      btn.textContent='&#11015; Download Analyst Report';btn.disabled=false;
+    }catch(err){btn.textContent='&#11015; Download Analyst Report';btn.disabled=false;console.error(err);}
   };
-  s.onerror=function(){btn.textContent='&#11015; Download PDF Report';btn.disabled=false;};
+  s.onerror=function(){btn.textContent='&#11015; Download Analyst Report';btn.disabled=false;};
   document.head.appendChild(s);
 }
 
