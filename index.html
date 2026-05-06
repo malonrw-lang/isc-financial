@@ -1352,37 +1352,108 @@ function _bootstrapTier(){
   try{
     var sp=new URLSearchParams(window.location.search);
     var fromUrl=sp.get('tier');
-    var fromStorage=null;
-    try{fromStorage=localStorage.getItem('iscDevTier');}catch(e){}
+    var devmode=sp.get('devmode');
+    var fromStorage=null,storageDevFlag=null;
+    try{
+      fromStorage=localStorage.getItem('iscDevTier');
+      storageDevFlag=localStorage.getItem('iscDevModeEnabled');
+    }catch(e){}
     var pick=null;
     var validTiers={free:1,investor:1,pro:1,pro500:1};
     if(fromUrl && validTiers[fromUrl]){
       pick=fromUrl;
-      try{localStorage.setItem('iscDevTier',pick);}catch(e){}
+      try{
+        localStorage.setItem('iscDevTier',pick);
+        localStorage.setItem('iscDevModeEnabled','1');
+      }catch(e){}
     } else if(fromStorage && validTiers[fromStorage]){
       pick=fromStorage;
     }
-    if(!pick)return;
-    if(typeof tier==='undefined' || typeof setTier!=='function')return;
-    setTier(pick, null);
-    if(pick==='free')return;  // don't show badge for default tier
-    // Floating dev badge in bottom-right
-    var badge=document.createElement('div');
-    badge.id='devTierBadge';
-    var TIER_COLORS={investor:'var(--green)',pro:'var(--cyan)',pro500:'var(--purple)'};
-    var col=TIER_COLORS[pick]||'var(--dim)';
-    var labels={free:'FREE',investor:'INVESTOR',pro:'PRO',pro500:'PRO500'};
-    badge.style.cssText='position:fixed;bottom:14px;right:14px;z-index:9998;padding:6px 11px;background:rgba(7,16,30,0.92);border:1px solid '+col+';border-radius:5px;font-family:var(--mono);font-size:10px;color:'+col+';letter-spacing:.10em;font-weight:700;backdrop-filter:blur(6px);cursor:default;user-select:none;display:flex;align-items:center;gap:8px';
-    badge.innerHTML='<span style="opacity:0.6">DEV TIER</span><span>'+labels[pick]+'</span><span onclick="_clearDevTier()" style="cursor:pointer;color:var(--dim);margin-left:4px;font-size:14px;line-height:1" title="Reset to free">&#215;</span>';
-    document.body.appendChild(badge);
+    // Determine if dev switcher should be shown:
+    // - URL has ?tier= or ?devmode=1, OR
+    // - localStorage has the dev flag set (sticky once enabled)
+    var showSwitcher=(!!fromUrl) || (devmode==='1') || (storageDevFlag==='1');
+    if(devmode==='1'){try{localStorage.setItem('iscDevModeEnabled','1');}catch(e){}}
+
+    if(pick && typeof tier!=='undefined' && typeof setTier==='function'){
+      setTier(pick, null);
+    }
+    if(showSwitcher){_renderTierSwitcher(pick||'free');}
   }catch(e){/* fail silently */}
 }
+
+function _renderTierSwitcher(currentTier){
+  var existing=document.getElementById('devTierSwitcher');
+  if(existing)existing.remove();
+  var TIER_COLORS={
+    free:'var(--amber)',
+    investor:'var(--green)',
+    pro:'var(--cyan)',
+    pro500:'var(--purple)'
+  };
+  var TIER_RGB={
+    free:'245,158,11',
+    investor:'16,185,129',
+    pro:'0,200,255',
+    pro500:'139,92,246'
+  };
+  var labels={free:'FREE',investor:'INVESTOR',pro:'PRO',pro500:'PRO500'};
+  var sw=document.createElement('div');
+  sw.id='devTierSwitcher';
+  sw.style.cssText='position:fixed;bottom:14px;right:14px;z-index:9998;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 11px;background:rgba(7,16,30,0.94);border:1px solid rgba(255,255,255,0.10);border-radius:6px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;backdrop-filter:blur(6px);user-select:none;box-shadow:0 4px 14px rgba(0,0,0,0.3)';
+
+  var label=document.createElement('span');
+  label.style.cssText='color:var(--dim);font-weight:700;letter-spacing:.10em;margin-right:2px';
+  label.textContent='DEV';
+  sw.appendChild(label);
+
+  ['free','investor','pro','pro500'].forEach(function(t){
+    var b=document.createElement('button');
+    b.type='button';
+    var isActive=(currentTier===t);
+    var rgb=TIER_RGB[t];
+    b.style.cssText='font-family:var(--mono);font-size:9px;letter-spacing:.08em;font-weight:700;padding:4px 8px;border-radius:3px;cursor:pointer;border:1px solid '+(isActive?'rgba('+rgb+',0.85)':'rgba(255,255,255,0.10)')+';background:'+(isActive?'rgba('+rgb+',0.18)':'transparent')+';color:'+(isActive?TIER_COLORS[t]:'var(--dim)')+';transition:all .12s';
+    b.textContent=labels[t];
+    b.onmouseover=function(){if(!isActive){this.style.color=TIER_COLORS[t];this.style.borderColor='rgba('+rgb+',0.40)';}};
+    b.onmouseout=function(){if(!isActive){this.style.color='var(--dim)';this.style.borderColor='rgba(255,255,255,0.10)';}};
+    b.onclick=function(){_switchDevTier(t);};
+    sw.appendChild(b);
+  });
+
+  var closeBtn=document.createElement('span');
+  closeBtn.style.cssText='cursor:pointer;color:var(--dim);margin-left:4px;font-size:14px;line-height:1;padding:0 4px';
+  closeBtn.title='Hide dev switcher';
+  closeBtn.innerHTML='&#215;';
+  closeBtn.onclick=_clearDevTier;
+  sw.appendChild(closeBtn);
+
+  document.body.appendChild(sw);
+}
+
+function _switchDevTier(newTier){
+  if(typeof setTier!=='function')return;
+  setTier(newTier, null);
+  try{localStorage.setItem('iscDevTier',newTier);}catch(e){}
+  _renderTierSwitcher(newTier);
+  // Re-render the current analysis if one is loaded so panels and PDF gating
+  // update for the new tier (renderAll is the entry point in this codebase).
+  if(typeof D!=='undefined' && D && typeof renderAll==='function'){
+    try{renderAll(D);}catch(e){console.warn('Tier switch re-render failed',e);}
+  }
+  // Track the switch
+  if(typeof trackEvent==='function'){trackEvent('Dev Tier Switch',{tier:newTier});}
+}
+
 function _clearDevTier(){
-  try{localStorage.removeItem('iscDevTier');}catch(e){}
-  // Strip ?tier= from URL and reload
+  try{
+    localStorage.removeItem('iscDevTier');
+    localStorage.removeItem('iscDevModeEnabled');
+  }catch(e){}
+  // Strip ?tier= and ?devmode= from URL and reload
   try{
     var url=new URL(window.location.href);
     url.searchParams.delete('tier');
+    url.searchParams.delete('devmode');
     window.location.href=url.toString();
   }catch(e){window.location.reload();}
 }
