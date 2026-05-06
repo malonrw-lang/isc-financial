@@ -2720,8 +2720,22 @@ function getPeerLockState(){
   return 'full';
 }
 function fmtMcap(m){if(m==null)return '';if(m>=1000)return '$'+(m/1000).toFixed(1)+'T';return '$'+m.toFixed(0)+'B';}
-function regimeOfC(c){if(c==null)return 'unknown';if(c>0.3)return 'bifurcating';if(c>-0.1)return 'transitioning';return 'regulated';}
-function regimeColor(reg){if(reg==='bifurcating')return 'var(--red)';if(reg==='transitioning')return 'var(--amber)';if(reg==='regulated')return 'var(--green)';return 'var(--dim)';}
+function regimeOfC(c){
+  /* Batch 7h.17: variance EWS thresholds and vocabulary (replaces coupling-C-era
+     'bifurcating/transitioning/regulated' which had a different axis range). */
+  if(c==null)return 'unknown';
+  if(c>0.50)return 'distressed';   // high-magnitude override (matches API classifier)
+  if(c>0.25)return 'distressed';
+  if(c>0.10)return 'elevated';
+  return 'stable';
+}
+function regimeColor(reg){
+  /* Batch 7h.17: variance EWS regime colors. */
+  if(reg==='distressed')return 'var(--red)';
+  if(reg==='rising'||reg==='elevated')return 'var(--amber)';
+  if(reg==='stable')return 'var(--green)';
+  return 'var(--dim)';
+}
 function buildCascadeSignature(layers, d, r, C){
   if(!layers||layers.length<7)return '';
   // Tally severity
@@ -2904,7 +2918,7 @@ function renderPeers(d){
   // Table
   html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
   html+='<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08)">';
-  ['Company','Mkt Cap','ISC C','Regime','Altman Z','FCF Margin','Op Margin','Rev Growth'].forEach(function(h){
+  ['Company','Mkt Cap','Variance','Regime','Altman Z','FCF Margin','Op Margin','Rev Growth'].forEach(function(h){
     html+='<th style="text-align:left;padding:10px 8px;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:600">'+h+'</th>';
   });
   html+='</tr></thead><tbody>';
