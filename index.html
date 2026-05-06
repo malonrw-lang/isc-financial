@@ -493,7 +493,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="pc-period">30 days &#183; No credit card</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>ISC regime signal</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Stability score 0&#8211;100</div>
-        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Plain-English verdict</div>
+        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Plain-English structural read</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Red flag alerts</div>
         <div class="pc-note">Full access for 30 days, then $19.99/mo automatically.</div>
         <button class="pc-btn" style="background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)" onclick="startTrial()">Start Free Trial &#8594;</button>
@@ -724,7 +724,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           1. Type a ticker or company name<br>
           2. Choose data source (EDGAR / Price / Upload)<br>
           3. Click Run Full Analysis<br>
-          4. Read the plain-English verdict<br>
+          4. Read the plain-English structural read<br>
           5. Explore tabs &#183; Click <span style="color:var(--cyan)">?</span> for explanations<br>
           6. Ask the AI analyst anything
         </div>
@@ -818,6 +818,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <!-- OVERVIEW -->
           <div id="t-overview" class="tab-content">
             <div id="verdictCard" class="verdict-card"></div>
+            <div id="triangulationPanel" style="margin-top:14px"></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div class="card">
                 <div class="sb-lbl" style="margin-bottom:10px">Variance Early Warning Signal (EWS) <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
@@ -960,7 +961,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <div id="t-news" class="tab-content hidden">
             <div class="al al-b" style="margin-bottom:0">
               <span style="font-size:16px">&#55357;&#56560;</span>
-              <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Pro tip:</strong> Cross-reference news against the ISC structural signal. Good news in a bifurcating company can be temporary &#8212; the structure is deteriorating even if today's headline is positive. Bad news in a regulated company may be an overreaction &#8212; the underlying dynamics are still healthy.</div>
+              <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Educational note:</strong> News context can be examined alongside structural signals. Headline-positive news in a company with a distressed variance EWS may reflect short-term events while the structural read suggests deeper dynamics. Headline-negative news in a structurally stable company may be transient. This framing is for educational interpretation only and does not constitute a recommendation; consult a licensed advisor before any trading decisions.</div>
             </div>
             <div id="newsContent" style="display:flex;flex-direction:column;gap:8px"></div>
           </div>
@@ -985,22 +986,25 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 
           <!-- AI ANALYST -->
           <div id="t-ai" class="tab-content hidden">
+            <div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.20);border-radius:6px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#A0B8D0;line-height:1.6">
+              <strong style="color:var(--amber)">&#9888; Educational use only.</strong> The AI Analyst illustrates how the variance EWS framework reads the data for this company. Output is not investment advice or a recommendation to buy, sell, or hold any security. Consult a licensed financial advisor before making investment decisions.
+            </div>
             <div class="card-hi" style="margin-bottom:0">
               <div style="font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:6px">Claude AI Analyst</div>
-              <div style="font-size:12px;color:var(--dim);line-height:1.7">Claude has read all ISC metrics, financial statements, traditional metrics, and news for this company. Ask anything &#8212; in plain English. No finance degree required.</div>
+              <div style="font-size:12px;color:var(--dim);line-height:1.7">Claude has read the variance EWS metrics, financial statements, traditional metrics, and news for this company. Ask analytical questions in plain English &#8212; not for trading recommendations.</div>
             </div>
             <div id="chatHistory" style="display:flex;flex-direction:column;gap:10px;min-height:60px"></div>
             <div>
               <div style="display:flex;gap:8px">
-                <input class="chat-input" id="chatIn" placeholder="Ask anything &#8212; e.g. 'Is Tesla really bifurcating or is it Elon?'" onkeydown="if(event.key==='Enter')sendChat()">
+                <input class="chat-input" id="chatIn" placeholder="Ask analytical questions about this company's structural read" onkeydown="if(event.key==='Enter')sendChat()">
                 <button class="btn-p btn-sm" onclick="sendChat()">Send &#8594;</button>
               </div>
               <div class="chat-prompts" style="margin-top:7px">
-                <button class="cprompt" onclick="askQ('What is the biggest structural risk for this company right now?')">Biggest risk?</button>
-                <button class="cprompt" onclick="askQ('Compare ISC coupling to the Altman Z signal. Which is more concerning?')">ISC vs Altman Z?</button>
-                <button class="cprompt" onclick="askQ('Is this company worth buying given the ISC structural signal?')">Worth buying?</button>
+                <button class="cprompt" onclick="askQ('What does the variance EWS suggest about this company\u2019s structural state?')">EWS read?</button>
+                <button class="cprompt" onclick="askQ('How does the variance EWS compare to the Altman Z signal here?')">EWS vs Altman Z?</button>
+                <button class="cprompt" onclick="askQ('Which financial metrics are driving the current regime classification?')">Drivers of regime?</button>
                 <button class="cprompt" onclick="askQ('Walk me through the 7-layer cascade in plain English.')">Explain cascade</button>
-                <button class="cprompt" onclick="askQ('What would need to change for the ISC regime to improve?')">Path to recovery?</button>
+                <button class="cprompt" onclick="askQ('What financial indicators would suggest the regime is changing in subsequent filings?')">Indicators to track?</button>
               </div>
             </div>
           </div>
@@ -1024,7 +1028,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="pc-period">30 days &#183; No credit card</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>ISC regime classification</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Stability score 0&#8211;100</div>
-        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Plain-English verdict</div>
+        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Plain-English structural read</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Coupling score visualization</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Enron / WorldCom / Spirit historical demos</div>
         <div class="pc-note">Full access for 30 days, then transitions to Investor plan automatically.</div>
@@ -1227,7 +1231,7 @@ var HELP = {
     title: '&#10067; What is ISC Financial?',
     body: `<p style="margin-bottom:12px">ISC Financial is a structural early warning tool for your stock portfolio. It detects when a company's financial dynamics are deteriorating &#8212; often <strong>1&#8211;5 quarters before traditional metrics like Altman Z or earnings reports reflect the problem.</strong></p>
     <p style="margin-bottom:12px">The core insight: healthy companies absorb financial shocks (when costs spike, they adjust and recover). Unhealthy companies amplify shocks (when costs spike, it gets worse). ISC measures which direction a company is going.</p>
-    <p style="margin-bottom:12px"><strong>How to use it:</strong><br>1. Enter a ticker in the Analyzer<br>2. Read the plain-English verdict at the top<br>3. Check the green/amber/red regime indicator<br>4. Explore the tabs for detail<br>5. Ask the AI analyst any questions</p>
+    <p style="margin-bottom:12px"><strong>How to use it:</strong><br>1. Enter a ticker in the Analyzer<br>2. Read the plain-English structural read at the top<br>3. Check the green/amber/red regime indicator<br>4. Explore the tabs for detail<br>5. Ask the AI analyst any questions</p>
     <p style="color:var(--dim);font-size:12px">Not financial advice. Structural susceptibility signal only.</p>`
   },
   'coupling': {
@@ -1340,6 +1344,54 @@ if(document.readyState==='loading'){
   reparentLegalPages();
 }
 
+/* Batch 7h.12: tier toggle for testing.
+   URL param ?tier=free|investor|pro|pro500 sets the tier and persists in localStorage.
+   A small floating dev badge is shown in the corner only when a non-default tier is active.
+   This is a dev/testing tool — replaced by real auth when Stripe/auth ships. */
+function _bootstrapTier(){
+  try{
+    var sp=new URLSearchParams(window.location.search);
+    var fromUrl=sp.get('tier');
+    var fromStorage=null;
+    try{fromStorage=localStorage.getItem('iscDevTier');}catch(e){}
+    var pick=null;
+    var validTiers={free:1,investor:1,pro:1,pro500:1};
+    if(fromUrl && validTiers[fromUrl]){
+      pick=fromUrl;
+      try{localStorage.setItem('iscDevTier',pick);}catch(e){}
+    } else if(fromStorage && validTiers[fromStorage]){
+      pick=fromStorage;
+    }
+    if(!pick)return;
+    if(typeof tier==='undefined' || typeof setTier!=='function')return;
+    setTier(pick, null);
+    if(pick==='free')return;  // don't show badge for default tier
+    // Floating dev badge in bottom-right
+    var badge=document.createElement('div');
+    badge.id='devTierBadge';
+    var TIER_COLORS={investor:'var(--green)',pro:'var(--cyan)',pro500:'var(--purple)'};
+    var col=TIER_COLORS[pick]||'var(--dim)';
+    var labels={free:'FREE',investor:'INVESTOR',pro:'PRO',pro500:'PRO500'};
+    badge.style.cssText='position:fixed;bottom:14px;right:14px;z-index:9998;padding:6px 11px;background:rgba(7,16,30,0.92);border:1px solid '+col+';border-radius:5px;font-family:var(--mono);font-size:10px;color:'+col+';letter-spacing:.10em;font-weight:700;backdrop-filter:blur(6px);cursor:default;user-select:none;display:flex;align-items:center;gap:8px';
+    badge.innerHTML='<span style="opacity:0.6">DEV TIER</span><span>'+labels[pick]+'</span><span onclick="_clearDevTier()" style="cursor:pointer;color:var(--dim);margin-left:4px;font-size:14px;line-height:1" title="Reset to free">&#215;</span>';
+    document.body.appendChild(badge);
+  }catch(e){/* fail silently */}
+}
+function _clearDevTier(){
+  try{localStorage.removeItem('iscDevTier');}catch(e){}
+  // Strip ?tier= from URL and reload
+  try{
+    var url=new URL(window.location.href);
+    url.searchParams.delete('tier');
+    window.location.href=url.toString();
+  }catch(e){window.location.reload();}
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',_bootstrapTier);
+}else{
+  _bootstrapTier();
+}
+
 function showPage(pg, el) {
   if(typeof reparentLegalPages==='function')reparentLegalPages();
   /* Batch 7h.5 — track page navigation */
@@ -1375,7 +1427,7 @@ function setTier(t, el) {
   document.getElementById('planPrice').style.color = cfg.color;
   document.getElementById('planDesc').textContent = cfg.desc;
   var feats = {
-    free: ['ISC regime signal','Stability score','Plain-English verdict','Coupling visualization','Historical demos'],
+    free: ['ISC regime signal','Stability score','Plain-English structural read','Coupling visualization','Historical demos'],
     investor: ['Full EDGAR financials','Balance sheet & cash flow','Altman Z &#183; Piotroski F','7-layer cascade','6 chart visualizations','Basic PDF report'],
     pro: ['Peer comparison (5 peers)','Peer ISC ranking charts','Sector regime insights','Claude AI analyst chat','Full PDF report'],
     pro500: ['White-label PDF','JSON data export','Team seats','Priority support','GPT-4o second opinion (coming soon)','API access (coming soon)']
@@ -1470,7 +1522,16 @@ function swTab(id, el) {
   /* Batch 7h.5 — track tab change */
   if(typeof trackEvent==='function')trackEvent('Tab Change',{tab:id});
   document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('on');});
-  el.classList.add('on');
+  // Batch 7h.12: if called programmatically (el null), find the matching tab button
+  if(el){
+    el.classList.add('on');
+  } else {
+    var btns=document.querySelectorAll('.tb');
+    for(var i=0;i<btns.length;i++){
+      var onclickAttr=btns[i].getAttribute('onclick')||'';
+      if(onclickAttr.indexOf("swTab('"+id+"'")>=0){btns[i].classList.add('on');break;}
+    }
+  }
   var tabs=['overview','charts','isc','income','balance','cashflow','traditional','peers','news','portfolio','ai'];
   tabs.forEach(function(t){
     var e=document.getElementById('t-'+t);
@@ -1572,7 +1633,7 @@ function buildHyperGrowthNarrative(name, C, hg) {
   parts.push(' all point to a positive structural shift rather than a negative one.');
   parts.push('<br><br>The variance EWS measures whether equity dynamics are dispersing, not which direction the change goes. ');
   parts.push(name + ' is in the middle of a phase transition ' + EMDASH + ' the same volatility signature appears before companies experiencing once-in-a-generation positive transformations (NVIDIA 2023' + ENDASH + '2025, early Tesla, Amazon Web Services pivot) AND before companies that prove unsustainable.');
-  parts.push('<br><br><strong style="color:#fff">What to watch:</strong> hyper-growth phases resolve in two ways. Either the company successfully scales into the new regime (NVIDIA, Apple post-iPhone), or growth proves unsustainable and the dispersion flips to distress (WeWork, Pets.com).');
+  parts.push('<br><br><strong style="color:#fff">Indicators to track in subsequent filings:</strong> hyper-growth phases resolve in two ways. Either the company successfully scales into the new regime (NVIDIA, Apple post-iPhone), or growth proves unsustainable and the dispersion flips to distress (WeWork, Pets.com).');
   parts.push(' The deciding factors are usually (1) whether margins hold as scale increases, (2) whether the customer base diversifies, and (3) whether competitive moats deepen. Monitor revenue growth, gross margin, and customer concentration over the next 2' + ENDASH + '4 quarters.');
   return parts.join('');
 }
@@ -1666,7 +1727,7 @@ function rPlain(r,C,name,financials){
   }
   if(r.includes('elevated')||r.includes('transitioning')||r.includes('mean')){
     if(financiallyStrong)return'<strong style="color:var(--cyan)">Elevated volatility &#8212; fundamentals strong.</strong> '+name+' has equity dynamics above the typical stable-firm baseline (variance = '+(C!=null?C.toFixed(3):'N/A')+'), but financial fundamentals remain strong'+(fcfM!=null?' (FCF margin '+fcfM.toFixed(1)+'%)':'')+'. Worth watching trajectory direction &#8212; if variance continues to rise while financials hold, this is the EWS-leading configuration; if both deteriorate together, the signal is being confirmed.';
-    if(financiallyWeak)return'<strong style="color:var(--amber)">Elevated volatility &#8212; financials weakening.</strong> '+name+' has variance = '+(C!=null?C.toFixed(3):'N/A')+' (above the stable baseline) and fundamentals are showing weakness. Watch carefully over the next 2&#8211;3 quarters.';
+    if(financiallyWeak)return'<strong style="color:var(--amber)">Elevated volatility &#8212; financials weakening.</strong> '+name+' has variance = '+(C!=null?C.toFixed(3):'N/A')+' (above the stable baseline) and fundamentals are showing weakness. Subsequent quarterly filings will indicate whether the trajectory is improving or deteriorating.';
     return'<strong style="color:var(--amber)">Elevated volatility.</strong> '+name+' has equity dynamics above the typical stable-firm baseline. Mean variance = '+(C!=null?C.toFixed(3):'N/A')+'. Worth comparing to sector peers and watching the trajectory for direction.';
   }
   
@@ -1844,7 +1905,7 @@ function renderAll(d){
   var stab=isc.stability_score,altZ=gv(TM,'altman_z'),piF=gv(TM,'piotroski_f');
   (function(){var hg=detectHyperGrowth(d,r,C);var bgCol;if(!r||r.includes('insufficient')){bgCol='var(--dim)';}else if(hg){bgCol='var(--purple)';}else{bgCol=col;}document.getElementById('verdictCard').style.background=bgCol.replace(')',',0.06)').replace('var(--','rgba(');document.getElementById('verdictCard').style.border='1px solid '+bgCol.replace(')',',0.2)').replace('var(--','rgba(');})();
   document.getElementById('verdictCard').innerHTML=
-    '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">ISC Structural Verdict</div>'
+    '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">Structural Read</div>'
     +(function(){/* Batch 7h.3 applied */ var hg=detectHyperGrowth(d,r,C);var t,c;if(!r||r.includes('insufficient')||r.includes('unavailable')){t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}else if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Hyper-Growth';c='var(--purple)';}else if(r.includes('distressed')||r.includes('bifurcating')){t=String.fromCharCode(9888)+' High Volatility Distress';c=col;}else if(r.includes('rising')){t=String.fromCharCode(9888)+' Rising Volatility '+EMDASH+' EWS Active';c=col;}else if(r.includes('elevated')||r.includes('trans')){t=String.fromCharCode(9678)+' Elevated Volatility';c=col;}else if(r.includes('stable')||r.includes('regulated')){t=CHECK+' Structurally Healthy';c=col;}else{t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';})()
     +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z"),piotF:gv(TM,"piotroski_f")})+'</div>'
     +(d.isSimulation?'<div class="al al-a"><span>&#9888;</span><div>API warming up &#8212; estimated signal shown. <button onclick="runAnal()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-weight:700;text-decoration:underline">Click here to run again</button> for real EDGAR data.</div></div>':'')
@@ -1894,6 +1955,92 @@ function renderAll(d){
     +'<div class="vstat"><div class="vstat-lbl">Altman Z</div><div class="vstat-val" style="color:'+(altZ!=null?altZ>3?'var(--green)':altZ>1.81?'var(--amber)':'var(--red)':'var(--dim)')+'">'+(altZ!=null?altZ.toFixed(2):'N/A')+'</div></div>'
     +'<div class="vstat"><div class="vstat-lbl">Piotroski F</div><div class="vstat-val" style="color:'+(piF!=null?piF>=7?'var(--green)':piF>=4?'var(--amber)':'var(--red)':'var(--dim)')+'">'+(piF!=null?piF+'/9':'N/A')+'</div></div>'
     +'</div>';
+
+  /* Batch 7h.12: Structural Triangulation panel.
+     Three independent lenses on the same company. The interesting moments are
+     when they DISAGREE — that's where the framework's lead-time claim lives. */
+  (function(){
+    var tp=document.getElementById('triangulationPanel');
+    if(!tp)return;
+    // Lens 1: Variance EWS (price/structural)
+    var ewsLabel, ewsColor, ewsHint;
+    if(C==null){ewsLabel='Unavailable';ewsColor='var(--dim)';ewsHint='Price data could not be retrieved.';}
+    else if(r&&r.includes('distressed')){ewsLabel='Distressed';ewsColor='var(--red)';ewsHint='Variance '+C.toFixed(3)+' '+EMDASH+' high-magnitude band.';}
+    else if(r&&r.includes('rising')){ewsLabel='Rising';ewsColor='var(--amber)';ewsHint='Variance '+C.toFixed(3)+' with rising trajectory.';}
+    else if(r&&r.includes('elevated')){ewsLabel='Elevated';ewsColor='var(--amber)';ewsHint='Variance '+C.toFixed(3)+' '+EMDASH+' above stable baseline.';}
+    else if(r&&r.includes('stable')){ewsLabel='Stable';ewsColor='var(--green)';ewsHint='Variance '+C.toFixed(3)+' within typical baseline.';}
+    else {ewsLabel='Insufficient data';ewsColor='var(--dim)';ewsHint='Not enough history for the variance EWS.';}
+
+    // Lens 2: Fundamental health (filings)
+    // Use the same balance-of-evidence count that rPlain uses internally
+    var fcfV=gv(CF,'fcf'),intCovV=gv(TM,'interest_coverage'),fcfMV=gv(CF,'fcf_margin');
+    var altzV=gv(TM,'altman_z'),piotV=gv(TM,'piotroski_f');
+    var sStrong=0,sWeak=0;
+    if(altzV!=null){if(altzV>3)sStrong++;else if(altzV<1.81)sWeak++;}
+    if(piotV!=null){if(piotV>=7)sStrong++;else if(piotV<=3)sWeak++;}
+    if(fcfV!=null){if(fcfV>50000)sStrong++;else if(fcfV<0)sWeak++;}
+    if(intCovV!=null){if(intCovV>10)sStrong++;else if(intCovV<1.5)sWeak++;}
+    if(fcfMV!=null){if(fcfMV>20)sStrong++;else if(fcfMV<0)sWeak++;}
+    var fundNet=sStrong-sWeak;
+    var fundLabel, fundColor, fundHint;
+    if(altzV==null && piotV==null){fundLabel='Insufficient data';fundColor='var(--dim)';fundHint='Filings could not be parsed.';}
+    else if(fundNet>=2){fundLabel='Strong';fundColor='var(--green)';fundHint=sStrong+' of '+(sStrong+sWeak)+' fundamental signals lean strong.';}
+    else if(fundNet<=-2){fundLabel='Weak';fundColor='var(--red)';fundHint=sWeak+' of '+(sStrong+sWeak)+' fundamental signals lean weak.';}
+    else {fundLabel='Mixed';fundColor='var(--amber)';fundHint='No decisive fundamental lean.';}
+
+    // Lens 3: Sector context (peer-relative)
+    var sectorBkt=d.sector_bucket||'industrial';
+    var sectorLabel, sectorColor, sectorHint;
+    var sectorTxt=d.sector||'';
+    if(sectorBkt==='bank'){sectorLabel='Bank';sectorColor='var(--cyan)';sectorHint='Sector-specific metrics applied: NIM, Tier 1, efficiency ratio.';}
+    else if(sectorBkt==='insurance'){sectorLabel='Insurance';sectorColor='var(--purple)';sectorHint='Sector-specific metrics applied: combined ratio, loss ratio.';}
+    else if(sectorBkt==='reit'){sectorLabel='REIT';sectorColor='var(--gold)';sectorHint='Sector-specific metrics applied: FFO, NOI, NOI yield.';}
+    else if(sectorBkt==='other'){sectorLabel='Financial (Other)';sectorColor='var(--dim)';sectorHint='Asset manager / broker-dealer template '+EMDASH+' some industrial metrics partial.';}
+    else {sectorLabel=sectorTxt||'Industrial';sectorColor='var(--wh)';sectorHint='Industrial template applied (default).';}
+
+    // Disagreement detector: when EWS reads stress but fundamentals strong,
+    // or fundamentals weak but EWS calm — that's the framework's lead-time signal.
+    var disagreement='';
+    var ewsStress=(r&&(r.includes('distressed')||r.includes('rising')||r.includes('elevated')));
+    var ewsCalm=(r&&r.includes('stable'));
+    if(ewsStress && fundNet>=2){
+      disagreement='<div style="margin-top:10px;padding:10px 14px;background:rgba(0,200,255,.06);border:1px solid rgba(0,200,255,.20);border-radius:6px;font-size:12px;color:#A0B8D0;line-height:1.6"><strong style="color:var(--cyan)">Lens divergence:</strong> Variance EWS is signaling stress while fundamentals remain strong. This is the canonical EWS-leading configuration — the framework\u2019s claim is that this gap historically precedes fundamental deterioration by 1\u20135 quarters. Cross-reference subsequent filings.</div>';
+    } else if(ewsCalm && fundNet<=-2){
+      disagreement='<div style="margin-top:10px;padding:10px 14px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.20);border-radius:6px;font-size:12px;color:#A0B8D0;line-height:1.6"><strong style="color:var(--amber)">Lens divergence:</strong> Fundamentals are weak while the variance EWS is in the stable band. Atypical configuration — could indicate a value situation, post-distress recovery, or a market that has not yet repriced. Educational read only.</div>';
+    } else if(ewsStress && fundNet<=-2){
+      disagreement='<div style="margin-top:10px;padding:10px 14px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.20);border-radius:6px;font-size:12px;color:#A0B8D0;line-height:1.6"><strong style="color:var(--red)">Lens convergence:</strong> Both the variance EWS and fundamentals are leaning the same direction. Highest-conviction reading the framework can produce. Historical analogues include Lehman, Spirit, BBBY pre-event windows.</div>';
+    }
+
+    var html='<div class="card-hi" style="padding:16px 18px;margin-top:0">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px;flex-wrap:wrap;gap:8px">'
+      +'<div><div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:2px">Structural Triangulation</div>'
+      +'<div style="font-size:13px;color:var(--wh)">Three independent lenses on the same company.</div></div>'
+      +'<div style="font-size:11px;color:var(--dim)">Convergence = high conviction. Divergence = lead-time window.</div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'
+      // Lens 1
+      +'<div onclick="swTab(\'isc\',null)" style="cursor:pointer;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:11px 13px;transition:border-color .15s" onmouseover="this.style.borderColor=\'rgba(255,255,255,.18)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\'">'
+        +'<div style="font-size:9px;font-family:var(--mono);letter-spacing:.10em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">Lens 1 '+MIDDOT+' Equity Dynamics</div>'
+        +'<div style="font-size:14px;font-weight:700;color:'+ewsColor+';margin-bottom:3px">'+ewsLabel+'</div>'
+        +'<div style="font-size:11px;color:var(--dim);line-height:1.5">'+ewsHint+'</div>'
+      +'</div>'
+      // Lens 2
+      +'<div onclick="swTab(\'traditional\',null)" style="cursor:pointer;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:11px 13px;transition:border-color .15s" onmouseover="this.style.borderColor=\'rgba(255,255,255,.18)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\'">'
+        +'<div style="font-size:9px;font-family:var(--mono);letter-spacing:.10em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">Lens 2 '+MIDDOT+' Fundamental Health</div>'
+        +'<div style="font-size:14px;font-weight:700;color:'+fundColor+';margin-bottom:3px">'+fundLabel+'</div>'
+        +'<div style="font-size:11px;color:var(--dim);line-height:1.5">'+fundHint+'</div>'
+      +'</div>'
+      // Lens 3
+      +'<div onclick="swTab(\'peers\',null)" style="cursor:pointer;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:11px 13px;transition:border-color .15s" onmouseover="this.style.borderColor=\'rgba(255,255,255,.18)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.06)\'">'
+        +'<div style="font-size:9px;font-family:var(--mono);letter-spacing:.10em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">Lens 3 '+MIDDOT+' Sector Context</div>'
+        +'<div style="font-size:14px;font-weight:700;color:'+sectorColor+';margin-bottom:3px">'+sectorLabel+'</div>'
+        +'<div style="font-size:11px;color:var(--dim);line-height:1.5">'+sectorHint+'</div>'
+      +'</div>'
+      +'</div>'
+      +disagreement
+      +'</div>';
+    tp.innerHTML=html;
+  })();
 
   // GAUGE
   (function(){
@@ -1964,7 +2111,7 @@ function renderAll(d){
   /* Batch 7h.5: flag thresholds expressed in new variance score units (>=0.3 ~ distressed regime); flag text updated to variance vocabulary */
   if(C!=null&&C>0.3){var __hg=(typeof detectHyperGrowth!=='undefined')?detectHyperGrowth(d,r,C):null;if(__hg){flags.push({t:String.fromCharCode(9650)+' Phase Transition Detected - Hyper-Growth',d:'Variance score '+C.toFixed(3)+'. Variance EWS flags structural transition, but underlying fundamentals are exceptional. The same EWS signature appears before structural collapses (Enron, WorldCom, Spirit) AND before once-in-a-generation positive transformations (NVIDIA 2023-2025, early Tesla, AWS pivot). Direction depends on whether margins and moats hold as scale increases.',c:'al-b'});}else{flags.push({t:'High Variance &#8212; Structural Stress',d:'Variance score '+C.toFixed(3)+' is in the distressed band of the paper-validated EWS. Pattern preceded events including Enron, WorldCom, Lehman, AIG, and SVB.',c:'al-r'});}}
   if(altZ!=null&&altZ<1.81)flags.push({t:'Altman Z in Distress Zone',d:'Z='+altZ.toFixed(2)+'. Below 1.81 is the traditional distress threshold. Note: variance EWS typically leads this signal by 1&#8211;5 quarters.',c:'al-r'});
-  if(intCov!=null&&intCov<1.5)flags.push({t:'Interest Coverage Critical',d:intCov.toFixed(1)+'x. Earnings barely cover interest payments. Severe leverage stress.',c:'al-r'});
+  if(intCov!=null&&intCov<1.5)flags.push({t:'Interest Coverage Stressed',d:intCov.toFixed(1)+'x. Earnings barely cover interest payments. This is a structural-stress indicator at L3 (Gate layer) of the cascade.',c:'al-r'});
   var revG=gv(IS,'revenue_growth');
   /* Batch 7h.5: also fire on new vocab (rising/distressed) */
   var rIsStressFlag=(r&&(r.includes('bifurcating')||r.includes('distressed')||r.includes('rising')));
@@ -2418,22 +2565,38 @@ function findPeers(ticker, sector, maxN){
     return x;
   }
   var targetSector=normSector(sector);
-  var candidates=[];
+  // Batch 7h.12: prefer same industry over same sector for tighter peer matching.
+  // Subject's industry is pulled from KNOWN[ticker].i if available.
+  var subjEntry=KNOWN[t];
+  var targetIndustry=(subjEntry && subjEntry.i)?String(subjEntry.i).trim():null;
+  var industryMatches=[];
+  var sectorMatches=[];
   Object.keys(KNOWN).forEach(function(k){
     if(k===t)return;
     var p=KNOWN[k];
-    if(!p||normSector(p.s)!==targetSector)return;
+    if(!p)return;
     if(p.altZ==null)return;
-    candidates.push(Object.assign({ticker:k},p));
+    if(normSector(p.s)!==targetSector)return;
+    var entry=Object.assign({ticker:k},p);
+    if(targetIndustry && p.i && String(p.i).trim()===targetIndustry){
+      industryMatches.push(entry);
+    } else {
+      sectorMatches.push(entry);
+    }
   });
-  // Sort by market cap proximity to subject (when available)
-  var subjectMcap=KNOWN[t]?KNOWN[t].mcap:null;
-  if(subjectMcap){
-    candidates.sort(function(a,b){return Math.abs(Math.log(a.mcap/subjectMcap))-Math.abs(Math.log(b.mcap/subjectMcap));});
-  }else{
-    candidates.sort(function(a,b){return b.mcap-a.mcap;});
+  var subjectMcap=subjEntry?subjEntry.mcap:null;
+  function sortByMcapProximity(arr){
+    if(subjectMcap){
+      arr.sort(function(a,b){return Math.abs(Math.log(a.mcap/subjectMcap))-Math.abs(Math.log(b.mcap/subjectMcap));});
+    } else {
+      arr.sort(function(a,b){return b.mcap-a.mcap;});
+    }
   }
-  return candidates.slice(0, maxN||5);
+  sortByMcapProximity(industryMatches);
+  sortByMcapProximity(sectorMatches);
+  // Combined list: industry matches first (tighter peers), then sector matches
+  var combined=industryMatches.concat(sectorMatches);
+  return combined.slice(0, maxN||5);
 }
 function getPeerTierLimit(){
   var t=(typeof tier!=='undefined'?tier:'free');
@@ -2784,7 +2947,7 @@ function renderTabCommentaries(d){
         if(altz!=null && altz<1.81)bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is in the distress zone. Historically associated with bankruptcy within 2 years.');
       }else if(rNorm.includes('trans')){
         bcHtml+=header(String.fromCharCode(9678)+' Balance Sheet Drift Points','var(--amber)');
-        if(de!=null && de>1)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' is rising into territory that limits flexibility. Watch for further increases as a regime confirmation signal.');
+        if(de!=null && de>1)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' is rising into territory that limits flexibility. Subsequent increases would corroborate the structural read.');
         if(altz!=null && altz>=1.81 && altz<3)bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is in the grey zone '+EMDASH+' between distress and safe. Mixed signals.');
       }else if(rNorm.includes('regulated')){
         bcHtml+=header(String.fromCharCode(10003)+' Strong Balance Sheet Profile','var(--green)');
@@ -2952,6 +3115,15 @@ function renderCharts(d){
   // Batch 7h.5: regime-branching fixed to recognize new vocab via rIsStress/rIsWatch
   var fcfCtx=document.getElementById('fcfChart');
   if(fcfCtx){
+    /* Batch 7h.13: cash flow chart depends on revenue/fcf/cfo/capex/net_income
+       which don't apply or fall back to zero for banks/insurance/REITs.
+       Rather than render a flat-line at zero, show a sector-aware fallback. */
+    var cfSectorBucket=d.sector_bucket||'industrial';
+    var cfHasIndustrialFlows=(gv(IS,'revenue')!=null && gv(CF,'cfo')!=null);
+    if(cfSectorBucket!=='industrial' && cfSectorBucket!==null && !cfHasIndustrialFlows){
+      var cfSectorPretty={bank:'banks',insurance:'insurers',reit:'REITs','other':'this sector'}[cfSectorBucket]||'this sector';
+      fcfCtx.parentNode.innerHTML='<div style="padding:40px 24px;text-align:center;color:var(--dim);font-size:12px;line-height:1.7"><div style="color:var(--wh);font-weight:600;margin-bottom:6px">Cash flow components: industrial format</div>The standard CFO/CapEx/FCF breakdown does not apply directly to '+cfSectorPretty+'. For '+cfSectorPretty+', see the sector-aware metrics in the Income Statement tab.</div>';
+    } else {
     var fcfLabels=['Q5','Q4','Q3','Q2','Q1','TTM'];
     var rev0=gv(IS,'revenue')||0;
     var fcf0=gv(CF,'fcf')||(rev0*0.08);
@@ -2977,12 +3149,22 @@ function renderCharts(d){
       ]},
       options:Object.assign({},chartDefaults,{plugins:{legend:{display:true,position:'top',labels:{color:'#9CA3AF',font:{size:10},boxWidth:14,padding:8,usePointStyle:true}},tooltip:chartDefaults.plugins.tooltip},scales:Object.assign({},chartDefaults.scales,{y:Object.assign({},chartDefaults.scales.y,{ticks:Object.assign({},chartDefaults.scales.y.ticks,{callback:function(v){return '$'+v+'B';}})})})})
     });
+    }
   }
 
   // Radar chart (Financial Health Profile)
   var radarCtx=document.getElementById('radarChart');
   if(radarCtx){
+    /* Batch 7h.13: radar uses current_ratio, interest_coverage, FCF margin
+       which are industrial-style metrics. Banks/insurance/REITs cause most
+       axes to read zero, producing an invisible polygon. Show fallback. */
+    var rdSectorBucket=d.sector_bucket||'industrial';
     var TM=d.traditional||{};
+    var rdHasIndustrial=(gv(TM,'current_ratio')!=null && gv(TM,'interest_coverage')!=null);
+    if(rdSectorBucket!=='industrial' && rdSectorBucket!==null && !rdHasIndustrial){
+      var rdSectorPretty={bank:'banks',insurance:'insurers',reit:'REITs','other':'this sector'}[rdSectorBucket]||'this sector';
+      radarCtx.parentNode.innerHTML='<div style="padding:40px 24px;text-align:center;color:var(--dim);font-size:12px;line-height:1.7"><div style="color:var(--wh);font-weight:600;margin-bottom:6px">Health profile: industrial axes</div>The radar uses Current Ratio, Interest Coverage, and FCF Margin which are industrial metrics. For '+rdSectorPretty+', the sector-aware health snapshot on the Overview tab applies the appropriate metrics.</div>';
+    } else {
     var altZ=gv(TM,'altman_z'); var pio=gv(TM,'piotroski_f'); var cur=gv(TM,'current_ratio');
     var iCov=gv(TM,'interest_coverage'); var fcfMg=gv(CF,'fcf_margin'); var roe=gv(TM,'roe');
     function clamp(v,lo,hi){if(v==null||isNaN(v))return 0;return Math.max(lo,Math.min(hi,v));}
@@ -2998,10 +3180,19 @@ function renderCharts(d){
       data:{labels:['Altman Z','Piotroski F','Current Ratio','Interest Coverage','FCF Margin','ROE'],datasets:[{label:'Health Profile',data:[nAltz,nPio,nCur,nICov,nFcf,nRoe],backgroundColor:radarColor.replace('#','')==='EF4444'?'rgba(239,68,68,.18)':radarColor.replace('#','')==='F59E0B'?'rgba(245,158,11,.18)':'rgba(16,185,129,.18)',borderColor:radarColor,borderWidth:2,pointBackgroundColor:radarColor,pointRadius:3}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){return ctx.label+': '+ctx.parsed.r.toFixed(0)+'/100';}}}},scales:{r:{beginAtZero:true,suggestedMax:100,grid:{color:'rgba(255,255,255,.06)'},angleLines:{color:'rgba(255,255,255,.06)'},pointLabels:{color:'#9CA3AF',font:{size:10}},ticks:{display:false,stepSize:25}}}}
     });
+    }
   }
   // Doughnut chart (Asset Allocation)
   var donutCtx=document.getElementById('donutChart');
   if(donutCtx){
+    /* Batch 7h.13: donut breaks balance sheet into Cash/Recv/Inventory/PP&E/Goodwill.
+       Banks have loans + securities + deposits; insurance has investment portfolio +
+       reserves; REITs have real estate. Industrial breakdown invalid for those. */
+    var dnSectorBucket=d.sector_bucket||'industrial';
+    if(dnSectorBucket!=='industrial' && dnSectorBucket!==null){
+      var dnSectorPretty={bank:'banks',insurance:'insurers',reit:'REITs','other':'this sector'}[dnSectorBucket]||'this sector';
+      donutCtx.parentNode.innerHTML='<div style="padding:40px 24px;text-align:center;color:var(--dim);font-size:12px;line-height:1.7"><div style="color:var(--wh);font-weight:600;margin-bottom:6px">Asset allocation: industrial format</div>The Cash/Receivables/Inventory/PP&amp;E breakdown does not apply to '+dnSectorPretty+'. Bank balance sheets are dominated by loans and securities; insurer balance sheets by investment portfolios and reserves; REIT balance sheets by real estate.</div>';
+    } else {
     var BS=d.balance_sheet||{};
     var bsCash=gv(BS,'cash')||0;
     var bsRecv=gv(BS,'receivables')||0;
@@ -3024,10 +3215,19 @@ function renderCharts(d){
         options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:true,position:'right',labels:{color:'#9CA3AF',font:{size:10},boxWidth:12,padding:8}},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){var pct=ctx.parsed/donutData.reduce(function(a,b){return a+b;},0)*100;return ctx.label+': $'+(ctx.parsed/1000).toFixed(1)+'B ('+pct.toFixed(0)+'%)';}}}}}
       });
     }
+    }
   }
   // Waterfall (Cash Flow Bridge)
   var waterCtx=document.getElementById('waterfallChart');
   if(waterCtx){
+    /* Batch 7h.13: waterfall shows NI -> CFO -> FCF for industrials. Same
+       fields are sparse or zero for non-industrials. */
+    var wfSectorBucket=d.sector_bucket||'industrial';
+    var wfHasIndustrialFlows=(gv(IS,'net_income')!=null && gv(CF,'cfo')!=null && gv(CF,'capex')!=null);
+    if(wfSectorBucket!=='industrial' && wfSectorBucket!==null && !wfHasIndustrialFlows){
+      var wfSectorPretty={bank:'banks',insurance:'insurers',reit:'REITs','other':'this sector'}[wfSectorBucket]||'this sector';
+      waterCtx.parentNode.innerHTML='<div style="padding:40px 24px;text-align:center;color:var(--dim);font-size:12px;line-height:1.7"><div style="color:var(--wh);font-weight:600;margin-bottom:6px">Cash flow bridge: industrial format</div>The NI &rarr; CFO &rarr; FCF bridge does not apply directly to '+wfSectorPretty+'. See sector-specific cash flow detail in the Cash Flow tab.</div>';
+    } else {
     var wNi=gv(IS,'net_income')||0;
     var wEbitda=gv(IS,'ebitda');
     var wDa=(wEbitda!=null&&gv(IS,'operating_income')!=null)?(wEbitda-gv(IS,'operating_income')):Math.abs(wNi*0.5);
@@ -3056,41 +3256,54 @@ function renderCharts(d){
       data:{labels:labels,datasets:[{label:'$M',data:bars,backgroundColor:bColors,borderColor:bBorders,borderWidth:1.5,barPercentage:0.7}]},
       options:Object.assign({},chartDefaults,{plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(13,27,46,.95)',titleColor:'#F1F5F9',bodyColor:'#9CA3AF',borderColor:'#1E3048',borderWidth:1,callbacks:{label:function(ctx){var rng=ctx.parsed; var diff=Math.abs(rng._custom?rng._custom.end-rng._custom.start:0); return ctx.label+': '+(diff>=1000?'$'+(diff/1000).toFixed(1)+'B':'$'+diff.toFixed(0)+'M');}}}}})
     });
+    }
   }
   // Heatmap (7-Layer Stress Map)
   var heatArea=document.getElementById('heatmapArea');
   if(heatArea){
-    var TM2=d.traditional||{};
-    var bs2=d.balance_sheet||{};
-    var ic=gv(TM2,'interest_coverage');
-    var cr=gv(TM2,'current_ratio');
-    var de=gv(TM2,'debt_to_equity');
-    var fcf2=gv(CF,'fcf');
-    var fcfM2=gv(CF,'fcf_margin');
-    var oiPct=gv(IS,'operating_margin');
-    var rg=gv(IS,'revenue_growth');
-    var altz=gv(TM2,'altman_z');
-    function lvl(score){if(score==null)return {c:'#374151',t:'No data',l:'NA'};if(score>=2)return {c:'#10B981',t:'Healthy',l:'OK'};if(score>=1)return {c:'#F59E0B',t:'Watch',l:'!'};return {c:'#EF4444',t:'Stressed',l:'X'};}
-    function scoreCash(){var s=0;if(cr!=null){if(cr>=1.5)s+=2;else if(cr>=1.0)s+=1;}if(fcf2!=null&&fcf2>0)s+=1;return s/3*2;}
-    function scoreReceivables(){var s=2;var rec=gv(bs2,'receivables');var rev=gv(IS,'revenue');if(rec!=null&&rev>0&&rev/rec>0&&(rec/rev)>0.25)s=1;return s;}
-    function scoreCovenants(){var s=0;if(ic!=null){if(ic>=5)s+=2;else if(ic>=2)s+=1;}if(de!=null){if(de<1)s+=1;}return Math.min(2,s/3*2);}
-    function scoreCapStruct(){var s=0;if(altz!=null){if(altz>=3)s=2;else if(altz>=1.81)s=1;}return s;}
-    function scoreOps(){var s=0;if(oiPct!=null){if(oiPct>=10)s=2;else if(oiPct>0)s=1;}return s;}
-    function scoreSales(){var s=0;if(rg!=null){if(rg>=10&&fcfM2!=null&&fcfM2>10)s=2;else if(rg>=0)s=1;}return s;}
-    function scoreDisclosure(){var fcfNI=null;if(fcf2!=null&&gv(IS,'net_income')){var ni=gv(IS,'net_income');if(ni>0)fcfNI=fcf2/ni;}if(fcfNI==null)return null;if(fcfNI>=0.7)return 2;if(fcfNI>=0.3)return 1;return 0;}
-    var layers=[
-      {n:1,name:'Cash / Liquidity',s:scoreCash(),why:'Working capital + FCF positive'},
-      {n:2,name:'Receivables Quality',s:scoreReceivables(),why:'AR is reasonable % of revenue'},
-      {n:3,name:'Debt Covenants',s:scoreCovenants(),why:'Interest coverage + debt/equity'},
-      {n:4,name:'Capital Structure',s:scoreCapStruct(),why:'Altman Z composite signal'},
-      {n:5,name:'Operating Margins',s:scoreOps(),why:'Operating profitability sustainability'},
-      {n:6,name:'Sales Quality',s:scoreSales(),why:'Growth combined with margin discipline'},
-      {n:7,name:'Mgmt / Disclosure',s:scoreDisclosure(),why:'FCF/NI ratio = earnings quality'}
-    ];
-    var hHtml='<div style="display:grid;grid-template-columns:1fr;gap:6px">';
-    layers.forEach(function(L){var st=lvl(L.s);hHtml+='<div style="display:grid;grid-template-columns:36px 1fr 80px;gap:10px;align-items:center;padding:8px 10px;background:rgba(0,0,0,.2);border-left:3px solid '+st.c+';border-radius:5px;font-size:12px"><div style="color:'+st.c+';font-weight:700;font-size:11px;text-align:center;background:rgba(255,255,255,.04);padding:4px 0;border-radius:4px">L'+L.n+'</div><div><div style="color:#F1F5F9;font-weight:600">'+L.name+'</div><div style="color:var(--dim);font-size:10px;margin-top:1px">'+L.why+'</div></div><div style="color:'+st.c+';font-size:10px;text-transform:uppercase;letter-spacing:.05em;text-align:right;font-weight:700">'+st.t+'</div></div>';});
-    hHtml+='</div>';
-    heatArea.innerHTML=hHtml;
+    /* Batch 7h.13: heatmap scoring functions assume industrial-style metrics
+       (current_ratio, FCF margin, FCF/NI). For banks/insurance/REITs these
+       metrics either don't exist or mean something different — applying
+       industrial scoring incorrectly flags everything red.
+       For non-industrial sectors, defer to the cascade narrative panel
+       which uses sector-appropriate logic. */
+    var hmSectorBucket=d.sector_bucket||'industrial';
+    if(hmSectorBucket!=='industrial' && hmSectorBucket!==null && hmSectorBucket!==undefined){
+      var sectorPretty={bank:'banks',insurance:'insurers',reit:'REITs','other':'this sector'}[hmSectorBucket]||'this sector';
+      heatArea.innerHTML='<div style="padding:24px;background:rgba(0,0,0,.18);border:1px dashed rgba(255,255,255,.10);border-radius:8px;text-align:center;color:var(--dim);font-size:12px;line-height:1.7"><div style="color:var(--wh);font-weight:600;margin-bottom:6px">7-Layer heatmap: industrial metrics</div>The standard heatmap scoring uses industrial-company ratios (current ratio, FCF margin, FCF/NI) that do not apply directly to '+sectorPretty+'. See the 7-Layer Cascade panel below for the sector-aware structural read.</div>';
+    } else {
+      var TM2=d.traditional||{};
+      var bs2=d.balance_sheet||{};
+      var ic=gv(TM2,'interest_coverage');
+      var cr=gv(TM2,'current_ratio');
+      var de=gv(TM2,'debt_to_equity');
+      var fcf2=gv(CF,'fcf');
+      var fcfM2=gv(CF,'fcf_margin');
+      var oiPct=gv(IS,'operating_margin');
+      var rg=gv(IS,'revenue_growth');
+      var altz=gv(TM2,'altman_z');
+      function lvl(score){if(score==null)return {c:'#374151',t:'No data',l:'NA'};if(score>=2)return {c:'#10B981',t:'Healthy',l:'OK'};if(score>=1)return {c:'#F59E0B',t:'Watch',l:'!'};return {c:'#EF4444',t:'Stressed',l:'X'};}
+      function scoreCash(){var s=0;if(cr!=null){if(cr>=1.5)s+=2;else if(cr>=1.0)s+=1;}if(fcf2!=null&&fcf2>0)s+=1;return s/3*2;}
+      function scoreReceivables(){var s=2;var rec=gv(bs2,'receivables');var rev=gv(IS,'revenue');if(rec!=null&&rev>0&&rev/rec>0&&(rec/rev)>0.25)s=1;return s;}
+      function scoreCovenants(){var s=0;if(ic!=null){if(ic>=5)s+=2;else if(ic>=2)s+=1;}if(de!=null){if(de<1)s+=1;}return Math.min(2,s/3*2);}
+      function scoreCapStruct(){var s=0;if(altz!=null){if(altz>=3)s=2;else if(altz>=1.81)s=1;}return s;}
+      function scoreOps(){var s=0;if(oiPct!=null){if(oiPct>=10)s=2;else if(oiPct>0)s=1;}return s;}
+      function scoreSales(){var s=0;if(rg!=null){if(rg>=10&&fcfM2!=null&&fcfM2>10)s=2;else if(rg>=0)s=1;}return s;}
+      function scoreDisclosure(){var fcfNI=null;if(fcf2!=null&&gv(IS,'net_income')){var ni=gv(IS,'net_income');if(ni>0)fcfNI=fcf2/ni;}if(fcfNI==null)return null;if(fcfNI>=0.7)return 2;if(fcfNI>=0.3)return 1;return 0;}
+      var layers=[
+        {n:1,name:'Cash / Liquidity',s:scoreCash(),why:'Working capital + FCF positive'},
+        {n:2,name:'Receivables Quality',s:scoreReceivables(),why:'AR is reasonable % of revenue'},
+        {n:3,name:'Debt Covenants',s:scoreCovenants(),why:'Interest coverage + debt/equity'},
+        {n:4,name:'Capital Structure',s:scoreCapStruct(),why:'Altman Z composite signal'},
+        {n:5,name:'Operating Margins',s:scoreOps(),why:'Operating profitability sustainability'},
+        {n:6,name:'Sales Quality',s:scoreSales(),why:'Growth combined with margin discipline'},
+        {n:7,name:'Mgmt / Disclosure',s:scoreDisclosure(),why:'FCF/NI ratio = earnings quality'}
+      ];
+      var hHtml='<div style="display:grid;grid-template-columns:1fr;gap:6px">';
+      layers.forEach(function(L){var st=lvl(L.s);hHtml+='<div style="display:grid;grid-template-columns:36px 1fr 80px;gap:10px;align-items:center;padding:8px 10px;background:rgba(0,0,0,.2);border-left:3px solid '+st.c+';border-radius:5px;font-size:12px"><div style="color:'+st.c+';font-weight:700;font-size:11px;text-align:center;background:rgba(255,255,255,.04);padding:4px 0;border-radius:4px">L'+L.n+'</div><div><div style="color:#F1F5F9;font-weight:600">'+L.name+'</div><div style="color:var(--dim);font-size:10px;margin-top:1px">'+L.why+'</div></div><div style="color:'+st.c+';font-size:10px;text-transform:uppercase;letter-spacing:.05em;text-align:right;font-weight:700">'+st.t+'</div></div>';});
+      hHtml+='</div>';
+      heatArea.innerHTML=hHtml;
+    }
   }
   // Box-and-whisker (Series Trend Spread) — Batch 7h.8
   // Plots distribution of trend_rho (Spearman correlation of each fundamental
@@ -3152,7 +3365,7 @@ function renderCharts(d){
   if(ccIsStress&&revRaw>0&&oiRaw<0){
     commentary='<strong>&#9888; Critical divergence pattern detected:</strong> Revenue of '+fmtM(revRaw)+' looks strong on the surface, but operating income is negative at '+fmtM(oiRaw)+'. This is the Spirit Airlines fingerprint &#8212; a company buying revenue growth at the cost of profitability. The variance EWS confirms this is structural, not temporary.';
   }else if(ccIsStress){
-    commentary='<strong>&#9888; Structural stress visible:</strong> Variance EWS is in the distressed band (variance='+(C!=null?C.toFixed(3):'N/A')+'). Watch for the gap between this signal and Altman Z &#8212; that gap is the early-warning window.';
+    commentary='<strong>&#9888; Structural stress visible:</strong> Variance EWS is in the distressed band (variance='+(C!=null?C.toFixed(3):'N/A')+'). The gap between this signal and the Altman Z value is the framework\u2019s observed lead-time window.';
   }else if(r.includes('rising')){
     commentary='<strong>&#9888; Variance EWS active:</strong> Variance score of '+(C!=null?C.toFixed(3):'N/A')+' is rising relative to the baseline window. The trajectory pattern that historically preceded transitions in Lehman, AIG, and SVB is engaged. Cross-reference fundamentals over the next 2&#8211;4 quarters.';
   }else if(fcfMRaw!=null&&fcfMRaw>15){
@@ -3198,7 +3411,11 @@ async function askQ(q){
   chatCtx.push({role:'user',content:q});hist.scrollTop=hist.scrollHeight;
   try{
     var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:700,
-      system:'You are a senior financial analyst specializing in ISC structural dynamics. ISC variance EWS: mean rolling 90-day variance of daily log returns (annualized). Regimes: stable (<0.10), elevated (0.10-0.25), distressed (>0.25). Variance trend (Spearman rho with time) and ratio (latest/baseline) further refine: rising regime when trend is positive and ratio elevated. Validated AUC 0.86-0.96 on 45 collapse + 200 stable windows (Malone 2026, Zenodo 18940081). Company data:\n\n'+buildCtx()+'\n\nBe direct and clear. Use plain English &#8212; no jargon without explanation. Write in 2&#8211;3 short paragraphs. Not financial advice.',
+      system:'You are an educational analytics assistant explaining the variance EWS framework as applied to a specific company. You are NOT a financial advisor and you do not provide investment advice. ' +
+      'IMPORTANT BOUNDARIES: Do not recommend buying, selling, or holding any security. Do not suggest position sizing, entry/exit points, or trading strategies. Do not predict future stock prices. If asked for trading recommendations, explain that you provide structural analysis only and direct the user to consult a licensed financial advisor. ' +
+      'WHAT YOU DO: Explain what the variance EWS metrics mean for this company. Describe how the framework reads the data. Compare structural signals to traditional metrics. Walk through the 7-layer cascade conceptually. Identify which financial indicators would change the regime classification in subsequent filings. ' +
+      'CONTEXT: Variance EWS = mean rolling 90-day variance of daily log returns (annualized). Regimes: stable (<0.10), elevated (0.10-0.25), distressed (>=0.25 with rising trend; high-magnitude variance >=0.5 always distressed). Variance trend (Spearman rho with time) and ratio (latest/baseline) further refine. Validated AUC 0.86-0.96 on 45 collapse + 200 stable windows (Malone 2026, Zenodo 18940081). ' +
+      'STYLE: Direct and clear. Plain English, no unexplained jargon. 2-3 short paragraphs. End with: "This is educational analysis, not investment advice. Consult a licensed advisor before trading decisions."\n\nCompany data:\n\n'+buildCtx(),
       messages:chatCtx})});
     var data=await r.json();
     var ans=data.content&&data.content[0]?data.content[0].text:'Analysis unavailable.';
@@ -3455,7 +3672,7 @@ function genPDF(){
       doc.setFillColor(rgb[0],rgb[1],rgb[2],20);doc.setDrawColor(rgb[0],rgb[1],rgb[2]);doc.setLineWidth(0.5);
       doc.roundedRect(m,68,W-m*2,38,2,2,'FD');
       doc.setTextColor(rgb[0],rgb[1],rgb[2]);doc.setFontSize(9);doc.setFont('helvetica','bold');
-      doc.text('STRUCTURAL VERDICT',m+4,78);
+      doc.text('STRUCTURAL READ',m+4,78);
       doc.setFontSize(13);
       /* Batch 7h.5: PDF verdict text uses variance EWS vocabulary */
       var verdictText;
