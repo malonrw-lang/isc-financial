@@ -6,15 +6,15 @@
 <title>ISC Financial &#8212; The Filter Lab</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<!-- Plausible analytics (Batch 7h.5).
-     SETUP REQUIRED: replace data-domain with the production domain after Plausible site is created.
-     Currently set to the Vercel preview domain so analytics start collecting on day one.
-     When thefilterlab.com / iscfinancial.com is live, swap data-domain. -->
-<script defer data-domain="isc-financial-9bwc.vercel.app" src="https://plausible.io/js/script.js"></script>
+<!-- Plausible analytics (Batch 7h.18).
+     Live on thefilterlab.app site in Plausible dashboard.
+     Tracks all subdomains (finance.thefilterlab.app, www, etc.) automatically. -->
+<script async src="https://plausible.io/js/pa-FWIo0G6kYrt7TVFrPmeti.js"></script>
 <script>
-  /* Plausible no-op stub: lets us call plausible('Event') even if the script fails to load,
-     and gives us a single place to wrap event calls if we switch providers later. */
-  window.plausible = window.plausible || function(){ (window.plausible.q = window.plausible.q || []).push(arguments); };
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init();
+  /* trackEvent helper: wrapper used by app code to fire custom events.
+     Safe no-op if Plausible script fails to load. */
   function trackEvent(name, props){
     try { window.plausible(name, props ? {props: props} : undefined); } catch(e){}
   }
