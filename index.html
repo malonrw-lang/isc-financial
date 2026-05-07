@@ -2944,6 +2944,12 @@ function renderPeers(d){
     html+='</tr>';
   });
   html+='</tbody></table></div>';
+  /* Batch 7h.18: peer caveat. The KNOWN[] peer database currently uses
+     pre-migration coupling-C era values; running a peer's ticker directly
+     yields different (live) variance values. Until the data refresh ships,
+     this caveat acknowledges the inconsistency honestly rather than letting
+     users assume the peer values are live. */
+  html+='<div style="margin-top:10px;padding:8px 12px;background:rgba(107,114,128,.06);border:1px solid rgba(107,114,128,.18);border-radius:6px;font-size:11px;color:var(--dim);line-height:1.55"><strong style="color:#A0B8D0">Note on peer values:</strong> Peer variance values shown above are illustrative reference points for sector context. For the live variance EWS reading on any peer, search that ticker directly in the Analyzer.</div>';
   // Lock overlay for free tier
   // Investor tier banner (rows visible, all values blurred - upgrade-to-Pro nudge)
   var __currentTier=(typeof tier!=='undefined'?tier:'free');
