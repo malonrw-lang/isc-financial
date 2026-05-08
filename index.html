@@ -1696,16 +1696,16 @@ function detectHyperGrowth(d, r, C){
 }
 function buildHyperGrowthNarrative(name, C, hg) {
   var parts = [];
-  parts.push('<strong style="color:var(--purple)">Phase Transition Detected ' + EMDASH + ' growth-driven, not distress.</strong> ');
-  parts.push(name + ' shows variance EWS = ' + (C!=null?C.toFixed(3):'N/A') + ' (elevated equity dynamics) but the underlying fundamentals are exceptional, not deteriorating');
-  if (hg.revG != null) parts.push('. Revenue growth of ' + hg.revG.toFixed(0) + '%');
+  parts.push('<strong style="color:var(--purple)">Phase Transition Signature ' + EMDASH + ' growth-adjacent fundamentals.</strong> ');
+  parts.push(name + ' shows variance EWS = ' + (C!=null?C.toFixed(3):'N/A') + ' (elevated equity dynamics) alongside fundamentals that fall in the framework\'s strong-signal range');
+  if (hg.revG != null) parts.push(': revenue growth of ' + hg.revG.toFixed(0) + '%');
   if (hg.fcfM != null) parts.push(', FCF margin of ' + hg.fcfM.toFixed(0) + '%');
   if (hg.fcf  != null) parts.push(', and free cash flow of ' + String.fromCharCode(36) + (hg.fcf/1000).toFixed(0) + 'B');
-  parts.push(' all point to a positive structural shift rather than a negative one.');
-  parts.push('<br><br>The variance EWS measures whether equity dynamics are dispersing, not which direction the change goes. ');
-  parts.push(name + ' is in the middle of a phase transition ' + EMDASH + ' the same volatility signature appears before companies experiencing once-in-a-generation positive transformations (NVIDIA 2023' + ENDASH + '2025, early Tesla, Amazon Web Services pivot) AND before companies that prove unsustainable.');
-  parts.push('<br><br><strong style="color:#fff">Indicators to track in subsequent filings:</strong> hyper-growth phases resolve in two ways. Either the company successfully scales into the new regime (NVIDIA, Apple post-iPhone), or growth proves unsustainable and the dispersion flips to distress (WeWork, Pets.com).');
-  parts.push(' The deciding factors are usually (1) whether margins hold as scale increases, (2) whether the customer base diversifies, and (3) whether competitive moats deepen. Monitor revenue growth, gross margin, and customer concentration over the next 2' + ENDASH + '4 quarters.');
+  parts.push('. In the framework\'s calibration set, this configuration falls in the growth-regime band rather than the distress-regime band.');
+  parts.push('<br><br>The variance EWS measures whether equity dynamics are dispersing, not which direction the dispersion resolves. ');
+  parts.push('In the framework\'s historical calibration cases, similar volatility signatures appeared in companies that subsequently underwent rapid positive scaling (NVIDIA 2023' + ENDASH + '2025, early Tesla, Amazon Web Services pivot) AND in companies whose growth proved unsustainable. The framework does not predict which trajectory applies to ' + name + '.');
+  parts.push('<br><br><strong style="color:#fff">Indicators to track in subsequent filings:</strong> in the framework\'s calibration set, growth-regime signatures resolve in two directions. Either the company scales into the new regime (NVIDIA, Apple post-iPhone calibration cases), or the dispersion shifts toward the distress band (WeWork, Pets.com calibration cases).');
+  parts.push(' The variables most associated with the resolution direction in the calibration set are (1) whether margins hold as scale increases, (2) whether the customer base diversifies, and (3) whether competitive moats deepen. Monitoring revenue growth, gross margin, and customer concentration over the next 2' + ENDASH + '4 quarters is a common analytical step. Outcomes for any specific company vary; this is structural classification, not a prediction.');
   return parts.join('');
 }
 function rPlain(r,C,name,financials){
@@ -2006,7 +2006,7 @@ function renderAll(d){
   (function(){var hg=detectHyperGrowth(d,r,C);var bgCol;if(!r||r.includes('insufficient')){bgCol='var(--dim)';}else if(hg){bgCol='var(--purple)';}else{bgCol=col;}document.getElementById('verdictCard').style.background=bgCol.replace(')',',0.06)').replace('var(--','rgba(');document.getElementById('verdictCard').style.border='1px solid '+bgCol.replace(')',',0.2)').replace('var(--','rgba(');})();
   document.getElementById('verdictCard').innerHTML=
     '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">Structural Read</div>'
-    +(function(){/* Batch 7h.3 applied */ var hg=detectHyperGrowth(d,r,C);var t,c;if(!r||r.includes('insufficient')||r.includes('unavailable')){t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}else if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Hyper-Growth';c='var(--purple)';}else if(r.includes('distressed')||r.includes('bifurcating')){t=String.fromCharCode(9888)+' High Volatility Distress';c=col;}else if(r.includes('rising')){t=String.fromCharCode(9888)+' Rising Volatility '+EMDASH+' EWS Active';c=col;}else if(r.includes('elevated')||r.includes('trans')){t=String.fromCharCode(9678)+' Elevated Volatility';c=col;}else if(r.includes('stable')||r.includes('regulated')){t=CHECK+' Structurally Healthy';c=col;}else{t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';})()
+    +(function(){/* Batch 7h.3 applied */ var hg=detectHyperGrowth(d,r,C);var t,c;if(!r||r.includes('insufficient')||r.includes('unavailable')){t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}else if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Growth Regime';c='var(--purple)';}else if(r.includes('distressed')||r.includes('bifurcating')){t=String.fromCharCode(9888)+' High Volatility '+EMDASH+' Distressed Regime';c=col;}else if(r.includes('rising')){t=String.fromCharCode(9888)+' Rising Volatility '+EMDASH+' EWS Active';c=col;}else if(r.includes('elevated')||r.includes('trans')){t=String.fromCharCode(9678)+' Elevated Volatility Regime';c=col;}else if(r.includes('stable')||r.includes('regulated')){t=CHECK+' Variance EWS '+EMDASH+' Stable Regime';c=col;}else{t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';})()
     +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z"),piotF:gv(TM,"piotroski_f")})+'</div>'
     +(d.isSimulation?'<div class="al al-a"><span>&#9888;</span><div>API warming up &#8212; estimated signal shown. <button onclick="runAnal()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-weight:700;text-decoration:underline">Click here to run again</button> for real EDGAR data.</div></div>':'')
     +function(){
@@ -2214,7 +2214,7 @@ function renderAll(d){
   // FLAGS
   var flags=[];
   /* Batch 7h.5: flag thresholds expressed in new variance score units (>=0.3 ~ distressed regime); flag text updated to variance vocabulary */
-  if(C!=null&&C>0.3){var __hg=(typeof detectHyperGrowth!=='undefined')?detectHyperGrowth(d,r,C):null;if(__hg){flags.push({t:String.fromCharCode(9650)+' Phase Transition Detected - Hyper-Growth',d:'Variance score '+C.toFixed(3)+'. Variance EWS flags structural transition, but underlying fundamentals are exceptional. The same EWS signature appears before structural collapses (Enron, WorldCom, Spirit) AND before once-in-a-generation positive transformations (NVIDIA 2023-2025, early Tesla, AWS pivot). Direction depends on whether margins and moats hold as scale increases.',c:'al-b'});}else{flags.push({t:'High Variance &#8212; Structural Stress',d:'Variance score '+C.toFixed(3)+' is in the distressed band of the paper-validated EWS. Pattern preceded events including Enron, WorldCom, Lehman, AIG, and SVB.',c:'al-r'});}}
+  if(C!=null&&C>0.3){var __hg=(typeof detectHyperGrowth!=='undefined')?detectHyperGrowth(d,r,C):null;if(__hg){flags.push({t:String.fromCharCode(9650)+' Phase Transition Signature '+EMDASH+' Growth-Adjacent',d:'Variance score '+C.toFixed(3)+'. The variance EWS classifies this regime as a transition signature; in the framework\'s calibration set, similar signatures appeared in cases of both structural collapse (Enron, WorldCom, Spirit) and rapid positive scaling (NVIDIA 2023-2025, early Tesla, AWS pivot). The framework does not predict which trajectory applies to any specific company; subsequent quarterly fundamentals are the analytical question.',c:'al-b'});}else{flags.push({t:'High Variance &#8212; Structural Stress',d:'Variance score '+C.toFixed(3)+' is in the distressed band of the paper-validated EWS. Pattern preceded events including Enron, WorldCom, Lehman, AIG, and SVB.',c:'al-r'});}}
   if(altZ!=null&&altZ<1.81)flags.push({t:'Altman Z in Distress Zone',d:'Z='+altZ.toFixed(2)+'. Below 1.81 is the traditional distress threshold. Note: variance EWS typically leads this signal by 1&#8211;5 quarters.',c:'al-r'});
   if(intCov!=null&&intCov<1.5)flags.push({t:'Interest Coverage Stressed',d:intCov.toFixed(1)+'x. Earnings barely cover interest payments. This is a structural-stress indicator at L3 (Gate layer) of the cascade.',c:'al-r'});
   var revG=gv(IS,'revenue_growth');
@@ -2997,7 +2997,7 @@ function renderPeers(d){
   if(nHealthy>0)html+='<span style="color:var(--green);font-weight:600">'+nHealthy+' stable</span>';
   html+='. ';
   if(nDistress>=Math.ceil(allWithSubj.length/2))html+='Sector-wide stress signal '+EMDASH+' more than half of peers in the distressed band suggests a sector or macro factor, not a company-specific issue.';
-  else if(nHealthy>=Math.ceil(allWithSubj.length*0.6))html+='Sector overall is structurally healthy '+EMDASH+' any individual stress signal stands out as company-specific.';
+  else if(nHealthy>=Math.ceil(allWithSubj.length*0.6))html+='Most peers in the sector classify into the framework\'s stable regime '+EMDASH+' any individual variance EWS signal stands out as company-specific rather than sector-wide.';
   else html+='Mixed sector profile '+EMDASH+' worth watching individual companies rather than the sector as a whole.';
   html+='</div></div></div>';
   area.innerHTML=html;
@@ -3773,13 +3773,13 @@ function genPDF(){
           var rIsHealthy=(r.includes('stable')||r.includes('regulated'));
           var rIsStress=(r.includes('distressed')||r.includes('bifurcating'));
           if(rIsHealthy && safeCount>=3){
-            sumParts.push('The combination of stable variance EWS and traditional metrics in safe zones is consistent with structurally healthy corporate financials. The structural early-warning signal is not currently active.');
+            sumParts.push('The combination of variance EWS in the stable band and traditional metrics in their safe ranges places this filing in the framework\'s baseline calibration range. The structural early-warning signal is not currently active.');
           } else if(rIsStress && stressCount>=2){
-            sumParts.push('The combination of distressed variance EWS and traditional stress signals is consistent with patterns historically observed before structural deterioration; refer to the Cascade Signature page and Risk Flags for specific concerns.');
+            sumParts.push('The combination of variance EWS in the distressed band and traditional metrics in their stress ranges places this filing in the framework\'s convergent-stress calibration range; refer to the Cascade Signature page and Risk Flags for the specific layers contributing.');
           } else if(rIsStress && stressCount<2){
-            sumParts.push('Distressed variance EWS with traditional metrics still in acceptable ranges represents the early-warning window the framework is designed to detect; the structural signal precedes traditional metric deterioration by 1-5 quarters in historical cases.');
+            sumParts.push('Variance EWS in the distressed band with traditional metrics still in their acceptable ranges places this filing in the framework\'s EWS-leading calibration range; in the calibration set, the variance signal preceded traditional metric movement by 1-5 quarters. The framework does not predict outcomes for any specific company.');
           } else if(r.includes('rising')){
-            sumParts.push('Rising variance with traditional metrics still healthy is the canonical early-warning configuration: equity dispersion is increasing while books look fine. Monitor closely over the next 2-4 quarters.');
+            sumParts.push('Rising variance with traditional metrics in their healthy ranges is the framework\'s canonical EWS-leading configuration: equity dispersion is increasing while fundamental metrics have not yet moved. The next 2-4 quarters of fundamental data are typically used to characterize whether the trajectory resolves toward stable or stress ranges.');
           } else {
             sumParts.push('Refer to subsequent pages for detailed cascade analysis, peer context, and risk flag review.');
           }
@@ -3803,10 +3803,10 @@ function genPDF(){
       /* Batch 7h.5: PDF verdict text uses variance EWS vocabulary */
       var verdictText;
       if(!r||r.includes('insufficient')||r.includes('unavailable')) verdictText='Insufficient Data Available';
-      else if(r.includes('distressed')||r.includes('bifurcating')) verdictText='High Volatility Distress';
+      else if(r.includes('distressed')||r.includes('bifurcating')) verdictText='High Volatility \u2014 Distressed Regime';
       else if(r.includes('rising')) verdictText='Rising Volatility \u2014 EWS Active';
-      else if(r.includes('elevated')||r.includes('trans')) verdictText='Elevated Volatility';
-      else if(r.includes('stable')||r.includes('regulated')) verdictText='Structurally Healthy';
+      else if(r.includes('elevated')||r.includes('trans')) verdictText='Elevated Volatility Regime';
+      else if(r.includes('stable')||r.includes('regulated')) verdictText='Variance EWS \u2014 Stable Regime';
       else verdictText='Insufficient Data Available';
       doc.text(verdictText,m+4,89);
       doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(200,210,230);
