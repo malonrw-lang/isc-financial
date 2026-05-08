@@ -5267,5 +5267,32 @@ setTier('free',document.getElementById('t-free'));
 showPage('home');
 renderPortfolio();
 </script>
+<!-- ===== REGULATORY GATE - added 2026-05-08 =====
+     Per legal consultation 5/8/2026 with Michael Blackham (BlackHill Law),
+     the AI Analyst feature is intentionally hidden from the UI pending a
+     redesign where users invoke their own LLM with our system prompt.
+     The Help Tab "Ask AI" (educational copy, not LLM) is intentionally
+     NOT hidden. To re-enable: remove this entire <script> block.
+     ============================================ -->
+<script id="regulatory-gate-ai-analyst">
+(function() {
+  function hideAITab() {
+    // Find the AI Analyst tab button by its onclick handler
+    var buttons = document.querySelectorAll('.tab-bar button');
+    for (var i = 0; i < buttons.length; i++) {
+      var onclickAttr = buttons[i].getAttribute('onclick') || '';
+      if (onclickAttr.indexOf("swTab('ai'") !== -1) {
+        buttons[i].style.display = 'none';
+      }
+    }
+  }
+  // Run after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', hideAITab);
+  } else {
+    hideAITab();
+  }
+})();
+</script>
 </body>
 </html>
