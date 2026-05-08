@@ -791,7 +791,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <span id="cmpDate" style="font-family:var(--mono);font-size:11px">&#8212;</span>
               <span id="dsrcBadge" class="dsrc-badge"></span>
             </div>
-            <div id="cmpDesc" style="font-size:12px;color:var(--dim);margin-top:4px;max-width:600px;line-height:1.55;display:none"></div>
+            <div id="cmpDesc" style="font-size:12px;color:var(--dim);margin-top:4px;max-width:900px;line-height:1.55;display:none"></div>
           </div>
           <div id="regimeBadge" class="regime-badge">&#9679; REGULATED</div>
         </div>
@@ -1962,7 +1962,7 @@ function renderAll(d){
     }
   })();
   var desc=document.getElementById('cmpDesc');
-  if(d.description&&d.description.length>10){desc.textContent=d.description.substring(0,200)+(d.description.length>200?'...':'');desc.style.display='block';}else{desc.style.display='none';}
+  if(d.description&&d.description.length>10){desc.textContent=d.description.substring(0,400)+(d.description.length>400?'...':'');desc.style.display='block';}else{desc.style.display='none';}
   var db=document.getElementById('dsrcBadge');
   if(isReal){db.textContent=BULL+' EDGAR '+MIDDOT+' Live';db.style.background='rgba(16,185,129,.1)';db.style.color='var(--green)';}
   else if(d.isSimulation){db.textContent=WARN+' Estimated '+EMDASH+' run again';db.style.background='rgba(245,158,11,.1)';db.style.color='var(--amber)';}
