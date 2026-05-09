@@ -1909,7 +1909,7 @@ async function runAnal() {
   document.getElementById('pdfWrap').classList.add('hidden');
   chatCtx=[];
 
-  var steps=['Connecting to EDGAR...','Fetching financial statements...','Computing ISC coupling...','Running traditional metrics...','Loading price history...','Scoring news...','Building cascade analysis...','Finalizing...'];
+  var steps=['Connecting to EDGAR...','Fetching financial statements...','Computing ISC coupling...','Running traditional metrics...','Loading price history...','Building cascade analysis...','Finalizing...'];
   var si=0,pct=0;
   var iv=setInterval(function(){pct=Math.min(88,pct+Math.random()*13);fill.style.width=pct+'%';if(si<steps.length)btn.textContent=steps[si++];},500);
 
@@ -1981,7 +1981,7 @@ function mkSim(tk){
     traditional:{altman_z:{val:null},piotroski_f:{val:null}},
     market:{price:null},options:{},
     divergence:{summary:'Real data required for divergence analysis.'},
-    news:[{h:'Click Run Full Analysis again for real news (API warming up)',s:'neut',src:'System',d:'now'}]
+    news:[]
   };
 }
 
@@ -2698,7 +2698,7 @@ function renderAll(d){
     return '<div class="news-item"><div style="color:'+nc+';font-size:13px;font-weight:700;flex-shrink:0;margin-top:2px">'+ic+'</div>'
       +'<div><div style="font-size:13px;color:var(--wh);margin-bottom:3px;line-height:1.5">'+n.h+'</div>'
       +'<div style="font-size:11px;color:var(--dim)">'+n.src+' &#183; '+n.d+'</div></div></div>';
-  }).join('')||'<div style="padding:32px;text-align:center;color:var(--dim)"><div style="font-size:36px;margin-bottom:12px">&#9900;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:6px">No recent news in the feed</div><div style="font-size:13px;line-height:1.7;max-width:420px;margin:0 auto">News data is fetched from the API alongside financials. If the API is warming up (30-50s cold start) or no headlines were returned, click <strong style="color:var(--cyan)">Run Full Analysis</strong> again.</div></div>';
+  }).join('')||'<div style="padding:28px 24px;text-align:center;color:var(--dim);background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.08);border-radius:9px"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#128240;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Live news feed not yet integrated</div><div style="font-size:13px;line-height:1.75;max-width:480px;margin:0 auto">A real-time news ingest is planned for a future release; for now this tab is a placeholder. The educational framing above (how to read headlines alongside structural signals) is the design intent. The historical demos &mdash; <a href="javascript:runDemo(\'enron\')" style="color:var(--cyan);text-decoration:none;font-weight:600">Enron</a>, <a href="javascript:runDemo(\'worldcom\')" style="color:var(--cyan);text-decoration:none;font-weight:600">WorldCom</a>, <a href="javascript:runDemo(\'spirit\')" style="color:var(--cyan);text-decoration:none;font-weight:600">Spirit Airlines</a> &mdash; show curated headlines paired with the variance EWS read for those events.</div></div>';
 
   // Data quality warning (post-render)
   (function(){
