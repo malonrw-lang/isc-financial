@@ -401,11 +401,11 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <div style="font-size:12px;color:var(--dim)">Overview of how the tool works and what it measures</div>
             </div>
             <div onclick="showHelp('coupling')" style="padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:9px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='rgba(0,200,255,.3)'" onmouseout="this.style.borderColor='var(--bdr)'">
-              <div style="font-size:14px;font-weight:600;margin-bottom:5px">&#55357;&#56522; Understanding Coupling C</div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:5px">&#55357;&#56522; Understanding the Variance EWS</div>
               <div style="font-size:12px;color:var(--dim)">What the ISC score means and how to interpret it</div>
             </div>
             <div onclick="showHelp('regimes')" style="padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:9px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='rgba(0,200,255,.3)'" onmouseout="this.style.borderColor='var(--bdr)'">
-              <div style="font-size:14px;font-weight:600;margin-bottom:5px">&#55357;&#56998; Regulated vs Bifurcating</div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:5px">&#55357;&#56998; Stable vs Distressed</div>
               <div style="font-size:12px;color:var(--dim)">The three ISC regimes explained in plain English</div>
             </div>
             <div onclick="showHelp('cascade')" style="padding:14px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:9px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='rgba(0,200,255,.3)'" onmouseout="this.style.borderColor='var(--bdr)'">
@@ -821,9 +821,9 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="sb-lbl">The ISC Formula <button class="mhelp" onclick="showHelp('isc-formula')">?</button></div>
         <div style="font-family:var(--mono);font-size:13px;color:var(--cyan);margin-bottom:9px">Variance EWS = mean rolling 90d variance</div>
         <div style="font-size:12px;line-height:2.1">
-          <span style="color:var(--green)">&#10003;</span> C &lt; &#8722;0.10 &#183; Regulated<br>
-          <span style="color:var(--amber)">&#9888;</span> &#8722;0.10 to 0.30 &#183; Transitioning<br>
-          <span style="color:var(--red)">&#10007;</span> C &gt; 0.30 &#183; Bifurcating
+          <span style="color:var(--green)">&#10003;</span> Variance &le; 0.10 &#183; Stable<br>
+          <span style="color:var(--amber)">&#9888;</span> 0.10 to 0.25 &#183; Elevated<br>
+          <span style="color:var(--red)">&#10007;</span> Variance &gt; 0.25 &#183; Distressed
         </div>
         <div style="font-size:11px;color:var(--dim);margin-top:9px;line-height:1.7">AUC=0.96 &#183; 45 cases &#183; 14 domains<br><a href="https://doi.org/10.5281/zenodo.18940081">doi.org/10.5281/zenodo.18940081</a></div>
       </div>
@@ -919,9 +919,9 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
             <div class="card">
               <div class="sb-lbl" style="margin-bottom:12px">What The Three Regimes Mean <button class="mhelp" onclick="showHelp('regimes')">?</button></div>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-                <div style="padding:14px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.18);border-radius:9px"><div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px">&#10003; Regulated</div><div style="font-size:12px;color:var(--dim);line-height:1.65">The framework's "Regulated" classification: financial dynamics show damping behavior &#8212; the variance EWS metric does not show amplification across the rolling window. This is the framework's stable baseline classification.</div></div>
-                <div style="padding:14px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:9px"><div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px">&#9888; Transitioning</div><div style="font-size:12px;color:var(--dim);line-height:1.65">The framework's "Transitioning" classification: damping behavior is reduced but the variance EWS metric does not yet show sustained amplification. Subsequent 2&#8211;4 quarters of data are typically used to characterize whether the trajectory moves toward stable or stress ranges.</div></div>
-                <div style="padding:14px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.18);border-radius:9px"><div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">&#10007; Bifurcating</div><div style="font-size:12px;color:var(--dim);line-height:1.65">The framework's "Bifurcating" classification: variance EWS shows amplification rather than damping in the rolling window. In the framework's calibration set, similar patterns appeared in cases including Enron, WorldCom, and Sears 1&#8211;5 quarters before classical accounting metrics moved into stress ranges. The framework does not predict outcomes for any specific company.</div></div>
+                <div style="padding:14px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.18);border-radius:9px"><div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px">&#10003; Stable</div><div style="font-size:12px;color:var(--dim);line-height:1.65">The framework's "Stable" classification: rolling-window variance is in the baseline calibration range (variance &le; 0.10). The variance EWS metric does not show amplification across the rolling window. This is the framework's baseline calibration band for non-distressed historical cases.</div></div>
+                <div style="padding:14px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:9px"><div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px">&#9888; Elevated / Rising</div><div style="font-size:12px;color:var(--dim);line-height:1.65">The framework's "Elevated" classification: rolling-window variance is between 0.10 and 0.25. Variance is above the stable baseline but does not yet sit in the distressed band. Subsequent 2&#8211;4 quarters of data are typically used to characterize whether the trajectory moves toward stable or distressed ranges.</div></div>
+                <div style="padding:14px;background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.18);border-radius:9px"><div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">&#10007; Distressed</div><div style="font-size:12px;color:var(--dim);line-height:1.65">The framework's "Distressed" classification: rolling-window variance exceeds 0.25. In the calibration set of 45 historical cases, similar signatures appeared in cases of both pre-collapse stress (Lehman, AIG, SVB) and rapid positive scaling (NVIDIA, early Tesla) 1&#8211;5 quarters before classical accounting metrics caught up. The framework does not predict outcomes for any specific company.</div></div>
               </div>
             </div>
           </div>
@@ -980,13 +980,13 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <!-- ISC ANALYSIS -->
           <div id="t-isc" class="tab-content hidden">
             <div class="card-hi">
-              <div class="sb-lbl" style="margin-bottom:8px">ISC Coupling &#8212; Full Analysis <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
+              <div class="sb-lbl" style="margin-bottom:8px">Variance EWS &#8212; Full Analysis <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
               <div id="iscDetail"></div>
             </div>
             <div id="iscDrivers"></div>
             <div class="card">
-              <div class="sb-lbl" style="margin-bottom:10px">ISC by Financial Series</div>
-              <div style="font-size:12px;color:var(--dim);margin-bottom:12px">ISC coupling is computed independently on each financial time series. The primary C value uses Revenue; others provide corroborating signals.</div>
+              <div class="sb-lbl" style="margin-bottom:10px">Per-Series Trajectory</div>
+              <div style="font-size:12px;color:var(--dim);margin-bottom:12px">The variance EWS is computed from price-return dynamics. Per-series fundamental trajectory below shows how each financial line item is trending across the analyzed quarters &#8212; rising, flat, or falling.</div>
               <div id="bySeries"></div>
             </div>
             <div class="card">
@@ -1321,19 +1321,19 @@ var HELP = {
     <p style="color:var(--dim);font-size:12px">Not financial advice. Structural susceptibility signal only.</p>`
   },
   'coupling': {
-    title: '&#55357;&#56522; What is ISC Coupling (C)?',
-    body: `<p style="margin-bottom:12px">The coupling score C is the single number that summarizes a company's structural health. It ranges from &#8722;1 to +1.</p>
-    <div style="margin-bottom:12px;padding:12px;background:rgba(16,185,129,.06);border-radius:8px;border:1px solid rgba(16,185,129,.18)"><strong style="color:var(--green)">C &lt; &#8722;0.10 (Regulated)</strong><br><span style="font-size:13px;color:var(--dim)">Variance and autocorrelation move opposite directions &#8212; volatility spikes get damped out. The company self-corrects.</span></div>
-    <div style="margin-bottom:12px;padding:12px;background:rgba(245,158,11,.06);border-radius:8px;border:1px solid rgba(245,158,11,.18)"><strong style="color:var(--amber)">&#8722;0.10 to 0.30 (Transitioning)</strong><br><span style="font-size:13px;color:var(--dim)">The self-correcting mechanism is weakening. Watch over the next 2&#8211;4 quarters.</span></div>
-    <div style="margin-bottom:12px;padding:12px;background:rgba(239,68,68,.06);border-radius:8px;border:1px solid rgba(239,68,68,.18)"><strong style="color:var(--red)">C &gt; 0.30 (Bifurcating)</strong><br><span style="font-size:13px;color:var(--dim)">Variance and persistence rise together &#8212; problems amplify rather than correct. This is the pre-collapse pattern.</span></div>
-    <p style="font-size:12px;color:var(--dim)">Formula: Variance EWS = mean of 90-day rolling variance of log returns over a 252-day window, annualized. AUC = 0.86-0.96 on validation set of 45 collapse + 200 stable windows (Malone 2026, Zenodo 18940081). on 45 historical failure cases.</p>`
+    title: '&#55357;&#56522; What is the Variance EWS metric?',
+    body: `<p style="margin-bottom:12px">The Variance Early-Warning Signal (Variance EWS) is the framework's primary structural indicator. It is the mean of a rolling 90-day variance of log returns, computed over a 252-day window and annualized. The metric ranges from approximately 0 (very stable) to 0.7+ (highly distressed).</p>
+    <div style="margin-bottom:12px;padding:12px;background:rgba(16,185,129,.06);border-radius:8px;border:1px solid rgba(16,185,129,.18)"><strong style="color:var(--green)">Variance &le; 0.10 (Stable)</strong><br><span style="font-size:13px;color:var(--dim)">Rolling-window variance is in the framework's baseline calibration range for non-distressed historical cases. The variance EWS metric does not show amplification.</span></div>
+    <div style="margin-bottom:12px;padding:12px;background:rgba(245,158,11,.06);border-radius:8px;border:1px solid rgba(245,158,11,.18)"><strong style="color:var(--amber)">0.10 to 0.25 (Elevated)</strong><br><span style="font-size:13px;color:var(--dim)">Variance is above the stable baseline but does not yet sit in the distressed band. Watch over the next 2&#8211;4 quarters &#8212; the trajectory typically resolves toward stable or distressed.</span></div>
+    <div style="margin-bottom:12px;padding:12px;background:rgba(239,68,68,.06);border-radius:8px;border:1px solid rgba(239,68,68,.18)"><strong style="color:var(--red)">Variance &gt; 0.25 (Distressed)</strong><br><span style="font-size:13px;color:var(--dim)">Rolling-window variance exceeds 0.25. In the framework's calibration set, similar signatures appeared in cases of both pre-collapse stress and rapid positive scaling. The framework does not predict outcomes for any specific company.</span></div>
+    <p style="font-size:12px;color:var(--dim)">AUC = 0.86&#8211;0.96 on a validation set of 45 collapse + 200 stable windows (Malone 2026, Zenodo 18940081).</p>`
   },
   'regimes': {
     title: '&#55357;&#56998; The Three ISC Regimes',
-    body: `<p style="margin-bottom:16px">ISC classifies every company into one of three structural regimes based on the coupling score C.</p>
-    <div style="margin-bottom:12px"><strong style="color:var(--green)">&#10003; Regulated</strong> &#8212; C &lt; &#8722;0.10<br><span style="font-size:13px;color:var(--dim)">Think of a healthy immune system. When the body gets sick, it fights back and returns to normal. A regulated company does the same &#8212; when costs spike or revenue dips, the organization adapts and recovers. No structural red flags.</span></div>
-    <div style="margin-bottom:12px"><strong style="color:var(--amber)">&#9888; Transitioning</strong> &#8212; &#8722;0.10 to 0.30<br><span style="font-size:13px;color:var(--dim)">The immune system is getting tired. The company still recovers from shocks but less efficiently. ISC detected this in Ford (2008) and Netflix (2011) before their turbulent periods. Worth monitoring &#8212; deterioration often continues over 2&#8211;4 quarters.</span></div>
-    <div><strong style="color:var(--red)">&#10007; Bifurcating</strong> &#8212; C &gt; 0.30<br><span style="font-size:13px;color:var(--dim)">Like a car that wobbles worse after every bump. Problems feed each other rather than being absorbed. Every stress event makes the next one harder to handle. This is the pattern ISC detected before Enron, WorldCom, and Sears &#8212; typically 1&#8211;5 quarters before traditional metrics caught up.</span></div>`
+    body: `<p style="margin-bottom:16px">ISC classifies every company into one of three structural regimes based on the rolling-window variance EWS.</p>
+    <div style="margin-bottom:12px"><strong style="color:var(--green)">&#10003; Stable</strong> &#8212; Variance &le; 0.10<br><span style="font-size:13px;color:var(--dim)">Rolling-window variance sits in the framework's baseline calibration range for non-distressed historical cases. When costs spike or revenue dips, the firm's equity dynamics absorb the shock without amplifying it. No active early-warning signal.</span></div>
+    <div style="margin-bottom:12px"><strong style="color:var(--amber)">&#9888; Elevated / Rising</strong> &#8212; 0.10 to 0.25<br><span style="font-size:13px;color:var(--dim)">Variance is above the stable baseline but not yet in the distressed band. The framework detected this signature in Ford (2008) and Netflix (2011) before their turbulent periods. Worth monitoring &#8212; the trajectory typically resolves toward stable or distressed over the next 2&#8211;4 quarters.</span></div>
+    <div><strong style="color:var(--red)">&#10007; Distressed</strong> &#8212; Variance &gt; 0.25<br><span style="font-size:13px;color:var(--dim)">Rolling-window variance exceeds the framework's distressed threshold. In the calibration set of 45 historical cases, similar signatures appeared 1&#8211;5 quarters before classical accounting metrics caught up &#8212; in cases of both pre-collapse stress (Lehman, Enron, WorldCom, Sears) and rapid positive scaling (NVIDIA, early Tesla). The framework does not predict outcomes for any specific company.</span></div>`
   },
   'cascade': {
     title: '&#55356;&#57303;&#65039; The 7-Layer Financial Cascade',
