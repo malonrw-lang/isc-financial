@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -247,6 +248,87 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 .trial-days{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--amber)}
 /* Legal page overlay - lets legal pages render even when nested inside pg-home */
 .legal-page-overlay { position:fixed !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important; z-index:100 !important; overflow-y:auto !important; background:var(--bg) !important; padding-top:60px !important; }
+
+/* Batch 7h.16: Mobile responsive pass.
+   Stacks sidebar above main content on narrow screens, drops multi-column
+   grids to single column, makes the tab bar scroll smoothly with momentum,
+   and reduces padding so the analyzer is usable on a phone. This is a
+   quick-win pass; a polished mobile-first redesign would do more. */
+@media (max-width: 768px) {
+  /* Stack analyzer layout vertically. Sidebar becomes a top section, main
+     content flows below. Both scroll within a single page scroll context
+     instead of fighting two independent scroll areas. */
+  .az-wrap{
+    display:block;
+    height:auto;
+    min-height:calc(100vh - 56px);
+    overflow:visible;
+  }
+  .sidebar{
+    border-right:none;
+    border-bottom:1px solid var(--bdr);
+    max-height:none;
+    padding:14px 12px;
+  }
+  .main-area{
+    overflow:visible;
+  }
+
+  /* Drop multi-column grids to single column on phone */
+  .verdict-grid{grid-template-columns:1fr !important}
+  .pricing-grid{grid-template-columns:1fr !important}
+
+  /* Scroll behavior on tab bar — already overflow-x:auto, add momentum
+     and ensure tabs don't get cramped */
+  .tab-bar{
+    -webkit-overflow-scrolling:touch;
+    padding:0 12px;
+  }
+  .tab-bar button{
+    flex-shrink:0;
+    padding:10px 14px;
+    font-size:13px;
+  }
+
+  /* Reduce nav and section padding so content fits real phone widths */
+  .nav{padding:0 14px;height:54px}
+  .section{padding:24px 14px !important}
+  .hero{padding:48px 16px !important}
+  .hero-h1{font-size:32px !important;line-height:1.1 !important}
+  .hero-sub{font-size:14px !important}
+  .footer{padding:24px 16px !important}
+
+  /* Hero buttons stack instead of squashing */
+  .hero-btns{flex-direction:column;align-items:stretch}
+  .hero-btns button{width:100%}
+
+  /* Section headers a touch smaller */
+  .section-h2{font-size:24px !important;line-height:1.2 !important}
+
+  /* Reduce in-card padding */
+  .card{padding:14px !important}
+  .card-sm{padding:12px !important}
+
+  /* Hide the BETA toast notification on mobile — it covers content */
+  #betaToast{display:none !important}
+
+  /* Verdict block on mobile */
+  .verdict-block{padding:14px !important}
+  .verdict-title{font-size:18px !important}
+}
+
+@media (max-width: 480px) {
+  /* Even tighter on small phones */
+  .nav{padding:0 10px}
+  .nav-logo{gap:8px}
+  .nav-actions{gap:6px}
+  .section{padding:20px 12px !important}
+  .hero-h1{font-size:26px !important}
+  .card{padding:12px !important}
+
+  /* Single-column for legal page lists, etc */
+  .table-wrap{font-size:12px}
+}
 </style>
 </head>
 <body>
@@ -471,7 +553,11 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
   </div>
 
   <!-- ASSET CLASSES -->
-  <div class="asset-bar">
+  <!-- Batch 7h.16: Asset bar hidden until additional asset classes ship.
+       The "coming soon" pills with broken emoji rendering created the
+       impression of a half-finished product. Will be replaced with a
+       proper roadmap link when there's a real next module to announce. -->
+  <div class="asset-bar" style="display:none">
     <span style="font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em">Asset Classes:</span>
     <span class="a-pill active">&#55357;&#56520; Stocks</span>
     <span class="a-pill soon">&#55357;&#56497; Currencies <span style="font-size:9px">coming soon</span></span>
@@ -3021,35 +3107,40 @@ function renderTabCommentaries(d){
     var rev=gv(IS,'revenue'); var gm=gv(IS,'gross_margin'); var om=gv(IS,'operating_margin'); var nm=gv(IS,'net_margin'); var rg=gv(IS,'revenue_growth'); var oi=gv(IS,'operating_income'); var ni=gv(IS,'net_income'); var ic=gv(TM,'interest_coverage');
     if(rev==null && oi==null){icEl.style.display='none';}
     else{
-      var icHtml='';
+      var icHtml=''; var icBullets=0;
       if(hg){
         icHtml+=header(String.fromCharCode(9650)+' Hyper-Growth Phase Transition','var(--purple)');
-        icHtml+=bullet('Revenue of '+fmt(rev)+' growing '+pctF(rg)+' YoY is in the territory where regime change is the rule, not the exception '+EMDASH+' the math itself flips.');
-        if(gm!=null && gm>50)icHtml+=bullet('Gross margin of '+gm.toFixed(1)+'% is the moat. Watch this number, not revenue. If it holds as scale increases, the bifurcation resolves positively.');
-        if(om!=null)icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% means the business is already profitable at scale. The phase transition is operational, not financial.');
+        icHtml+=bullet('Revenue of '+fmt(rev)+' growing '+pctF(rg)+' YoY is in the territory where regime change is the rule, not the exception '+EMDASH+' the math itself flips.');icBullets++;
+        if(gm!=null && gm>50){icHtml+=bullet('Gross margin of '+gm.toFixed(1)+'% is the moat. Watch this number, not revenue. If it holds as scale increases, the bifurcation resolves positively.');icBullets++;}
+        if(om!=null){icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% means the business is already profitable at scale. The phase transition is operational, not financial.');icBullets++;}
       }else if(((typeof r==='string'?r:'').includes('bifurcating')||(typeof r==='string'?r:'').includes('distressed'))){
         icHtml+=header(String.fromCharCode(9888)+' Structural Stress in the Income Statement','var(--red)');
         if(rg!=null && rg>20 && oi!=null && oi<0){
-          icHtml+=bullet('Revenue grew '+pctF(rg)+' YoY but operating income is '+fmt(oi)+' '+EMDASH+' the Spirit Airlines fingerprint. The company is buying revenue at a loss. Each new dollar of sales costs more to produce than it brings in.');
+          icHtml+=bullet('Revenue grew '+pctF(rg)+' YoY but operating income is '+fmt(oi)+' '+EMDASH+' the Spirit Airlines fingerprint. The company is buying revenue at a loss. Each new dollar of sales costs more to produce than it brings in.');icBullets++;
         }else if(om!=null && om<0){
-          icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% means the core business cannot cover its own costs '+EMDASH+' before considering interest, taxes, or one-time items.');
+          icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% means the core business cannot cover its own costs '+EMDASH+' before considering interest, taxes, or one-time items.');icBullets++;
         }
-        if(ic!=null && ic<2){icHtml+=bullet('Interest coverage of '+ic.toFixed(2)+'x is in the danger zone. Below 1.5x means earnings cannot reliably cover the interest bill '+EMDASH+' a structural debt-service problem.');}
-        if(gm!=null && om!=null && (gm-om)>40)icHtml+=bullet('Gross margin '+gm.toFixed(1)+'% vs operating margin '+om.toFixed(1)+'% '+EMDASH+' the '+(gm-om).toFixed(1)+'-point gap means SG&A and R&amp;D are eating the company alive.');
+        if(ic!=null && ic<2){icHtml+=bullet('Interest coverage of '+ic.toFixed(2)+'x is in the danger zone. Below 1.5x means earnings cannot reliably cover the interest bill '+EMDASH+' a structural debt-service problem.');icBullets++;}
+        if(gm!=null && om!=null && (gm-om)>40){icHtml+=bullet('Gross margin '+gm.toFixed(1)+'% vs operating margin '+om.toFixed(1)+'% '+EMDASH+' the '+(gm-om).toFixed(1)+'-point gap means SG&A and R&amp;D are eating the company alive.');icBullets++;}
       }else if(((typeof r==='string'?r:'').includes('trans')||(typeof r==='string'?r:'').includes('rising')||(typeof r==='string'?r:'').includes('elevated'))){
         icHtml+=header(String.fromCharCode(9678)+' Margin Pressure Building','var(--amber)');
-        if(om!=null)icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% is below historical. Watch the next 2'+ENDASH+'3 quarters '+EMDASH+' if margins keep slipping while revenue holds, ISC will likely cross into bifurcating territory.');
-        if(rg!=null && rg<5)icHtml+=bullet('Revenue growth of '+pctF(rg)+' is decelerating. The transitioning regime often precedes either a margin reset or a structural break.');
+        if(om!=null){icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% is below historical. Watch the next 2'+ENDASH+'3 quarters '+EMDASH+' if margins keep slipping while revenue holds, ISC will likely cross into bifurcating territory.');icBullets++;}
+        if(rg!=null && rg<5){icHtml+=bullet('Revenue growth of '+pctF(rg)+' is decelerating. The transitioning regime often precedes either a margin reset or a structural break.');icBullets++;}
       }else if(((typeof r==='string'?r:'').includes('regulated')||(typeof r==='string'?r:'').includes('stable'))){
         icHtml+=header(String.fromCharCode(10003)+' Healthy Income Statement Profile','var(--green)');
-        if(om!=null && om>15)icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% reflects pricing power and operational efficiency. The hallmark of a high-quality business.');
-        if(rg!=null && rg>=5 && rg<30)icHtml+=bullet('Revenue growing '+pctF(rg)+' is sustainable territory '+EMDASH+' fast enough to compound, slow enough that the structure does not break.');
-        if(gm!=null && om!=null && (gm-om)<25)icHtml+=bullet('Gross margin '+gm.toFixed(1)+'% to operating margin '+om.toFixed(1)+'% is a tight gap '+EMDASH+' suggests disciplined SG&amp;A spending.');
+        if(om!=null && om>15){icHtml+=bullet('Operating margin of '+om.toFixed(1)+'% reflects pricing power and operational efficiency. The hallmark of a high-quality business.');icBullets++;}
+        if(rg!=null && rg>=5 && rg<30){icHtml+=bullet('Revenue growing '+pctF(rg)+' is sustainable territory '+EMDASH+' fast enough to compound, slow enough that the structure does not break.');icBullets++;}
+        if(gm!=null && om!=null && (gm-om)<25){icHtml+=bullet('Gross margin '+gm.toFixed(1)+'% to operating margin '+om.toFixed(1)+'% is a tight gap '+EMDASH+' suggests disciplined SG&amp;A spending.');icBullets++;}
       }else{
         icHtml+=header(String.fromCharCode(9678)+' Insufficient Data','var(--dim)');
-        icHtml+=bullet('Cannot compute regime-aware income statement commentary without sufficient quarterly data. Try a longer ticker history or load a historical demo.');
+        icHtml+=bullet('Cannot compute regime-aware income statement commentary without sufficient quarterly data. Try a longer ticker history or load a historical demo.');icBullets++;
       }
-      if(icHtml.length>200){icEl.innerHTML=icHtml;icEl.style.display='block';}else{icEl.style.display='none';}
+      /* Batch 7h.16: if header rendered but no metric-specific bullets fired, append a
+         data-availability fallback so the section is informative rather than silently hidden. */
+      if(icBullets===0){
+        icHtml+=bullet('Available income statement metrics for this filing are insufficient to generate sector-specific commentary. The data panel above shows the underlying values; the absence of additional commentary is a data-availability gap, not a structural signal.');
+      }
+      icEl.innerHTML=icHtml;icEl.style.display='block';
     }
   }
   // -------------------- BALANCE SHEET --------------------
@@ -3058,32 +3149,38 @@ function renderTabCommentaries(d){
     var ta=gv(BS,'total_assets'); var gw=gv(BS,'goodwill'); var ltd=gv(BS,'long_term_debt'); var eq=gv(BS,'total_equity'); var wc=gv(BS,'working_capital'); var cash=gv(BS,'cash'); var de=gv(TM,'debt_to_equity'); var altz=gv(TM,'altman_z'); var re=gv(BS,'retained_earnings');
     /* Batch 7h.4 applied — normalize new regime names to legacy synonyms for branch matching */ var rNorm=(typeof r==='string'?r:'');if(rNorm.includes('distressed'))rNorm+=' bifurcating';if(rNorm.includes('rising')||rNorm.includes('elevated'))rNorm+=' transitioning';if(rNorm.includes('stable'))rNorm+=' regulated';if(ta==null && eq==null){bcEl.style.display='none';}
     else{
-      var bcHtml='';
+      var bcHtml=''; var bcBullets=0;
       if(hg){
         bcHtml+=header(String.fromCharCode(9650)+' Balance Sheet During Phase Transition','var(--purple)');
-        if(cash!=null && cash>10000)bcHtml+=bullet('Cash position of '+fmt(cash)+' is the resilience buffer. Phase transitions are turbulent '+EMDASH+' a strong cash position lets the business absorb the volatility.');
-        if(de!=null && de<1)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' means the balance sheet has room to lever up if needed. The phase transition is being financed organically, not by debt.');
+        if(cash!=null && cash>10000){bcHtml+=bullet('Cash position of '+fmt(cash)+' is the resilience buffer. Phase transitions are turbulent '+EMDASH+' a strong cash position lets the business absorb the volatility.');bcBullets++;}
+        if(de!=null && de<1){bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' means the balance sheet has room to lever up if needed. The phase transition is being financed organically, not by debt.');bcBullets++;}
       }else if(rNorm.includes('bifurcating')){
         bcHtml+=header(String.fromCharCode(9888)+' Balance Sheet Stress Markers','var(--red)');
-        if(wc!=null && wc<0)bcHtml+=bullet('Working capital of '+fmt(wc)+' is NEGATIVE '+EMDASH+' current liabilities exceed current assets. A short-term liquidity squeeze is the L1 cascade signal.');
-        if(gw!=null && ta!=null && (gw/ta)>0.30)bcHtml+=bullet('Goodwill of '+fmt(gw)+' is '+((gw/ta)*100).toFixed(0)+'% of total assets '+EMDASH+' acquired growth. If those acquisitions impair, equity collapses overnight (the WorldCom pattern).');
-        if(re!=null && re<0)bcHtml+=bullet('Retained earnings of '+fmt(re)+' is NEGATIVE '+EMDASH+' cumulative losses have wiped out years of prior earnings. Equity is being eaten from within.');
-        if(de!=null && de>2)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' is severely elevated. With operating stress visible elsewhere, debt service capacity is the next thing to fail.');
-        if(altz!=null && altz<1.81)bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is in the distress zone. Historically associated with bankruptcy within 2 years.');
+        if(wc!=null && wc<0){bcHtml+=bullet('Working capital of '+fmt(wc)+' is NEGATIVE '+EMDASH+' current liabilities exceed current assets. A short-term liquidity squeeze is the L1 cascade signal.');bcBullets++;}
+        if(gw!=null && ta!=null && (gw/ta)>0.30){bcHtml+=bullet('Goodwill of '+fmt(gw)+' is '+((gw/ta)*100).toFixed(0)+'% of total assets '+EMDASH+' acquired growth. If those acquisitions impair, equity collapses overnight (the WorldCom pattern).');bcBullets++;}
+        if(re!=null && re<0){bcHtml+=bullet('Retained earnings of '+fmt(re)+' is NEGATIVE '+EMDASH+' cumulative losses have wiped out years of prior earnings. Equity is being eaten from within.');bcBullets++;}
+        if(de!=null && de>2){bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' is severely elevated. With operating stress visible elsewhere, debt service capacity is the next thing to fail.');bcBullets++;}
+        if(altz!=null && altz<1.81){bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is in the distress zone. Historically associated with bankruptcy within 2 years.');bcBullets++;}
       }else if(rNorm.includes('trans')){
         bcHtml+=header(String.fromCharCode(9678)+' Balance Sheet Drift Points','var(--amber)');
-        if(de!=null && de>1)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' is rising into territory that limits flexibility. Subsequent increases would corroborate the structural read.');
-        if(altz!=null && altz>=1.81 && altz<3)bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is in the grey zone '+EMDASH+' between distress and safe. Mixed signals.');
+        if(de!=null && de>1){bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' is rising into territory that limits flexibility. Subsequent increases would corroborate the structural read.');bcBullets++;}
+        if(altz!=null && altz>=1.81 && altz<3){bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is in the grey zone '+EMDASH+' between distress and safe. Mixed signals.');bcBullets++;}
       }else if(rNorm.includes('regulated')){
         bcHtml+=header(String.fromCharCode(10003)+' Strong Balance Sheet Profile','var(--green)');
-        if(altz!=null && altz>=3)bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is comfortably in the safe zone. Multi-factor financial health composite confirms structural soundness.');
-        if(de!=null && de<0.5)bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' means the balance sheet is conservatively financed. Crisis resilience is built in.');
-        if(cash!=null && ltd!=null && cash>ltd)bcHtml+=bullet('Cash of '+fmt(cash)+' exceeds long-term debt of '+fmt(ltd)+' '+EMDASH+' the company could pay off all long-term debt today and still have cash on hand.');
+        if(altz!=null && altz>=3){bcHtml+=bullet('Altman Z of '+altz.toFixed(2)+' is comfortably in the safe zone. Multi-factor financial health composite confirms structural soundness.');bcBullets++;}
+        if(de!=null && de<0.5){bcHtml+=bullet('Debt/equity of '+de.toFixed(2)+' means the balance sheet is conservatively financed. Crisis resilience is built in.');bcBullets++;}
+        if(cash!=null && ltd!=null && cash>ltd){bcHtml+=bullet('Cash of '+fmt(cash)+' exceeds long-term debt of '+fmt(ltd)+' '+EMDASH+' the company could pay off all long-term debt today and still have cash on hand.');bcBullets++;}
       }else{
         bcHtml+=header(String.fromCharCode(9678)+' Insufficient Data','var(--dim)');
-        bcHtml+=bullet('Cannot compute balance sheet commentary without sufficient data.');
+        bcHtml+=bullet('Cannot compute balance sheet commentary without sufficient data.');bcBullets++;
       }
-      if(bcHtml.length>200){bcEl.innerHTML=bcHtml;bcEl.style.display='block';}else{bcEl.style.display='none';}
+      /* Batch 7h.16: if header rendered but no metric-specific bullets fired (e.g. a services
+         company where most balance-sheet metrics are N/A), append a one-line fallback so the
+         section is informative rather than silently hidden. */
+      if(bcBullets===0){
+        bcHtml+=bullet('Available balance sheet metrics for this filing are insufficient to generate sector-specific commentary. The data panel above shows the underlying values; the absence of additional commentary is a data-availability gap, not a structural signal.');
+      }
+      bcEl.innerHTML=bcHtml;bcEl.style.display='block';
     }
   }
   // -------------------- CASH FLOW --------------------
@@ -3093,29 +3190,34 @@ function renderTabCommentaries(d){
     /* Batch 7h.5 — same rNorm pattern as balance sheet, fixes Insufficient Data bug */ var rNorm=(typeof r==='string'?r:'');if(rNorm.includes('distressed'))rNorm+=' bifurcating';if(rNorm.includes('rising')||rNorm.includes('elevated'))rNorm+=' transitioning';if(rNorm.includes('stable'))rNorm+=' regulated';
     if(cfo==null && fcf==null){ccEl.style.display='none';}
     else{
-      var ccHtml='';
+      var ccHtml=''; var ccBullets=0;
       if(hg){
         ccHtml+=header(String.fromCharCode(9650)+' Cash Flow Profile of a Hyper-Growth Phase','var(--purple)');
-        if(fcf!=null && fcf>10000)ccHtml+=bullet('Free cash flow of '+fmt(fcf)+' is the unmistakable signal that the phase transition is real. Loss-making hyper-growth is one thing; profitable hyper-growth is another category entirely.');
-        if(fcfM!=null && fcfM>20)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% is in the very top decile of public companies. Each dollar of revenue is producing real cash.');
+        if(fcf!=null && fcf>10000){ccHtml+=bullet('Free cash flow of '+fmt(fcf)+' is the unmistakable signal that the phase transition is real. Loss-making hyper-growth is one thing; profitable hyper-growth is another category entirely.');ccBullets++;}
+        if(fcfM!=null && fcfM>20){ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% is in the very top decile of public companies. Each dollar of revenue is producing real cash.');ccBullets++;}
       }else if(rNorm.includes('bifurcating')){
         ccHtml+=header(String.fromCharCode(9888)+' Cash Flow Stress Indicators','var(--red)');
-        if(cfo!=null && cfo<0)ccHtml+=bullet('Operating cash flow of '+fmt(cfo)+' is NEGATIVE '+EMDASH+' the core business is consuming cash, not generating it. Without external funding, this trajectory ends in bankruptcy.');
-        if(fcf!=null && fcf<0)ccHtml+=bullet('Free cash flow of '+fmt(fcf)+' confirms the L1 stress. Even if accounting earnings look acceptable, the cash story is unambiguous.');
-        if(cfo!=null && fcf!=null && ni2!=null && ni2>0 && cfo>0 && fcf<(cfo*0.2)){ccHtml+=bullet('CFO of '+fmt(cfo)+' but FCF of only '+fmt(fcf)+' '+EMDASH+' the gap is going into capital expenditure that may include misclassified operating expenses (the WorldCom $3.8B capitalization fingerprint).');}
-        if(fcf!=null && ni2!=null && ni2>0 && (fcf/ni2)<0.3)ccHtml+=bullet('FCF/Net Income ratio of '+(fcf/ni2).toFixed(2)+' '+EMDASH+' reported earnings are not converting to cash. Healthy companies typically run 0.7'+ENDASH+'1.2x.');
+        if(cfo!=null && cfo<0){ccHtml+=bullet('Operating cash flow of '+fmt(cfo)+' is NEGATIVE '+EMDASH+' the core business is consuming cash, not generating it. Without external funding, this trajectory ends in bankruptcy.');ccBullets++;}
+        if(fcf!=null && fcf<0){ccHtml+=bullet('Free cash flow of '+fmt(fcf)+' confirms the L1 stress. Even if accounting earnings look acceptable, the cash story is unambiguous.');ccBullets++;}
+        if(cfo!=null && fcf!=null && ni2!=null && ni2>0 && cfo>0 && fcf<(cfo*0.2)){ccHtml+=bullet('CFO of '+fmt(cfo)+' but FCF of only '+fmt(fcf)+' '+EMDASH+' the gap is going into capital expenditure that may include misclassified operating expenses (the WorldCom $3.8B capitalization fingerprint).');ccBullets++;}
+        if(fcf!=null && ni2!=null && ni2>0 && (fcf/ni2)<0.3){ccHtml+=bullet('FCF/Net Income ratio of '+(fcf/ni2).toFixed(2)+' '+EMDASH+' reported earnings are not converting to cash. Healthy companies typically run 0.7'+ENDASH+'1.2x.');ccBullets++;}
       }else if(rNorm.includes('trans')){
         ccHtml+=header(String.fromCharCode(9678)+' Cash Flow Trends Worth Watching','var(--amber)');
-        if(fcfM!=null && fcfM<10 && fcfM>0)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% is positive but thin. Below the 15% quality threshold. Compression here often precedes a regime break.');
+        if(fcfM!=null && fcfM<10 && fcfM>0){ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% is positive but thin. Below the 15% quality threshold. Compression here often precedes a regime break.');ccBullets++;}
       }else if(rNorm.includes('regulated')){
         ccHtml+=header(String.fromCharCode(10003)+' High-Quality Cash Generation','var(--green)');
-        if(fcfM!=null && fcfM>15)ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% places this firmly in the high-quality business category. Compounding free cash flow is the closest thing to a financial superpower.');
-        if(fcf!=null && ni2!=null && ni2>0 && (fcf/ni2)>=0.7)ccHtml+=bullet('FCF/Net Income of '+(fcf/ni2).toFixed(2)+' confirms reported earnings are real economic earnings '+EMDASH+' clean accounting, no manipulation.');
+        if(fcfM!=null && fcfM>15){ccHtml+=bullet('FCF margin of '+fcfM.toFixed(1)+'% places this firmly in the high-quality business category. Compounding free cash flow is the closest thing to a financial superpower.');ccBullets++;}
+        if(fcf!=null && ni2!=null && ni2>0 && (fcf/ni2)>=0.7){ccHtml+=bullet('FCF/Net Income of '+(fcf/ni2).toFixed(2)+' confirms reported earnings are real economic earnings '+EMDASH+' clean accounting, no manipulation.');ccBullets++;}
       }else{
         ccHtml+=header(String.fromCharCode(9678)+' Insufficient Data','var(--dim)');
-        ccHtml+=bullet('Cannot compute cash flow commentary without sufficient data.');
+        ccHtml+=bullet('Cannot compute cash flow commentary without sufficient data.');ccBullets++;
       }
-      if(ccHtml.length>200){ccEl.innerHTML=ccHtml;ccEl.style.display='block';}else{ccEl.style.display='none';}
+      /* Batch 7h.16: same fallback as balance sheet — show a one-line explanation rather
+         than hiding the whole section when no metric-specific bullets fired. */
+      if(ccBullets===0){
+        ccHtml+=bullet('Available cash flow metrics for this filing are insufficient to generate sector-specific commentary. The data panel above shows the underlying values; the absence of additional commentary is a data-availability gap, not a structural signal.');
+      }
+      ccEl.innerHTML=ccHtml;ccEl.style.display='block';
     }
   }
 }
@@ -3760,11 +3862,11 @@ function genPDF(){
         // Para 3: Cash position
         if(fcfMS!=null && opMar!=null){
           if(fcfMS>10 && opMar>10){
-            sumParts.push('Operating margin '+opMar.toFixed(1)+'% and FCF margin '+fcfMS.toFixed(1)+'% indicate the business converts revenue to cash without external financing pressure.');
+            sumParts.push('Operating margin '+opMar.toFixed(1)+'% and FCF margin '+fcfMS.toFixed(1)+'% place this filing in the framework\'s upper-band reference range for cash conversion in the calibration set.');
           } else if(fcfMS<0){
-            sumParts.push('Negative free cash flow margin ('+fcfMS.toFixed(1)+'%) indicates operations are not currently self-funding; sustained burn requires monitoring against available liquidity.');
+            sumParts.push('Negative free cash flow margin ('+fcfMS.toFixed(1)+'%) for this reporting window means operating cash flow did not cover capital expenditures. Continuation in subsequent quarters would warrant monitoring against available liquidity; one quarter of negative FCF is not predictive on its own.');
           } else {
-            sumParts.push('Operating margin '+opMar.toFixed(1)+'% with FCF margin '+fcfMS.toFixed(1)+'% reflects modest cash conversion capacity.');
+            sumParts.push('Operating margin '+opMar.toFixed(1)+'% with FCF margin '+fcfMS.toFixed(1)+'% places this filing in the framework\'s mid-band reference range for cash conversion.');
           }
         }
         // Para 4: Pattern observation (Pro500 gets a closing observation)
@@ -4282,9 +4384,9 @@ function genPDF(){
         var pBS_TD=gv(BS,'total_debt'), pBS_TE=gv(BS,'total_equity'), pBS_WC=gv(BS,'working_capital');
         var pCF_FCF=gv(CF,'fcf'), pCF_FCFM=gv(CF,'fcf_margin');
         var commentaries=[
-          ['Income Statement', (pIS_RG!=null?'Revenue growth '+pIS_RG.toFixed(1)+'%. ':'')+(pIS_OM!=null?'Operating margin '+pIS_OM.toFixed(1)+'%, ':'')+(pIS_OM!=null?(pIS_OM>15?'strong - significant cushion against cost shocks.':pIS_OM>5?'adequate.':'thin - any cost increase directly threatens profitability.'):'')+(pIS_NM!=null?' Net margin '+pIS_NM.toFixed(1)+'%.':'')],
-          ['Balance Sheet', (pBS_TD!=null&&pBS_TE!=null)?'Total debt $'+Number(pBS_TD).toLocaleString()+'M against equity of $'+Number(pBS_TE).toLocaleString()+'M (D/E '+(pBS_TD/pBS_TE).toFixed(2)+'x). '+(pBS_WC!=null&&pBS_WC<0?'Working capital is NEGATIVE - operating liabilities exceed operating assets. L1 stress signal.':pBS_WC!=null?'Working capital position $'+Number(pBS_WC).toLocaleString()+'M.':''):'Balance sheet data partially unavailable.'],
-          ['Cash Flow', (pCF_FCF!=null)?'Free cash flow $'+Number(pCF_FCF).toLocaleString()+'M. '+(pCF_FCF>0?'Positive - the business generates cash beyond reinvestment needs.':'NEGATIVE - operations are not self-funding. Watch for sustained burn rate vs available liquidity.')+(pCF_FCFM!=null?' FCF margin '+pCF_FCFM.toFixed(1)+'%.':''):'Cash flow data not available.']
+          ['Income Statement', (pIS_RG!=null?'Revenue growth '+pIS_RG.toFixed(1)+'%. ':'')+(pIS_OM!=null?'Operating margin '+pIS_OM.toFixed(1)+'%, ':'')+(pIS_OM!=null?(pIS_OM>15?'in the framework\'s upper-band reference range for profitability across the calibration set.':pIS_OM>5?'in the framework\'s mid-band reference range.':'in the framework\'s lower-band reference range; sensitivity to cost movements is correspondingly higher.'):'')+(pIS_NM!=null?' Net margin '+pIS_NM.toFixed(1)+'%.':'')],
+          ['Balance Sheet', (pBS_TD!=null&&pBS_TE!=null)?'Total debt $'+Number(pBS_TD).toLocaleString()+'M against equity of $'+Number(pBS_TE).toLocaleString()+'M (D/E '+(pBS_TD/pBS_TE).toFixed(2)+'x). '+(pBS_WC!=null&&pBS_WC<0?'Working capital is negative for this filing - operating liabilities exceed operating assets. In the framework\'s 7-layer cascade, this falls in the L1 (liquidity) layer.':pBS_WC!=null?'Working capital position $'+Number(pBS_WC).toLocaleString()+'M.':''):'Balance sheet data partially unavailable.'],
+          ['Cash Flow', (pCF_FCF!=null)?'Free cash flow $'+Number(pCF_FCF).toLocaleString()+'M. '+(pCF_FCF>0?'Positive for this filing - cash generation exceeds reinvestment outlay.':'Negative for this filing - operating cash flow does not cover capital expenditures during the reporting window.')+(pCF_FCFM!=null?' FCF margin '+pCF_FCFM.toFixed(1)+'%.':''):'Cash flow data not available.']
         ];
         commentaries.forEach(function(item){
           if(py>260){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,'F');py=20;}
@@ -4515,15 +4617,15 @@ function genPDF(){
           doc.setFontSize(8);doc.setFont('helvetica','italic');doc.setTextColor(140,150,180);
           doc.text('Items below are flagged based on threshold-based observations from filed financials.',m,py);py+=8;
           var rfChecks = [];
-          if(C!=null && C>0.30)rfChecks.push(['ISC Bifurcating','Capital structure filter is in bifurcating regime (C='+(C>=0?'+':'')+C.toFixed(3)+'). Self-amplifying financial dynamics detected.']);
-          if(gv(TM,'altman_z')!=null && gv(TM,'altman_z')<1.81)rfChecks.push(['Altman Z Distress','Altman Z='+gv(TM,'altman_z').toFixed(2)+' is below the 1.81 distress threshold.']);
-          if(gv(TM,'interest_coverage')!=null && gv(TM,'interest_coverage')<1.5)rfChecks.push(['Low Interest Coverage','Interest coverage of '+gv(TM,'interest_coverage').toFixed(1)+'x is below the 1.5x stress threshold.']);
-          if(gv(TM,'current_ratio')!=null && gv(TM,'current_ratio')<1)rfChecks.push(['Liquidity Tight','Current ratio of '+gv(TM,'current_ratio').toFixed(2)+'x is below 1.0x - current liabilities exceed current assets.']);
-          if(gv(CF,'fcf')!=null && gv(CF,'fcf')<0)rfChecks.push(['Negative Free Cash Flow','FCF of $'+Number(gv(CF,'fcf')).toLocaleString()+'M indicates operations not currently self-funding.']);
-          if(gv(IS,'operating_income')!=null && gv(IS,'operating_income')<0)rfChecks.push(['Operating Loss','Operating income of $'+Number(gv(IS,'operating_income')).toLocaleString()+'M is negative - core business operationally unprofitable.']);
-          if(gv(BS,'working_capital')!=null && gv(BS,'working_capital')<0)rfChecks.push(['Negative Working Capital','Working capital of $'+Number(gv(BS,'working_capital')).toLocaleString()+'M - operating liabilities exceed operating assets.']);
-          if(gv(BS,'retained_earnings')!=null && gv(BS,'retained_earnings')<0)rfChecks.push(['Accumulated Deficit','Retained earnings of $'+Number(gv(BS,'retained_earnings')).toLocaleString()+'M - cumulative losses exceed cumulative profits.']);
-          if(gv(TM,'piotroski_f')!=null && gv(TM,'piotroski_f')<=3)rfChecks.push(['Weak Piotroski','Piotroski F='+gv(TM,'piotroski_f')+'/9 - failing most of nine financial health checks.']);
+          if(C!=null && C>0.30)rfChecks.push(['ISC Variance EWS Distressed','Variance EWS = '+(C>=0?'+':'')+C.toFixed(3)+', above the framework\'s 0.25 distressed threshold for the calibration set.']);
+          if(gv(TM,'altman_z')!=null && gv(TM,'altman_z')<1.81)rfChecks.push(['Altman Z Distress Zone','Altman Z='+gv(TM,'altman_z').toFixed(2)+' is below the 1.81 distress threshold defined by Altman (1968).']);
+          if(gv(TM,'interest_coverage')!=null && gv(TM,'interest_coverage')<1.5)rfChecks.push(['Low Interest Coverage','Interest coverage of '+gv(TM,'interest_coverage').toFixed(1)+'x is below the 1.5x reference threshold for stressed coverage.']);
+          if(gv(TM,'current_ratio')!=null && gv(TM,'current_ratio')<1)rfChecks.push(['Current Ratio Below 1.0','Current ratio of '+gv(TM,'current_ratio').toFixed(2)+'x; current liabilities exceed current assets in this filing.']);
+          if(gv(CF,'fcf')!=null && gv(CF,'fcf')<0)rfChecks.push(['Negative Free Cash Flow','FCF of $'+Number(gv(CF,'fcf')).toLocaleString()+'M for this reporting window; operating cash flow did not cover capital expenditures.']);
+          if(gv(IS,'operating_income')!=null && gv(IS,'operating_income')<0)rfChecks.push(['Operating Loss','Operating income of $'+Number(gv(IS,'operating_income')).toLocaleString()+'M; core operations did not produce a profit in this reporting period.']);
+          if(gv(BS,'working_capital')!=null && gv(BS,'working_capital')<0)rfChecks.push(['Negative Working Capital','Working capital of $'+Number(gv(BS,'working_capital')).toLocaleString()+'M; operating liabilities exceed operating assets in this filing.']);
+          if(gv(BS,'retained_earnings')!=null && gv(BS,'retained_earnings')<0)rfChecks.push(['Accumulated Deficit','Retained earnings of $'+Number(gv(BS,'retained_earnings')).toLocaleString()+'M; cumulative losses across the company\'s history exceed cumulative profits.']);
+          if(gv(TM,'piotroski_f')!=null && gv(TM,'piotroski_f')<=3)rfChecks.push(['Low Piotroski F','Piotroski F='+gv(TM,'piotroski_f')+'/9; the company is passing 3 or fewer of nine fundamental-health binary checks defined by Piotroski (2000).']);
           if(rfChecks.length===0){
             doc.setFillColor(20,40,32);doc.rect(m,py,W-m*2,18,'F');
             doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(16,185,129);
@@ -5058,15 +5160,15 @@ function genPDF(){
             doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);
             doc.text("Structural Verdict",m,py);py+=5;
             doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
-            var p1 = D.ticker + " is classified as " + iscRegime + " by the ISC framework";
-            if(iscC!=null) p1 += " (coupling C=" + iscC.toFixed(3) + ")";
+            var p1 = D.ticker + " is classified by the framework as " + iscRegime;
+            if(iscC!=null) p1 += " (variance EWS = " + iscC.toFixed(3) + ")";
             if(iscStab!=null) p1 += " with a stability score of " + iscStab.toFixed(0) + "/100";
             p1 += ". ";
-            if(iscRegime==="regulated") p1 += "The firm’s structural drivers are tightly locked into the broader system, indicating stability across the seven-layer cascade. Regime transitions historically remain unlikely while this signature persists.";
-            else if(iscRegime==="bifurcating") p1 += "The firm’s structural drivers are showing splitting dynamics, indicating divergence from the broader system. This regime has historically preceded both expansion and contraction phases; directional read requires the sector and traditional-metrics context above.";
-            else if(iscRegime==="critical") p1 += "The firm sits at a critical structural inflection. This regime has historically preceded major regime transitions in our 45-case dataset — in either direction. Close monitoring of the seven-layer cascade is warranted.";
-            else if(iscRegime==="transition" || iscRegime==="transitioning") p1 += "The firm is actively transitioning between regimes. Traditional metrics may lag this structural signal; the cascade view above describes which layers are leading the shift.";
-            else p1 += "Regime classification is incomplete; refer to the seven-layer cascade above for granular structural signals.";
+            if(iscRegime==="stable" || iscRegime==="regulated") p1 += "This filing falls within the framework's baseline calibration range for non-distressed historical cases. The variance early-warning signal is not currently active.";
+            else if(iscRegime==="distressed" || iscRegime==="bifurcating") p1 += "This filing falls within the framework's distressed band. In the framework's calibration set, similar signatures appeared in cases of both pre-collapse stress (Lehman, AIG, SVB) and rapid positive scaling (NVIDIA, early Tesla); the framework does not predict which trajectory applies to this company. Sector context and traditional-metric corroboration above describe the broader picture.";
+            else if(iscRegime==="critical") p1 += "This filing sits at a boundary between framework regimes. In the calibration set, similar boundary classifications preceded transitions in either direction. The seven-layer cascade view describes which dimensions are contributing most to the signal.";
+            else if(iscRegime==="rising" || iscRegime==="elevated" || iscRegime==="transition" || iscRegime==="transitioning") p1 += "This filing falls in the framework's elevated/rising band. Subsequent quarterly data is typically used to characterize whether the trajectory resolves toward the stable or distressed bands.";
+            else p1 += "Regime classification is incomplete for this filing; refer to the seven-layer cascade above for granular structural signals.";
             var p1L = doc.splitTextToSize(p1, W-m*2);
             doc.text(p1L,m,py);py+=p1L.length*4.5+5;
             
@@ -5080,11 +5182,11 @@ function genPDF(){
             var piotF = (TR.piotroski_f && TR.piotroski_f.val!=null)?TR.piotroski_f.val:null;
             var icov = (TR.interest_coverage && TR.interest_coverage.val!=null)?TR.interest_coverage.val:null;
             var p2 = "";
-            if(altmanZ!=null) p2 += "Altman Z-Score of " + altmanZ.toFixed(2) + " " + (altmanZ>3?"places the firm in the safe zone":(altmanZ>1.8?"places the firm in the grey zone":"places the firm in the distress zone")) + ". ";
-            if(piotF!=null) p2 += "Piotroski F-Score of " + piotF.toFixed(0) + "/9 " + (piotF>=7?"indicates strong fundamentals":(piotF>=4?"indicates mixed fundamentals":"indicates weak fundamentals")) + ". ";
-            if(icov!=null) p2 += "Interest coverage of " + icov.toFixed(1) + "× " + (icov>6?"is healthy":(icov>3?"is adequate":"is thin")) + ". ";
+            if(altmanZ!=null) p2 += "Altman Z-Score of " + altmanZ.toFixed(2) + " " + (altmanZ>3?"falls in the safe zone (>3.0) defined by Altman (1968)":(altmanZ>1.8?"falls in the grey zone (1.81-3.0)":"falls in the distress zone (<1.81)")) + ". ";
+            if(piotF!=null) p2 += "Piotroski F-Score of " + piotF.toFixed(0) + "/9 " + (piotF>=7?"falls in the upper band of the 9-check fundamental health score":(piotF>=4?"falls in the mid-band":"falls in the lower band")) + ". ";
+            if(icov!=null) p2 += "Interest coverage of " + icov.toFixed(1) + "x " + (icov>6?"is in the upper reference range":(icov>3?"is in the mid-range":"is in the lower reference range")) + ". ";
             if(p2==="") p2 = "Traditional metrics are partially unavailable; the cascade and PE-style analyses above provide the structural read.";
-            else p2 += "Traditional metrics describe the firm’s financial state; the structural cascade describes the dynamics shaping that state.";
+            else p2 += "Traditional metrics describe the firm's financial state at the reporting date; the variance EWS and structural cascade describe equity-market and structural dynamics. Cross-referencing the two is the framework's analytical workflow.";
             var p2L = doc.splitTextToSize(p2, W-m*2);
             doc.text(p2L,m,py);py+=p2L.length*4.5+5;
             
@@ -5094,15 +5196,15 @@ function genPDF(){
               doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);
               doc.text("Earnings Quality & Capital Efficiency",m,py);py+=5;
               doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
-              var p3 = "The PE-style analysis above examines whether reported profits are reinforced by underlying cash dynamics. Quality of Earnings, EBITDA durability, and Working Capital efficiency together describe the cash-conversion machinery beneath the income statement; Capital Efficiency / ROIC describes whether deployed capital is generating returns above its cost. Convergent strength across these views indicates a firm whose accounting reflects economic reality. Convergent weakness, particularly when CFO/NI, EBITDA/Interest, and ROIC all deteriorate together, has appeared in late-stage cases including Enron Q3 2001 and WorldCom Q1 2002.";
+              var p3 = "The PE-style analysis above examines whether reported profits are corroborated by underlying cash dynamics. Quality of Earnings, EBITDA durability, and Working Capital efficiency together describe the cash-conversion patterns beneath the income statement; Capital Efficiency / ROIC describes whether deployed capital is generating returns above its cost. Convergent strength across these views places a filing in the framework's healthy-fundamental calibration range. Convergent weakness, particularly when CFO/NI, EBITDA/Interest, and ROIC all deteriorate together, characterized late-stage filings in calibration cases including Enron Q3 2001 and WorldCom Q1 2002. The framework does not predict outcomes for any specific company.";
               var p3L = doc.splitTextToSize(p3, W-m*2);
               doc.text(p3L,m,py);py+=p3L.length*4.5+5;
               
               if(py>230){doc.addPage();doc.setFillColor(7,16,30);doc.rect(0,0,W,300,"F");py=20;}
               doc.setFontSize(9);doc.setFont("helvetica","bold");doc.setTextColor(ccRGB[0],ccRGB[1],ccRGB[2]);
-              doc.text("Coupling Decomposition Read",m,py);py+=5;
+              doc.text("Per-Series Trajectory Read",m,py);py+=5;
               doc.setFont("helvetica","normal");doc.setTextColor(220,228,240);
-              var p4 = "The per-series coupling decomposition above identifies which structural drivers are carrying the firm’s overall coupling signature. When income statement and balance sheet series show divergent regimes, the firm is in a state of structural reorganization — stable on one dimension, shifting on another. Reading the regime mix alongside the traditional metrics provides a more complete picture than either view alone, and has historically improved lead time on regime transitions by 1-5 quarters relative to traditional credit analysis.";
+              var p4 = "The per-series fundamental trajectory above describes which financial metrics are trending up, down, or flat across the analyzed window. When income statement and balance sheet series show divergent trajectories, the framework characterizes the filing as in transition along one dimension while stable along another. Reading the trajectory mix alongside the variance EWS and traditional metrics is the framework's analytical workflow; in retrospective testing on 45 historical cases the variance EWS led traditional credit analysis by 1-5 quarters. Lead time observed historically does not constitute a prediction for any specific company.";
               var p4L = doc.splitTextToSize(p4, W-m*2);
               doc.text(p4L,m,py);py+=p4L.length*4.5+5;
             }
