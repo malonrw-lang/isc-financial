@@ -1705,7 +1705,7 @@ function swTab(id, el) {
       if(onclickAttr.indexOf("swTab('"+id+"'")>=0){btns[i].classList.add('on');break;}
     }
   }
-  var tabs=['overview','charts','isc','income','balance','cashflow','traditional','peers','news','portfolio','ai'];
+  var tabs=['overview','charts','isc','income','balance','cashflow','traditional','forensic','peers','news','portfolio','ai'];
   tabs.forEach(function(t){
     var e=document.getElementById('t-'+t);
     if(e) e.classList.toggle('hidden',t!==id);
