@@ -892,6 +892,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <button class="tb" onclick="swTab('balance',this)">Balance Sheet</button>
           <button class="tb" onclick="swTab('cashflow',this)">Cash Flow</button>
           <button class="tb" onclick="swTab('traditional',this)">Traditional</button>
+          <button class="tb" onclick="swTab('forensic',this)">&#55357;&#56589; Forensic</button>
           <button class="tb" onclick="swTab('peers',this)">Peers</button>
           <button class="tb" onclick="swTab('news',this)">News</button>
           <button class="tb" onclick="swTab('portfolio',this)">&#55357;&#56513; Portfolio</button>
@@ -1033,6 +1034,15 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <div style="font-size:13px;color:#A0B8D0;line-height:1.7">These are the metrics most financial tools rely on. ISC provides an <strong style="color:var(--wh)">orthogonal signal</strong> &#8212; it measures something fundamentally different and uncorrelated with these. Together they give a more complete picture. <strong style="color:var(--wh)">ISC often signals structural stress 1&#8211;5 quarters before these traditional metrics reflect it</strong> &#8212; that gap is the core value proposition.</div>
             </div>
             <div class="card-hi"><div class="sb-lbl" style="margin-bottom:12px">Traditional Financial Health Metrics</div><div id="tradContent"></div></div>
+          </div>
+
+          <!-- FORENSIC -->
+          <div id="t-forensic" class="tab-content hidden">
+            <div class="al al-b" style="margin-bottom:0">
+              <span style="font-size:16px">&#55357;&#56589;</span>
+              <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Forensic accounting screen.</strong> The Beneish M-Score is a peer-reviewed model (Beneish, 1999, <em>Financial Analysts Journal</em>) for flagging firms with characteristics of earnings manipulation. It examines eight year-over-year ratio changes &#8212; receivables growth vs. revenue, margin trajectory, accruals, leverage, and more &#8212; and combines them into a single composite score. <strong style="color:var(--wh)">A high M-Score is not a verdict</strong> &#8212; it is a screening flag for closer examination. The original 1999 study reported approximately 76% sensitivity and 17.5% false-positive rate against SEC enforcement actions on US firms.</div>
+            </div>
+            <div id="forensicContent"></div>
           </div>
 
           <!-- PEERS -->
@@ -2689,6 +2699,204 @@ function renderAll(d){
   }
   document.getElementById('tradContent').innerHTML=
     ['altman_z','piotroski_f','current_ratio','quick_ratio','interest_coverage','debt_to_ebitda','debt_to_equity','roa','roe','asset_turnover','gross_margin_pct','op_margin_pct'].map(tmRowSpark).join('');
+
+  // FORENSIC (Beneish M-Score)
+  (function renderForensic(){
+    var fc=document.getElementById('forensicContent');
+    if(!fc)return;
+    var bn=d.beneish;
+    if(!bn){
+      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim)"><div style="font-size:14px;color:var(--wh);margin-bottom:6px">Forensic analysis not available</div><div style="font-size:13px">Run Full Analysis to compute the Beneish M-Score from EDGAR annual filings.</div></div>';
+      return;
+    }
+    if(bn.sector_eligible===false){
+      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim)"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#9888;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Beneish M-Score not applicable to this sector</div><div style="font-size:13px;line-height:1.7;max-width:520px;margin:0 auto">'+(bn.note||'The Beneish 1999 model was calibrated on US industrial firms (manufacturing, retail, services). Banks, insurance carriers, and REITs use fundamentally different accounting structures &#8212; receivables, inventory, gross margin, and PPE-based ratios do not have the same interpretation. Applying the model to these sectors produces unreliable scores.')+'</div><div style="font-size:12px;color:var(--dim);margin-top:14px">Sector-specific forensic methods for these industries are planned for future releases.</div></div>';
+      return;
+    }
+    var ann=bn.annual;
+    if(!ann||ann.m_score===null||ann.m_score===undefined){
+      var note=ann&&ann.note?ann.note:'Need at least 2 years of annual EDGAR filings with sufficient line-item detail.';
+      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim)"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#128203;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Insufficient annual data for Beneish M-Score</div><div style="font-size:13px;line-height:1.7;max-width:520px;margin:0 auto">'+note+'</div></div>';
+      return;
+    }
+
+    // Computed: full render
+    var m=ann.m_score;
+    var flagOrig=ann.flag_original;
+    var flagStrict=ann.flag_strict;
+    var comps=ann.components||{};
+    var contribs=ann.contributions||{};
+    var missing=ann.missing||[];
+    var nRatios=ann.n_ratios||0;
+
+    // Score band: which threshold zone is m in?
+    var scoreColor='var(--green)', scoreBand='Within normal range';
+    if(flagOrig){scoreColor='var(--red)';scoreBand='Above 1999 threshold &#8212; flagged';}
+    else if(flagStrict){scoreColor='var(--amber)';scoreBand='Above strict threshold &#8212; watch';}
+
+    // Plain-English read of each ratio
+    function ratioRead(key,val){
+      if(val===null||val===undefined)return '<span style="color:var(--dim)">Not computable</span>';
+      var v=parseFloat(val);
+      var rules={
+        DSRI:{label:'Days Sales in Receivables Index',neutral:1.0,
+          interp:function(v){return v>1.465?'Receivables growing materially faster than revenue &#8212; aggressive revenue recognition warrants review':v>1.2?'Receivables outpacing revenue':v<0.8?'Receivables shrinking relative to revenue (could indicate slowing sales)':'Receivables tracking revenue normally';},
+          desc:'Compares receivables-to-revenue ratio year-over-year. Aggressive revenue recognition pushes this above 1.0.'},
+        GMI:{label:'Gross Margin Index',neutral:1.0,
+          interp:function(v){return v>1.193?'Gross margin compressing &#8212; firms with deteriorating margins have stronger manipulation incentives':v>1.05?'Margin slipping modestly':v<0.95?'Margin improving (positive signal)':'Margin stable';},
+          desc:'Prior gross margin / current gross margin. >1 means margin deteriorated.'},
+        AQI:{label:'Asset Quality Index',neutral:1.0,
+          interp:function(v){return v>1.254?'Sharp rise in soft/intangible assets &#8212; capitalized expenses or goodwill creep':v>1.1?'Other-asset share rising':v<0.9?'Asset quality improving':'Asset composition stable';},
+          desc:'Share of "other" non-current assets (not current, not PPE). Rising share = soft assets, capitalized costs.'},
+        SGI:{label:'Sales Growth Index',neutral:1.1,
+          interp:function(v){return v>1.607?'High growth &#8212; high-growth firms have stronger pressure-to-deliver and more manipulation incentives':v>1.2?'Strong revenue growth':v<0.9?'Revenue contraction':'Modest growth';},
+          desc:'Current revenue / prior revenue. High growth alone is not negative, but combined with other flags increases concern.'},
+        DEPI:{label:'Depreciation Rate Index',neutral:1.0,
+          interp:function(v){return v>1.077?'Depreciation rate slowed &#8212; potential income inflation by extending asset lives':v>1.03?'Depreciation rate easing modestly':v<0.95?'Depreciation accelerating':'Depreciation policy stable';},
+          desc:'Compares depreciation-to-PPE ratio year-over-year. Slowing rate may inflate income.'},
+        SGAI:{label:'SG&A Index',neutral:1.0,
+          interp:function(v){return v>1.041?'SG&A growing faster than revenue &#8212; operating efficiency declining':v>1.02?'SG&A rising slightly faster than revenue':v<0.95?'SG&A discipline improving':'SG&A scaling with revenue';},
+          desc:'Compares SG&A-to-revenue ratio year-over-year.'},
+        TATA:{label:'Total Accruals to Total Assets',neutral:0.0,
+          interp:function(v){return v>0.031?'High accruals &#8212; net income materially above operating cash flow, indicating discretionary accounting':v>0.015?'Accruals modestly elevated':v<-0.01?'Strong cash backing of earnings (positive signal)':'Accruals balanced';},
+          desc:'(Net Income &#8722; Operating Cash Flow) / Total Assets. Higher = more discretionary accounting.'},
+        LVGI:{label:'Leverage Index',neutral:1.0,
+          interp:function(v){return v>1.111?'Leverage rising &#8212; covenant pressure may motivate manipulation':v>1.04?'Leverage edging higher':v<0.95?'Deleveraging':'Leverage stable';},
+          desc:'Current leverage ratio / prior leverage ratio. Rising leverage may motivate covenant manipulation.'}
+      };
+      return rules[key]?rules[key].interp(v):'';
+    }
+
+    function ratioBadge(key,val){
+      if(val===null||val===undefined)return '<span style="font-size:10px;padding:2px 8px;border-radius:100px;background:rgba(107,114,128,.2);color:var(--dim)">N/A</span>';
+      var v=parseFloat(val);
+      // Red = beyond Beneish 1999 reported manipulator means; Amber = elevated; Green = normal
+      var thresholds={DSRI:[1.2,1.465],GMI:[1.05,1.193],AQI:[1.1,1.254],SGI:[1.2,1.607],DEPI:[1.03,1.077],SGAI:[1.02,1.041],TATA:[0.015,0.031],LVGI:[1.04,1.111]};
+      var t=thresholds[key];
+      if(!t)return '';
+      var col,lbl;
+      if(v>t[1]){col='var(--red)';lbl='Elevated';}
+      else if(v>t[0]){col='var(--amber)';lbl='Watch';}
+      else if(key==='TATA'&&v<-0.01){col='var(--green)';lbl='Strong';}
+      else{col='var(--green)';lbl='Normal';}
+      return '<span style="font-size:10px;padding:2px 8px;border-radius:100px;background:'+col.replace(')',',0.15)').replace('var(--','rgba(')+';color:'+col+';font-weight:600">'+lbl+'</span>';
+    }
+
+    // Top contributors narrative
+    var topContribs=Object.keys(contribs).map(function(k){return [k,contribs[k]];})
+      .sort(function(a,b){return Math.abs(b[1])-Math.abs(a[1]);}).slice(0,3);
+    var contribText='';
+    if(topContribs.length){
+      var posContribs=topContribs.filter(function(x){return x[1]>0&&['DSRI','GMI','AQI','SGI','DEPI','TATA'].indexOf(x[0])>=0;});
+      if(flagOrig||flagStrict){
+        if(posContribs.length){
+          var topNames=posContribs.slice(0,2).map(function(x){
+            var labels={DSRI:'receivables growing faster than revenue',GMI:'gross margin compression',AQI:'rising share of soft assets',SGI:'high revenue growth combined with other flags',DEPI:'slowing depreciation rate',TATA:'high non-cash accruals',SGAI:'SG&A growing faster than revenue',LVGI:'rising leverage'};
+            return labels[x[0]]||x[0];
+          });
+          contribText='M-Score is elevated primarily due to: <strong style="color:var(--wh)">'+topNames.join('</strong> and <strong style="color:var(--wh)">')+'</strong>.';
+        }else{
+          contribText='M-Score is elevated. Review individual ratio components below.';
+        }
+      }else{
+        contribText='M-Score is within the normal range. None of the eight ratios are at levels typical of earnings manipulators in the Beneish 1999 sample.';
+      }
+    }
+
+    // Threshold visualization positions: place m_score on a -4 to +1 scale
+    var minM=-4, maxM=1;
+    var pos=Math.max(0,Math.min(100,(m-minM)/(maxM-minM)*100));
+    var posStrict=(((-2.22)-minM)/(maxM-minM))*100;
+    var posOrig=(((-1.78)-minM)/(maxM-minM))*100;
+
+    var html='';
+
+    // Header card with M-score gauge
+    html+='<div class="card-hi" style="margin-bottom:14px">';
+    html+='<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:14px">';
+    html+='<div><div class="sb-lbl" style="margin-bottom:4px">Beneish M-Score (Annual)</div>';
+    html+='<div style="font-size:11px;color:var(--dim)">Computed from year-over-year changes in 8 financial ratios</div></div>';
+    html+='<div style="text-align:right">';
+    html+='<div style="font-family:var(--mono);font-size:36px;font-weight:700;color:'+scoreColor+';line-height:1">'+m.toFixed(2)+'</div>';
+    html+='<div style="font-size:11px;color:'+scoreColor+';font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">'+scoreBand+'</div>';
+    html+='</div></div>';
+
+    // Threshold gauge
+    html+='<div style="position:relative;height:36px;background:linear-gradient(to right,rgba(16,185,129,.12) 0%,rgba(16,185,129,.12) '+posStrict+'%,rgba(245,158,11,.18) '+posStrict+'%,rgba(245,158,11,.18) '+posOrig+'%,rgba(239,68,68,.18) '+posOrig+'%,rgba(239,68,68,.18) 100%);border-radius:6px;border:1px solid rgba(255,255,255,.08);margin-bottom:6px">';
+    // Threshold lines
+    html+='<div style="position:absolute;left:'+posStrict+'%;top:0;bottom:0;width:1px;background:var(--amber);opacity:.6"></div>';
+    html+='<div style="position:absolute;left:'+posOrig+'%;top:0;bottom:0;width:1px;background:var(--red);opacity:.6"></div>';
+    // Score marker
+    html+='<div style="position:absolute;left:'+pos+'%;top:-3px;bottom:-3px;width:3px;background:'+scoreColor+';border-radius:2px;box-shadow:0 0 8px '+scoreColor+'"></div>';
+    html+='</div>';
+    html+='<div style="position:relative;height:14px;font-size:10px;color:var(--dim);font-family:var(--mono)">';
+    html+='<span style="position:absolute;left:0">-4.0</span>';
+    html+='<span style="position:absolute;left:'+posStrict+'%;transform:translateX(-50%);color:var(--amber)">-2.22</span>';
+    html+='<span style="position:absolute;left:'+posOrig+'%;transform:translateX(-50%);color:var(--red)">-1.78</span>';
+    html+='<span style="position:absolute;right:0">+1.0</span>';
+    html+='</div>';
+
+    // Threshold legend
+    html+='<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);font-size:11px">';
+    html+='<div><span style="display:inline-block;width:10px;height:10px;background:var(--amber);border-radius:2px;margin-right:6px;vertical-align:middle"></span><span style="color:var(--wh)">M &gt; -2.22</span> <span style="color:var(--dim)">strict (Beneish/Lee/Nichols 2013) &#8212; '+(flagStrict?'<strong style="color:var(--amber)">FLAGGED</strong>':'not flagged')+'</span></div>';
+    html+='<div><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:6px;vertical-align:middle"></span><span style="color:var(--wh)">M &gt; -1.78</span> <span style="color:var(--dim)">original (Beneish 1999) &#8212; '+(flagOrig?'<strong style="color:var(--red)">FLAGGED</strong>':'not flagged')+'</span></div>';
+    html+='</div>';
+
+    // Top contributors narrative
+    if(contribText){
+      html+='<div style="margin-top:14px;padding:12px 14px;background:rgba(0,200,255,.04);border-left:3px solid var(--cyan);border-radius:4px;font-size:13px;line-height:1.7;color:#A0B8D0">'+contribText+'</div>';
+    }
+
+    // Coverage / missing data note
+    if(missing.length){
+      html+='<div style="margin-top:10px;font-size:11px;color:var(--dim)">Computed with '+nRatios+' of 8 ratios. Missing: '+missing.join(', ')+'. M-Score uses neutral substitution (1.0 for ratios, 0 for accruals) for missing components &#8212; interpret with caution.</div>';
+    }
+    html+='</div>';
+
+    // 8-ratio breakdown
+    html+='<div class="card-hi"><div class="sb-lbl" style="margin-bottom:12px">Eight-Component Breakdown</div>';
+    var rules={
+      DSRI:{label:'Days Sales in Receivables Index',neutral:1.0,
+        desc:'Compares receivables-to-revenue ratio year-over-year. Aggressive revenue recognition pushes this above 1.0.'},
+      GMI:{label:'Gross Margin Index',neutral:1.0,
+        desc:'Prior gross margin / current gross margin. >1 means margin deteriorated, creating manipulation pressure.'},
+      AQI:{label:'Asset Quality Index',neutral:1.0,
+        desc:'Share of "other" non-current assets year-over-year. Rising share = soft assets, capitalized costs.'},
+      SGI:{label:'Sales Growth Index',neutral:1.1,
+        desc:'Current revenue / prior revenue. High growth alone is not negative, but combined with other flags increases concern.'},
+      DEPI:{label:'Depreciation Rate Index',neutral:1.0,
+        desc:'Compares depreciation-to-PPE ratio year-over-year. Slowing rate may inflate income.'},
+      SGAI:{label:'SG&A Index',neutral:1.0,
+        desc:'Compares SG&A-to-revenue ratio year-over-year. Rising = operating efficiency declining.'},
+      TATA:{label:'Total Accruals to Total Assets',neutral:0.0,
+        desc:'(Net Income &#8722; Operating Cash Flow) / Total Assets. Higher = more discretionary accounting.'},
+      LVGI:{label:'Leverage Index',neutral:1.0,
+        desc:'Current leverage / prior leverage. Rising leverage may motivate covenant manipulation.'}
+    };
+    var order=['DSRI','GMI','AQI','SGI','DEPI','SGAI','TATA','LVGI'];
+    order.forEach(function(key){
+      var val=comps[key];
+      var rule=rules[key];
+      var fmt=val===null||val===undefined?'N/A':(key==='TATA'?val.toFixed(4):val.toFixed(3));
+      var col=val===null||val===undefined?'var(--dim)':'var(--wh)';
+      html+='<div class="mrow" style="flex-wrap:nowrap;align-items:flex-start">';
+      html+='<div style="flex:1;min-width:0">';
+      html+='<div class="mlabel" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span>'+key+' &#8212; '+rule.label+'</span>'+ratioBadge(key,val)+'</div>';
+      html+='<div class="mexp" style="font-size:11.5px;line-height:1.6;color:var(--dim);margin-top:2px">'+rule.desc+'</div>';
+      html+='<div class="mexp" style="font-size:12px;line-height:1.6;color:#A0B8D0;margin-top:4px;font-style:italic">'+ratioRead(key,val)+'</div>';
+      html+='</div>';
+      html+='<div style="display:flex;align-items:flex-start;flex-shrink:0;padding-top:2px"><div class="mval" style="color:'+col+'">'+fmt+'</div></div>';
+      html+='</div>';
+    });
+    html+='</div>';
+
+    // Educational footer
+    html+='<div style="margin-top:14px;padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:7px;font-size:11.5px;line-height:1.7;color:var(--dim)">';
+    html+='<strong style="color:#A0B8D0">About the Beneish M-Score.</strong> Developed by Messod Beneish (1999), the model was trained on 74 SEC enforcement targets vs. 2,332 control firms (1982&#8211;1992). The model has been widely cited in academic and practitioner literature, including its identification of Enron as a likely manipulator multiple years before the 2001 collapse. Limitations: calibrated on US industrial firms; signal degrades for non-US filers, banks, insurers, and REITs. The M-Score is a screening tool &#8212; high scores warrant deeper investigation, not conclusions. Annual data lags by up to 12 months versus quarterly trends; the eight-component view above shows which ratios are driving the composite, allowing analysts to cross-check against current quarterly filings. Reference: Beneish, M. D. (1999), &ldquo;The Detection of Earnings Manipulation,&rdquo; <em>Financial Analysts Journal</em> 55(5), 24&#8211;36.';
+    html+='</div>';
+
+    fc.innerHTML=html;
+  })();
 
   // NEWS
   var news=d.news||[];
