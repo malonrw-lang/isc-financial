@@ -1042,7 +1042,13 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <span style="font-size:16px">&#55357;&#56589;</span>
               <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Forensic accounting screen.</strong> The Beneish M-Score is a peer-reviewed model (Beneish, 1999, <em>Financial Analysts Journal</em>) for flagging firms with characteristics of earnings manipulation. It examines eight year-over-year ratio changes &#8212; receivables growth vs. revenue, margin trajectory, accruals, leverage, and more &#8212; and combines them into a single composite score. <strong style="color:var(--wh)">A high M-Score is not a verdict</strong> &#8212; it is a screening flag for closer examination. The original 1999 study reported approximately 76% sensitivity and 17.5% false-positive rate against SEC enforcement actions on US firms.</div>
             </div>
-            <div id="forensicContent"></div>
+            <div id="forensicContent">
+              <div class="card-hi" style="text-align:center;padding:32px;color:var(--dim);margin-top:14px">
+                <div style="font-size:32px;margin-bottom:10px;opacity:.6">&#128202;</div>
+                <div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Run Full Analysis to compute the Beneish M-Score</div>
+                <div style="font-size:13px;line-height:1.7;max-width:480px;margin:0 auto">The forensic screen pulls annual (FY) data from EDGAR filings and computes eight year-over-year ratios. Click <strong style="color:var(--cyan)">Run Full Analysis</strong> on the left sidebar to generate the breakdown.</div>
+              </div>
+            </div>
           </div>
 
           <!-- PEERS -->
@@ -2704,26 +2710,33 @@ function renderAll(d){
   (function renderForensic(){
     var fc=document.getElementById('forensicContent');
     if(!fc)return;
+    try {
     var bn=d.beneish;
     if(!bn){
-      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim)"><div style="font-size:14px;color:var(--wh);margin-bottom:6px">Forensic analysis not available</div><div style="font-size:13px">Run Full Analysis to compute the Beneish M-Score from EDGAR annual filings.</div></div>';
+      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim);margin-top:14px"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#128202;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Forensic data not in API response</div><div style="font-size:13px;line-height:1.7;max-width:480px;margin:0 auto">The backend may still be cold-starting after deployment. Please wait 30-60 seconds and click <strong style="color:var(--cyan)">Run Full Analysis</strong> again.</div></div>';
       return;
     }
     if(bn.sector_eligible===false){
-      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim)"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#9888;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Beneish M-Score not applicable to this sector</div><div style="font-size:13px;line-height:1.7;max-width:520px;margin:0 auto">'+(bn.note||'The Beneish 1999 model was calibrated on US industrial firms (manufacturing, retail, services). Banks, insurance carriers, and REITs use fundamentally different accounting structures &#8212; receivables, inventory, gross margin, and PPE-based ratios do not have the same interpretation. Applying the model to these sectors produces unreliable scores.')+'</div><div style="font-size:12px;color:var(--dim);margin-top:14px">Sector-specific forensic methods for these industries are planned for future releases.</div></div>';
+      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim);margin-top:14px"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#9888;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Beneish M-Score not applicable to this sector</div><div style="font-size:13px;line-height:1.7;max-width:520px;margin:0 auto">'+(bn.note||'The Beneish 1999 model was calibrated on US industrial firms (manufacturing, retail, services). Banks, insurance carriers, and REITs use fundamentally different accounting structures &#8212; receivables, inventory, gross margin, and PPE-based ratios do not have the same interpretation. Applying the model to these sectors produces unreliable scores.')+'</div><div style="font-size:12px;color:var(--dim);margin-top:14px">Sector-specific forensic methods for these industries are planned for future releases.</div></div>';
       return;
     }
     var ann=bn.annual;
     if(!ann||ann.m_score===null||ann.m_score===undefined){
       var note=ann&&ann.note?ann.note:'Need at least 2 years of annual EDGAR filings with sufficient line-item detail.';
-      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim)"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#128203;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Insufficient annual data for Beneish M-Score</div><div style="font-size:13px;line-height:1.7;max-width:520px;margin:0 auto">'+note+'</div></div>';
+      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim);margin-top:14px"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#128203;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Insufficient annual data for Beneish M-Score</div><div style="font-size:13px;line-height:1.7;max-width:520px;margin:0 auto">'+note+'</div></div>';
       return;
     }
 
     // Computed: full render
-    var m=ann.m_score;
-    var flagOrig=ann.flag_original;
-    var flagStrict=ann.flag_strict;
+    // Defensive: coerce all numerics in case JSON serialization returned strings
+    function num(v){if(v===null||v===undefined)return null;var n=parseFloat(v);return isNaN(n)?null:n;}
+    var m=num(ann.m_score);
+    if(m===null){
+      fc.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim);margin-top:14px"><div style="font-size:14px;color:var(--wh);margin-bottom:6px">M-Score returned a non-numeric value</div><div style="font-size:13px">This is unexpected. Try clicking Run Full Analysis again.</div></div>';
+      return;
+    }
+    var flagOrig=ann.flag_original===true;
+    var flagStrict=ann.flag_strict===true;
     var comps=ann.components||{};
     var contribs=ann.contributions||{};
     var missing=ann.missing||[];
@@ -2875,10 +2888,10 @@ function renderAll(d){
     };
     var order=['DSRI','GMI','AQI','SGI','DEPI','SGAI','TATA','LVGI'];
     order.forEach(function(key){
-      var val=comps[key];
+      var val=num(comps[key]);
       var rule=rules[key];
-      var fmt=val===null||val===undefined?'N/A':(key==='TATA'?val.toFixed(4):val.toFixed(3));
-      var col=val===null||val===undefined?'var(--dim)':'var(--wh)';
+      var fmt=val===null?'N/A':(key==='TATA'?val.toFixed(4):val.toFixed(3));
+      var col=val===null?'var(--dim)':'var(--wh)';
       html+='<div class="mrow" style="flex-wrap:nowrap;align-items:flex-start">';
       html+='<div style="flex:1;min-width:0">';
       html+='<div class="mlabel" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span>'+key+' &#8212; '+rule.label+'</span>'+ratioBadge(key,val)+'</div>';
@@ -2896,6 +2909,11 @@ function renderAll(d){
     html+='</div>';
 
     fc.innerHTML=html;
+    } catch(err) {
+      // If anything in the renderer throws, show the error instead of leaving the tab blank
+      console.error('Forensic renderer error:', err);
+      fc.innerHTML='<div class="card-hi" style="padding:24px;color:var(--dim);margin-top:14px"><div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:8px">&#9888; Forensic renderer error</div><div style="font-size:12px;line-height:1.7;font-family:var(--mono);color:#A0B8D0;background:rgba(0,0,0,.3);padding:10px;border-radius:5px;overflow-x:auto;white-space:pre-wrap">'+(err&&err.message?err.message:String(err))+'</div><div style="font-size:12px;color:var(--dim);margin-top:10px">This error has been logged to the browser console. The forensic data may have arrived in an unexpected format. Try Run Full Analysis again, or use the thumbs-down button in the early-access banner to report.</div></div>';
+    }
   })();
 
   // NEWS
