@@ -1831,7 +1831,7 @@ function buildHyperGrowthNarrative(name, C, hg) {
    color, prose synthesis, and "what to watch" list.
    ───────────────────────────────────────────────────────────────────── */
 function computeSkepticRead(d, r, C) {
-  var IS = d.income_statement || {}, BS = d.balance_sheet || {}, CF = d.cash_flow || {}, TM = d.traditional_metrics || {};
+  var IS = d.income_statement || {}, BS = d.balance_sheet || {}, CF = d.cash_flow || {}, TM = d.traditional || {};
   // Pull values (guard for missing)
   function gv2(obj, k) { if (!obj || obj[k] == null) return null; var v = obj[k]; return (typeof v === 'object' && 'val' in v) ? v.val : v; }
 
@@ -1850,8 +1850,10 @@ function computeSkepticRead(d, r, C) {
   }
 
   // ── LENS 2: Traditional (Altman + Piotroski + margin direction) ──────
+  // Backend ships values in `d.traditional` (not `d.traditional_metrics`).
+  // Margin fields are in percent units (e.g. op_margin_pct = 9.5 not 0.095).
   var altZ = gv2(TM, 'altman_z'), piF = gv2(TM, 'piotroski_f');
-  var om = gv2(IS, 'operating_margin'), rg = gv2(IS, 'revenue_growth'), intCov = gv2(TM, 'interest_coverage');
+  var om = gv2(TM, 'op_margin_pct'), rg = gv2(IS, 'revenue_growth'), intCov = gv2(TM, 'interest_coverage');
   var fcfM = gv2(CF, 'fcf_margin');
   var tradRead = { lens: 'Traditional', label: 'Insufficient', color: 'var(--dim)', flag: 'insufficient', note: 'Core metrics unavailable.' };
   if (altZ != null || piF != null) {
@@ -1861,12 +1863,21 @@ function computeSkepticRead(d, r, C) {
     if (intCov != null) { total++; if (intCov < 1.5) stress++; else if (intCov > 5) strong++; }
     if (om != null) { total++; if (om < 0) stress++; else if (om > 15) strong++; }
     if (rg != null) { total++; if (rg < -5) stress++; else if (rg > 10) strong++; }
+    // Severe-single-signal escalation: Altman in distress zone OR Piotroski <= 2 is
+    // a strong individual signal even without corroboration. Both indicators are
+    // designed to be standalone red flags.
+    var severeSingle = (altZ != null && altZ < 1.81) || (piF != null && piF <= 2) ||
+                       (intCov != null && intCov < 0) || (om != null && om < -5);
     if (stress >= 2 && stress > strong) {
       tradRead = { lens: 'Traditional', label: 'Stress', color: 'var(--red)', flag: 'stress', note: stress + ' of ' + total + ' core metrics in stress range.' };
+    } else if (severeSingle && stress >= strong) {
+      tradRead = { lens: 'Traditional', label: 'Stress', color: 'var(--red)', flag: 'stress', note: 'Severe single signal: ' + (altZ != null && altZ < 1.81 ? 'Altman Z ' + altZ.toFixed(2) + ' in distress zone' : piF != null && piF <= 2 ? 'Piotroski F ' + piF + '/9 weak' : 'core metric in distress range') + '.' };
     } else if (strong >= 3 && strong > stress) {
       tradRead = { lens: 'Traditional', label: 'Strong', color: 'var(--green)', flag: 'strong', note: strong + ' of ' + total + ' core metrics in strong range.' };
+    } else if (stress >= 1 && strong >= 1) {
+      tradRead = { lens: 'Traditional', label: 'Mixed', color: 'var(--amber)', flag: 'mixed', note: stress + ' stress, ' + strong + ' strong across ' + total + ' metrics.' };
     } else if (total >= 2) {
-      tradRead = { lens: 'Traditional', label: 'Mixed', color: 'var(--amber)', flag: 'mixed', note: 'No clear stress or strength signal across ' + total + ' metrics.' };
+      tradRead = { lens: 'Traditional', label: 'Clean', color: 'var(--green)', flag: 'clean', note: 'No core metric in stress range across ' + total + ' observed.' };
     }
   }
 
