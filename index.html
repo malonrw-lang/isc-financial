@@ -1820,6 +1820,147 @@ function buildHyperGrowthNarrative(name, C, hg) {
   parts.push(' The variables most associated with the resolution direction in the calibration set are (1) whether margins hold as scale increases, (2) whether the customer base diversifies, and (3) whether competitive moats deepen. Monitoring revenue growth, gross margin, and customer concentration over the next 2' + ENDASH + '4 quarters is a common analytical step. Outcomes for any specific company vary; this is structural classification, not a prediction.');
   return parts.join('');
 }
+/* ─────────────────────────────────────────────────────────────────────
+   SKEPTIC'S READ — multi-lens synthesis
+   Pulls from Traditional, ISC, and Forensic lenses; emits a structured
+   convergence read. Tiered loudness: restrained at 1-2 lens agreement,
+   loud at 3+ lens convergence. Direct/punchy verdict tone.
+
+   Each lens emits: 'stress' | 'clean' | 'strong' | 'insufficient'
+   The synthesis counts agreement and maps to a verdict label, headline
+   color, prose synthesis, and "what to watch" list.
+   ───────────────────────────────────────────────────────────────────── */
+function computeSkepticRead(d, r, C) {
+  var IS = d.income_statement || {}, BS = d.balance_sheet || {}, CF = d.cash_flow || {}, TM = d.traditional_metrics || {};
+  // Pull values (guard for missing)
+  function gv2(obj, k) { if (!obj || obj[k] == null) return null; var v = obj[k]; return (typeof v === 'object' && 'val' in v) ? v.val : v; }
+
+  // ── LENS 1: ISC (Variance EWS) ────────────────────────────────────────
+  var iscRead = { lens: 'ISC', label: 'Insufficient', color: 'var(--dim)', flag: 'insufficient', note: 'No structural signal available.' };
+  if (C != null && r) {
+    if (r.includes('distressed') || r.includes('bifurcating')) {
+      iscRead = { lens: 'ISC', label: 'Distressed', color: 'var(--red)', flag: 'stress', note: 'Variance ' + C.toFixed(3) + ' in distressed band.' };
+    } else if (r.includes('rising')) {
+      iscRead = { lens: 'ISC', label: 'Rising', color: 'var(--amber)', flag: 'stress', note: 'Variance ' + C.toFixed(3) + ' with rising trajectory.' };
+    } else if (r.includes('elevated') || r.includes('trans')) {
+      iscRead = { lens: 'ISC', label: 'Elevated', color: 'var(--amber)', flag: 'stress', note: 'Variance ' + C.toFixed(3) + ' above stable baseline.' };
+    } else if (r.includes('stable') || r.includes('regulated')) {
+      iscRead = { lens: 'ISC', label: 'Stable', color: 'var(--green)', flag: 'clean', note: 'Variance ' + C.toFixed(3) + ' within stable range.' };
+    }
+  }
+
+  // ── LENS 2: Traditional (Altman + Piotroski + margin direction) ──────
+  var altZ = gv2(TM, 'altman_z'), piF = gv2(TM, 'piotroski_f');
+  var om = gv2(IS, 'operating_margin'), rg = gv2(IS, 'revenue_growth'), intCov = gv2(TM, 'interest_coverage');
+  var fcfM = gv2(CF, 'fcf_margin');
+  var tradRead = { lens: 'Traditional', label: 'Insufficient', color: 'var(--dim)', flag: 'insufficient', note: 'Core metrics unavailable.' };
+  if (altZ != null || piF != null) {
+    var stress = 0, strong = 0, total = 0;
+    if (altZ != null) { total++; if (altZ < 1.81) stress++; else if (altZ > 3.0) strong++; }
+    if (piF != null) { total++; if (piF < 4) stress++; else if (piF >= 7) strong++; }
+    if (intCov != null) { total++; if (intCov < 1.5) stress++; else if (intCov > 5) strong++; }
+    if (om != null) { total++; if (om < 0) stress++; else if (om > 15) strong++; }
+    if (rg != null) { total++; if (rg < -5) stress++; else if (rg > 10) strong++; }
+    if (stress >= 2 && stress > strong) {
+      tradRead = { lens: 'Traditional', label: 'Stress', color: 'var(--red)', flag: 'stress', note: stress + ' of ' + total + ' core metrics in stress range.' };
+    } else if (strong >= 3 && strong > stress) {
+      tradRead = { lens: 'Traditional', label: 'Strong', color: 'var(--green)', flag: 'strong', note: strong + ' of ' + total + ' core metrics in strong range.' };
+    } else if (total >= 2) {
+      tradRead = { lens: 'Traditional', label: 'Mixed', color: 'var(--amber)', flag: 'mixed', note: 'No clear stress or strength signal across ' + total + ' metrics.' };
+    }
+  }
+
+  // ── LENS 3: Forensic (Beneish M-Score) ────────────────────────────────
+  var bn = d.beneish;
+  var forRead = { lens: 'Forensic', label: 'Insufficient', color: 'var(--dim)', flag: 'insufficient', note: 'M-Score not computable.' };
+  if (bn) {
+    if (bn.sector_eligible === false) {
+      forRead = { lens: 'Forensic', label: 'N/A', color: 'var(--dim)', flag: 'insufficient', note: 'Beneish not applicable to this sector.' };
+    } else if (bn.annual && bn.annual.m_score != null) {
+      var m = bn.annual.m_score;
+      if (bn.annual.flag_original === true) {
+        forRead = { lens: 'Forensic', label: 'Flagged', color: 'var(--red)', flag: 'stress', note: 'M-Score ' + m.toFixed(2) + ' above Beneish 1999 threshold.' };
+      } else if (bn.annual.flag_strict === true) {
+        forRead = { lens: 'Forensic', label: 'Watch', color: 'var(--amber)', flag: 'stress', note: 'M-Score ' + m.toFixed(2) + ' above strict (-2.22) threshold.' };
+      } else {
+        forRead = { lens: 'Forensic', label: 'Clean', color: 'var(--green)', flag: 'clean', note: 'M-Score ' + m.toFixed(2) + ' within normal range.' };
+      }
+    }
+  }
+
+  // ── SYNTHESIS: count convergence ──────────────────────────────────────
+  var lenses = [iscRead, tradRead, forRead];
+  var available = lenses.filter(function(l) { return l.flag !== 'insufficient'; });
+  var stressLenses = available.filter(function(l) { return l.flag === 'stress'; });
+  var strongLenses = available.filter(function(l) { return l.flag === 'strong' || l.flag === 'clean'; });
+  var mixedLenses  = available.filter(function(l) { return l.flag === 'mixed'; });
+
+  var verdict, vColor, prose, watchItems = [];
+
+  // Loud at 3+ convergence (we have 3 lenses today; will rescale when 4+ added)
+  if (stressLenses.length >= 3) {
+    verdict = '\u26A0 Multi-Lens Warning';
+    vColor = 'var(--red)';
+    prose = 'All three lenses point to structural stress. ISC, traditional metrics, and the forensic screen converge on the same signal &#8212; this is the high-conviction warning configuration. Historically, convergent multi-lens signals precede the most significant adverse outcomes in retrospective testing.';
+    watchItems.push('Monitor for accelerating deterioration in any single lens.');
+    watchItems.push('Cross-check with insider transaction patterns when available.');
+  } else if (stressLenses.length === 2) {
+    var convergingNames = stressLenses.map(function(l) { return l.lens; });
+    var nonStress = available.filter(function(l) { return l.flag !== 'stress'; });
+    verdict = '\u25CB Partial Convergence';
+    vColor = 'var(--amber)';
+    var nonStressDesc = nonStress.length > 0 ? nonStress[0].lens + ' (' + nonStress[0].label.toLowerCase() + ')' : 'remaining lenses';
+    prose = convergingNames.join(' and ') + ' both indicate stress; ' + nonStressDesc + ' does not confirm. The signal is real but not yet fully corroborated. ';
+    if (stressLenses.some(function(l) { return l.lens === 'ISC'; }) && stressLenses.some(function(l) { return l.lens === 'Traditional'; })) {
+      prose += 'When ISC and traditional metrics agree, the structural and accounting pictures align &#8212; even without a forensic flag, this configuration warrants close monitoring.';
+    } else if (stressLenses.some(function(l) { return l.lens === 'Forensic'; })) {
+      prose += 'The forensic flag is the more specific signal; review the Forensic tab for which Beneish components are driving it.';
+    }
+    watchItems.push('Whether the non-confirming lens crosses into stress in subsequent filings.');
+  } else if (stressLenses.length === 1) {
+    var singleLens = stressLenses[0];
+    verdict = '\u25CB ' + singleLens.lens + ' Flag Only';
+    vColor = 'var(--amber)';
+    prose = singleLens.lens + ' shows ' + singleLens.label.toLowerCase() + ' (' + singleLens.note.toLowerCase().replace(/\.$/, '') + '), but the other lenses are clean. Single-lens flags are common in high-growth firms (forensic) or during transient market volatility (ISC) and frequently do not indicate underlying issues. ';
+    if (singleLens.lens === 'Forensic') {
+      prose += 'Beneish was calibrated on more mature firms; high-growth companies trigger frequently without manipulation. Review the Forensic tab for component-level drivers.';
+    } else if (singleLens.lens === 'ISC') {
+      prose += 'ISC variance can elevate during market regime shifts unrelated to firm fundamentals. Monitor whether traditional metrics begin to confirm.';
+    }
+    watchItems.push('Whether a second lens begins to confirm in the next 1-2 quarters.');
+  } else if (strongLenses.length >= 2 && stressLenses.length === 0) {
+    verdict = '\u2713 Clean Across Lenses';
+    vColor = 'var(--green)';
+    prose = 'No lens flags structural stress, manipulation pattern, or financial weakness. ';
+    if (strongLenses.length === 3) {
+      prose += 'All three lenses (ISC, traditional, forensic) actively confirm a healthy profile.';
+    } else {
+      prose += strongLenses.map(function(l) { return l.lens; }).join(' and ') + ' both indicate a clean profile; remaining lenses do not contradict.';
+    }
+    watchItems.push('No active signal &#8212; routine monitoring sufficient.');
+  } else {
+    verdict = '\u25CB Mixed / Insufficient Signal';
+    vColor = 'var(--dim)';
+    prose = 'Available lenses do not produce a coherent signal. ';
+    if (available.length < 2) {
+      prose += 'Insufficient data across multiple lenses to synthesize a multi-perspective read. Try a longer analysis window or load a historical demo for a fully-populated example.';
+    } else {
+      prose += 'Lenses show mixed signals without strong stress or strong-health convergence. The company is in a transition zone &#8212; either lens could lead the next regime change.';
+    }
+    watchItems.push('Direction of the lens currently in transition.');
+  }
+
+  return {
+    verdict: verdict,
+    color: vColor,
+    prose: prose,
+    lenses: lenses,
+    watchItems: watchItems,
+    convergenceCount: stressLenses.length,
+    availableCount: available.length
+  };
+}
+
 function rPlain(r,C,name,financials){
   name=name||'This company';
   financials=financials||{};
@@ -2116,10 +2257,30 @@ function renderAll(d){
     }
   })();
   (function(){var hg=detectHyperGrowth(d,r,C);var bgCol;if(!r||r.includes('insufficient')){bgCol='var(--dim)';}else if(hg){bgCol='var(--purple)';}else{bgCol=col;}document.getElementById('verdictCard').style.background=bgCol.replace(')',',0.06)').replace('var(--','rgba(');document.getElementById('verdictCard').style.border='1px solid '+bgCol.replace(')',',0.2)').replace('var(--','rgba(');})();
+  // ── SKEPTIC'S READ — multi-lens synthesis replaces the legacy Structural Read ──
+  var skRead = computeSkepticRead(d, r, C);
   document.getElementById('verdictCard').innerHTML=
-    '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:'+col+';margin-bottom:8px">Structural Read</div>'
-    +(function(){/* Batch 7h.3 applied */ var hg=detectHyperGrowth(d,r,C);var t,c;if(!r||r.includes('insufficient')||r.includes('unavailable')){t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}else if(hg){t=String.fromCharCode(9650)+' Phase Transition '+EMDASH+' Growth Regime';c='var(--purple)';}else if(r.includes('distressed')||r.includes('bifurcating')){t=String.fromCharCode(9888)+' High Volatility '+EMDASH+' Distressed Regime';c=col;}else if(r.includes('rising')){t=String.fromCharCode(9888)+' Rising Volatility '+EMDASH+' EWS Active';c=col;}else if(r.includes('elevated')||r.includes('trans')){t=String.fromCharCode(9678)+' Elevated Volatility Regime';c=col;}else if(r.includes('stable')||r.includes('regulated')){t=CHECK+' Variance EWS '+EMDASH+' Stable Regime';c=col;}else{t=String.fromCharCode(9678)+' Insufficient Data Available';c='var(--dim)';}return '<div class="verdict-title" style="color:'+c+'">'+t+'</div>';})()
-    +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+rPlain(r,C,d.company_name||d.ticker,{fcf:gv(CF,"fcf"),intCov:gv(TM,"interest_coverage"),fcfM:gv(CF,"fcf_margin"),rev:gv(IS,"revenue"),revG:gv(IS,"revenue_growth"),oi:gv(IS,"operating_income"),altZ:gv(TM,"altman_z"),piotF:gv(TM,"piotroski_f")})+'</div>'
+    '<div style="font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px;font-weight:700">Skeptic&rsquo;s Read</div>'
+    +'<div class="verdict-title" style="color:'+skRead.color+';margin-bottom:14px">'+skRead.verdict+'</div>'
+    // Three-lens grid
+    +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">'
+    +skRead.lenses.map(function(l){
+      return '<div style="background:rgba(0,0,0,.2);border-radius:8px;padding:11px;border-left:3px solid '+l.color+'">'
+        +'<div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">'+l.lens+'</div>'
+        +'<div style="font-size:14px;font-weight:700;color:'+l.color+'">'+l.label+'</div>'
+        +'<div style="font-size:11px;color:var(--dim);margin-top:3px;line-height:1.5">'+l.note+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+    // Synthesis prose
+    +'<div style="font-size:14px;color:#A0B8D0;line-height:1.8;margin-bottom:14px">'+skRead.prose+'</div>'
+    // What to watch (if non-empty)
+    +(skRead.watchItems && skRead.watchItems.length ?
+      '<div style="margin-bottom:14px;padding:10px 12px;background:rgba(0,200,255,.04);border-left:3px solid var(--cyan);border-radius:4px">'
+      +'<div style="font-size:10px;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:6px">What to watch</div>'
+      +skRead.watchItems.map(function(w){return '<div style="font-size:13px;color:#A0B8D0;line-height:1.7;margin-bottom:3px">&middot; '+w+'</div>';}).join('')
+      +'</div>'
+      : '')
     +(d.isSimulation?'<div class="al al-a"><span>&#9888;</span><div>API warming up &#8212; estimated signal shown. <button onclick="runAnal()" style="background:none;border:none;color:var(--cyan);cursor:pointer;font-weight:700;text-decoration:underline">Click here to run again</button> for real EDGAR data.</div></div>':'')
     +function(){
       if(C==null) return '';
