@@ -2852,8 +2852,9 @@ function renderAll(d){
     var fmted='<span style="color:#374151">N/A</span>';
     if(v!=null){
       if(key==='piotroski_f')fmted=v+'/9';
-      else if(key.includes('margin')||key==='roa'||key==='roe')fmted=Number(v).toFixed(1)+'%';
+      else if(key.includes('margin')||key==='roa'||key==='roe'||key==='roic'||key==='fcf_yield_pct'||key==='goodwill_ta_pct')fmted=Number(v).toFixed(1)+'%';
       else if(key==='interest_coverage')fmted=Number(v).toFixed(1)+'x';
+      else if(key==='dso'||key==='dio'||key==='dpo'||key==='cash_conversion_cycle')fmted=Number(v).toFixed(0)+' days';
       else fmted=Number(v).toFixed(2);
     }
     var col='var(--wh)';
@@ -2864,7 +2865,19 @@ function renderAll(d){
     if(key==='debt_to_ebitda'&&v!=null)col=v<2?'var(--green)':v<4?'var(--amber)':'var(--red)';
     if(key==='roa'&&v!=null)col=v>5?'var(--green)':v>0?'var(--amber)':'var(--red)';
     if(key==='roe'&&v!=null)col=v>15?'var(--green)':v>0?'var(--amber)':'var(--red)';
+    if(key==='roic'&&v!=null)col=v>15?'var(--green)':v>8?'var(--amber)':'var(--red)';
     if(key==='op_margin_pct'&&v!=null)col=v>10?'var(--green)':v>0?'var(--amber)':'var(--red)';
+    if(key==='ebitda_margin_pct'&&v!=null)col=v>20?'var(--green)':v>10?'var(--amber)':'var(--red)';
+    if(key==='fcf_yield_pct'&&v!=null)col=v>5?'var(--green)':v>2?'var(--amber)':'var(--red)';
+    // Goodwill: high ratio = elevated writedown risk
+    if(key==='goodwill_ta_pct'&&v!=null)col=v<20?'var(--green)':v<40?'var(--amber)':'var(--red)';
+    // Working capital: higher days = more cash tied up. Industry varies wildly
+    // (software ~30d, retail ~60d, heavy equipment ~120d) so we use generous
+    // thresholds and rely on trend, not absolute level.
+    if(key==='dso'&&v!=null)col=v<60?'var(--green)':v<90?'var(--amber)':'var(--red)';
+    if(key==='dio'&&v!=null)col=v<60?'var(--green)':v<120?'var(--amber)':'var(--red)';
+    if(key==='dpo'&&v!=null)col='var(--wh)';  // higher DPO can be good or bad — no color
+    if(key==='cash_conversion_cycle'&&v!=null)col=v<0?'var(--green)':v<60?'var(--green)':v<120?'var(--amber)':'var(--red)';
     var bmLabel='';
     if(bm&&v!=null)bmLabel='<span style="font-size:10px;padding:1px 7px;border-radius:100px;background:'+col.replace(')',',0.15)').replace('var(--','rgba(')+';color:'+col+';margin-left:6px">'+bm.fmt(v)+'</span>';
     var spark=tmSparkData[key]?{data:tmSparkData[key],color:col==='var(--red)'?'#EF4444':col==='var(--green)'?'#10B981':'#F59E0B'}:null;
@@ -2875,7 +2888,7 @@ function renderAll(d){
       +'</div></div>';
   }
   document.getElementById('tradContent').innerHTML=
-    ['altman_z','piotroski_f','current_ratio','quick_ratio','interest_coverage','debt_to_ebitda','debt_to_equity','roa','roe','asset_turnover','gross_margin_pct','op_margin_pct'].map(tmRowSpark).join('');
+    ['altman_z','piotroski_f','current_ratio','quick_ratio','interest_coverage','debt_to_ebitda','debt_to_equity','roa','roe','roic','asset_turnover','gross_margin_pct','op_margin_pct','ebitda_margin_pct','fcf_yield_pct','goodwill_ta_pct','dso','dio','dpo','cash_conversion_cycle'].map(tmRowSpark).join('');
 
   // FORENSIC (Beneish M-Score)
   (function renderForensic(){
