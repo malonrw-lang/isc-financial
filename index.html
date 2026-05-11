@@ -1003,8 +1003,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <span style="font-size:16px">&#55357;&#56481;</span>
               <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">How to read the income statement:</strong> Follow the money from the top (Revenue) down to the bottom (Net Income). Each layer subtracts another type of cost. A healthy company should have strong margins at each layer. Watch for gross margin vs operating margin &#8212; a big gap means high overhead costs.</div>
             </div>
+            <div id="incomeCommentary" class="card-hi" style="display:none;margin-top:14px"></div>
             <div class="card-hi"><div class="sb-lbl" style="margin-bottom:4px">Income Statement &#8212; Trailing Twelve Months</div><div style="font-size:12px;color:var(--dim);margin-bottom:14px">Source: SEC EDGAR 10-K / 10-Q &#183; All figures in millions USD</div><div id="incomeContent"></div></div>
-            <div id="incomeCommentary" class="card" style="display:none"></div>
           </div>
 
           <!-- BALANCE SHEET -->
@@ -1013,8 +1013,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <span style="font-size:16px">&#55357;&#56481;</span>
               <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">How to read the balance sheet:</strong> Assets = Liabilities + Equity. Always. Think of it as a snapshot of what the company owns vs what it owes on a single day. High debt relative to equity means the company is leveraged &#8212; manageable when profitable, dangerous when earnings fall.</div>
             </div>
+            <div id="balanceCommentary" class="card-hi" style="display:none;margin-top:14px"></div>
             <div class="card-hi"><div class="sb-lbl" style="margin-bottom:4px">Balance Sheet &#8212; Most Recent Quarter</div><div style="font-size:12px;color:var(--dim);margin-bottom:14px">Source: SEC EDGAR</div><div id="balanceContent"></div></div>
-            <div id="balanceCommentary" class="card" style="display:none"></div>
           </div>
 
           <!-- CASH FLOW -->
@@ -1023,8 +1023,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <span style="font-size:16px">&#55357;&#56496;</span>
               <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Cash flow is the most honest financial signal.</strong> Net income can be manipulated by accounting choices &#8212; depreciation schedules, revenue recognition timing, write-offs. Cash flow is much harder to fake. A company that consistently generates more cash than it reports in earnings is almost always high quality.</div>
             </div>
+            <div id="cashCommentary" class="card-hi" style="display:none;margin-top:14px"></div>
             <div class="card-hi"><div class="sb-lbl" style="margin-bottom:4px">Cash Flow Statement &#8212; Trailing Twelve Months</div><div style="font-size:12px;color:var(--dim);margin-bottom:14px">Source: SEC EDGAR</div><div id="cashContent"></div></div>
-            <div id="cashCommentary" class="card" style="display:none"></div>
           </div>
 
           <!-- TRADITIONAL -->
@@ -3325,7 +3325,7 @@ function renderTabCommentaries(d){
   function fmt(v){if(v==null||isNaN(v))return 'N/A';var a=Math.abs(v);if(a>=1000)return (v<0?'-':'')+'$'+(a/1000).toFixed(1)+'B';return (v<0?'-':'')+'$'+a.toFixed(0)+'M';}
   function pctF(v){if(v==null||isNaN(v))return 'N/A';return (v>=0?'+':'')+v.toFixed(1)+'%';}
   function tone(){if(hg)return 'var(--purple)';if(r.includes('distressed')||r.includes('bifurcating'))return 'var(--red)';if(r.includes('rising')||r.includes('elevated')||r.includes('trans'))return 'var(--amber)';if(r.includes('stable')||r.includes('regulated'))return 'var(--green)';return 'var(--dim)';}
-  function header(label,color){return '<div class="sb-lbl" style="margin-bottom:10px;color:'+color+'">'+label+'</div>';}
+  function header(label,color){return '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;flex-wrap:wrap"><div class="sb-lbl" style="color:var(--cyan);font-weight:700">Skeptic\'s Read</div><div style="font-size:12px;color:var(--dim);font-family:var(--mono)">&middot;</div><div class="sb-lbl" style="color:'+color+'">'+label+'</div></div>';}
   function bullet(text){return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;line-height:1.7;font-size:13px;color:#A0B8D0"><span style="color:'+tone()+';margin-top:1px">' + String.fromCharCode(8226) + '</span><div>'+text+'</div></div>';}
   // -------------------- INCOME STATEMENT --------------------
   var icEl=document.getElementById('incomeCommentary');
