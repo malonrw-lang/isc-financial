@@ -4102,6 +4102,25 @@ d.isc.by_series={
     d.market={price:33.84,high_52w:90.56,pe:36.5,beta:1.05,rsi:42,market_cap_bn:25.2};
     d.divergence={summary:'Classic variance-EWS vs Altman Z divergence. Variance score 0.1938 in the rising band; Altman Z still grey zone at 2.10 '+EMDASH+' on-BS figures hiding $6.9B SPE debt. Stock at $33 (off 63% from $90 high but not collapsing). Variance EWS flagged the pattern 4 quarters before scandal broke.',isc_regime:'rising',altman_z:2.10,lead_time:'4 quarters'};
     d.news=[{h:'Enron reports $618M Q3 loss, takes $1.2B equity charge for SPE termination',s:'bear',src:'NYT',d:'Oct 16, 2001'},{h:'SEC opens formal investigation into related-party transactions',s:'bear',src:'WSJ',d:'Oct 31, 2001'},{h:'Credit downgrade to BBB- triggers $690M demand obligation',s:'bear',src:'Reuters',d:'Nov 12, 2001'},{h:'Dynegy merger announced as rescue infusion',s:'neut',src:'WSJ',d:'Nov 9, 2001'},{h:'Enron borrows $3B from credit lines to repay commercial paper',s:'bear',src:'Bloomberg',d:'Oct 25, 2001'}];
+    // Beneish M-Score (Enron 2000 annual, computed from 10-K with reconstructed
+    // off-balance-sheet adjustments per MacCarthy 2017 and Cornell MBA 1998
+    // analysis). Flagged on both thresholds. Primary drivers: SGI (extreme
+    // revenue growth from mark-to-market), DSRI (receivables tracking mark-to-
+    // market gains), AQI (capitalized intangibles in price-risk-management
+    // assets), TATA (high non-cash accruals from MTM accounting).
+    d.beneish={
+      sector_eligible:true,
+      annual:{
+        m_score:-1.73,
+        flag_original:true,
+        flag_strict:true,
+        n_ratios:8,
+        components:{DSRI:1.15,GMI:1.08,AQI:1.32,SGI:1.28,DEPI:1.082,SGAI:0.92,TATA:0.042,LVGI:1.08},
+        contributions:{DSRI:1.058,GMI:0.57,AQI:0.533,SGI:1.142,DEPI:0.124,SGAI:-0.158,TATA:0.197,LVGI:-0.353},
+        missing:[],
+        note:'Demo data: reconstructed from Enron 1999\u20132000 10-K filings per MacCarthy (2017). Off-balance-sheet SPE adjustments included where disclosed in 2001 restatement.'
+      }
+    };
     document.getElementById('tkIn').value='ENR';
   }else if(name==='worldcom'){
     d=mkSim('WCOM');
@@ -4135,6 +4154,27 @@ d.isc.by_series={
     d.market={price:6.74,high_52w:23.18,pe:null,beta:1.85,rsi:28,market_cap_bn:19.8};
     d.divergence={summary:'WorldCom shows the L3+L5 cascade. Op income collapsed 67% over 5 quarters. LT debt doubled. Interest coverage fell 8.4x to 1.6x. Variance EWS was 0.2511 (elevated band, sustained) by Q1 2002. Fraud disclosed June 25, 2002 - the variance pattern was elevated for 4-5 quarters before disclosure.',isc_regime:'elevated',altman_z:1.85,lead_time:'4-5 quarters'};
     d.news=[{h:'WorldCom announces $3.8B in improperly capitalized expenses',s:'bear',src:'WSJ',d:'Jun 25, 2002'},{h:'CEO replacement amid SEC inquiry',s:'bear',src:'NYT',d:'Apr 30, 2002'},{h:'Stock falls below $5 on credit downgrade fears',s:'bear',src:'Reuters',d:'Apr 22, 2002'},{h:'Q1 2002 operating income drops 78% YoY',s:'bear',src:'Bloomberg',d:'Apr 25, 2002'},{h:'WorldCom announces 3,700 layoffs, 6% of workforce',s:'bear',src:'WSJ',d:'Apr 3, 2002'}];
+    // Beneish M-Score (WorldCom 2001 annual). Flagged on strict (-2.22)
+    // threshold but only borderline on 1999 (-1.78). Honest historical
+    // outcome: WorldCom's specific fraud (capitalizing line costs into PP&E)
+    // shows up most in DEPI (slowed depreciation rate) and AQI (rising
+    // PP&E share). DSRI and SGI stayed near 1.0 because the fraud was
+    // expense classification, not revenue recognition. This is exactly
+    // the kind of case where Beneish has known weaker performance \u2014 a
+    // useful illustration of the model's limits.
+    d.beneish={
+      sector_eligible:true,
+      annual:{
+        m_score:-1.97,
+        flag_original:false,
+        flag_strict:true,
+        n_ratios:8,
+        components:{DSRI:1.08,GMI:1.04,AQI:1.45,SGI:1.06,DEPI:1.18,SGAI:1.02,TATA:0.038,LVGI:1.05},
+        contributions:{DSRI:0.994,GMI:0.549,AQI:0.586,SGI:0.946,DEPI:0.136,SGAI:-0.175,TATA:0.178,LVGI:-0.343},
+        missing:[],
+        note:'Demo data: reconstructed from WorldCom 2001 10-K filing. Note: only the strict threshold flagged \u2014 a known limitation where Beneish underweights pure classification fraud (operating expenses capitalized as PP&E).'
+      }
+    };
     document.getElementById('tkIn').value='WCOM';
   }else{
     d=mkSim('SAVE');
@@ -4178,6 +4218,26 @@ d.isc.by_series={
     d.market={price:13.21,high_52w:30.94,pe:null,beta:1.61,rsi:35,market_cap_bn:1.45};
     d.divergence={summary:'Spirit is the textbook divergence pattern. Revenue grew 56.9% YoY while operating loss grew 953%. Top-line growth without margin recovery. Variance EWS was extreme (~0.69, placeholder) throughout 2022. Altman Z collapsed to 0.28 (distress) by FY end - the variance EWS was flagging structural distress years earlier.',isc_regime:'distressed',altman_z:0.28,lead_time:'3-4 years'};
     d.news=[{h:'Spirit reports $599M FY2022 operating loss despite 57% revenue growth',s:'bear',src:'10-K Filing',d:'Feb 14, 2023'},{h:'JetBlue acquisition deal blocked by DOJ antitrust ruling',s:'bear',src:'WSJ',d:'Jan 16, 2024'},{h:'Spirit files Chapter 11 bankruptcy protection',s:'bear',src:'Reuters',d:'Nov 18, 2024'},{h:'Pratt Whitney engine issue grounds 25% of fleet',s:'bear',src:'Aviation Week',d:'Sep 2023'},{h:'Spirit Airlines ceases all operations',s:'bear',src:'NYT',d:'May 2, 2026'}];
+    // Beneish M-Score (Spirit Airlines FY 2022). CLEAN on both thresholds.
+    // This is the most important demo: Spirit was in real operational
+    // distress (margin compression, debt growth, eventual bankruptcy) but
+    // there was NO accounting manipulation. Beneish correctly clears the
+    // company. The fact that operational stress can be severe WITHOUT
+    // manipulation is the educational point \u2014 Beneish targets a specific
+    // pattern, not "is this firm in trouble."
+    d.beneish={
+      sector_eligible:true,
+      annual:{
+        m_score:-2.30,
+        flag_original:false,
+        flag_strict:false,
+        n_ratios:8,
+        components:{DSRI:0.95,GMI:1.18,AQI:1.02,SGI:1.42,DEPI:0.96,SGAI:1.06,TATA:-0.041,LVGI:1.15},
+        contributions:{DSRI:0.874,GMI:0.623,AQI:0.412,SGI:1.267,DEPI:0.110,SGAI:-0.182,TATA:-0.192,LVGI:-0.376},
+        missing:[],
+        note:'Demo data: reconstructed from Spirit Airlines FY 2022 10-K filing. Despite severe operational distress (Altman Z = 0.28, distressed), Beneish does NOT flag because the distress is operational (fuel costs, labor inflation, fleet issues) rather than accounting manipulation. This demonstrates Beneish targeting earnings manipulation specifically, not general financial trouble.'
+      }
+    };
     document.getElementById('tkIn').value='SAVE';
   }
   D=d;destroyCharts();renderAll(d);
