@@ -2147,7 +2147,38 @@ function rPlain(r,C,name,financials){
    RUN ANALYSIS
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 async function runAnal() {
-  var tk=document.getElementById('tkIn').value.toUpperCase().trim();
+  var rawInput = document.getElementById('tkIn').value.trim();
+  if(!rawInput)return;
+  // Batch 7h.23: accept company names, not just tickers. If the user typed
+  // 'Apple' or 'Tesla Inc' instead of AAPL/TSLA, look up the ticker from the
+  // KNOWN table. Normalize by lowercasing and stripping common corporate
+  // suffixes (Inc, Corp, Corporation, Co, Ltd) so 'apple', 'Apple Inc',
+  // 'Apple Inc.', 'Apple Corporation' all match. Falls through to raw input
+  // if no match — preserves existing typed-ticker workflow.
+  var tk = rawInput.toUpperCase();
+  if (typeof KNOWN === 'object' && !KNOWN[tk]) {
+    var normalize = function(s) {
+      return s.toLowerCase()
+        .replace(/[.,'’]/g,'')                                // drop punctuation incl. apostrophes
+        .replace(/\b(inc|incorporated|corp|corporation|co|company|ltd|limited|plc|llc|holdings|group)\b/g, '')
+        .replace(/\s+/g,' ')                                  // collapse spaces
+        .trim();
+    };
+    var needle = normalize(rawInput);
+    if (needle) {
+      var resolved = null;
+      for (var key in KNOWN) {
+        if (KNOWN.hasOwnProperty(key) && KNOWN[key].n) {
+          if (normalize(KNOWN[key].n) === needle) { resolved = key; break; }
+        }
+      }
+      if (resolved) {
+        tk = resolved;
+        // Update the input box so the user sees what was matched
+        document.getElementById('tkIn').value = tk;
+      }
+    }
+  }
   if(!tk)return;
   /* Batch 7h.5 — track analysis run for Plausible */
   if(typeof trackEvent==='function')trackEvent('Analysis Run',{ticker:tk});
