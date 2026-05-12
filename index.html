@@ -239,8 +239,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 /* VERDICT */
 .verdict-card{border-radius:12px;padding:22px}
 .verdict-title{font-size:22px;font-weight:800;letter-spacing:-.025em;margin-bottom:8px}
-.verdict-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
-@media(max-width:700px){.verdict-grid{grid-template-columns:1fr 1fr}}
+.verdict-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+@media(max-width:700px){.verdict-grid{grid-template-columns:1fr 1fr 1fr}}
 .vstat{background:rgba(0,0,0,.25);border-radius:8px;padding:11px 13px}
 .vstat-lbl{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
 .vstat-val{font-family:var(--mono);font-size:15px;font-weight:700}
@@ -589,7 +589,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="pc-price" style="color:var(--amber)">$0</div>
         <div class="pc-period">30 days &#183; No credit card</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>ISC regime signal</div>
-        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Stability score 0&#8211;100</div>
+        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>3-lens Skeptic's Read synthesis</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Plain-English structural read</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Red flag alerts</div>
         <div class="pc-note">Full access for 30 days, then $19.99/mo automatically.</div>
@@ -1150,7 +1150,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="pc-price" style="color:var(--amber)">$0</div>
         <div class="pc-period">30 days &#183; No credit card</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>ISC regime classification</div>
-        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Stability score 0&#8211;100</div>
+        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>3-lens Skeptic's Read synthesis</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Plain-English structural read</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Coupling score visualization</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Enron / WorldCom / Spirit historical demos</div>
@@ -1621,7 +1621,7 @@ function setTier(t, el) {
   document.getElementById('planPrice').style.color = cfg.color;
   document.getElementById('planDesc').textContent = cfg.desc;
   var feats = {
-    free: ['ISC regime signal','Stability score','Plain-English structural read','Coupling visualization','Historical demos'],
+    free: ['ISC regime signal','3-lens Skeptic\'s Read','Plain-English structural read','Variance EWS trajectory','Historical demos'],
     investor: ['Full EDGAR financials','Balance sheet & cash flow','Altman Z &#183; Piotroski F','7-layer cascade','6 chart visualizations','Basic PDF report'],
     pro: ['Peer comparison (5 peers)','Peer ISC ranking charts','Sector regime insights','Claude AI analyst chat','Full PDF report'],
     pro500: ['White-label PDF','JSON data export','Team seats','Priority support','GPT-4o second opinion (coming soon)','API access (coming soon)']
@@ -2413,7 +2413,6 @@ function renderAll(d){
     }()
     +'<div class="verdict-grid">'
     +'<div class="vstat"><div class="vstat-lbl">Variance EWS</div><div class="vstat-val" style="color:'+col+'">'+(C!=null?C.toFixed(3):'N/A')+'</div></div>'
-    +'<div class="vstat"><div class="vstat-lbl">Stability</div><div class="vstat-val" style="color:'+col+'">'+(stab!=null?stab+'/100':'N/A')+'</div></div>'
     +'<div class="vstat"><div class="vstat-lbl">Altman Z</div><div class="vstat-val" style="color:'+(altZ!=null?altZ>3?'var(--green)':altZ>1.81?'var(--amber)':'var(--red)':'var(--dim)')+'">'+(altZ!=null?altZ.toFixed(2):'N/A')+'</div></div>'
     +'<div class="vstat"><div class="vstat-lbl">Piotroski F</div><div class="vstat-val" style="color:'+(piF!=null?piF>=7?'var(--green)':piF>=4?'var(--amber)':'var(--red)':'var(--dim)')+'">'+(piF!=null?piF+'/9':'N/A')+'</div></div>'
     +'</div>';
