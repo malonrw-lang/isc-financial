@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1862,26 +1863,85 @@ function computeSkepticRead(d, r, C) {
   // ── LENS 2: Traditional (Altman + Piotroski + margin direction) ──────
   // Backend ships values in `d.traditional` (not `d.traditional_metrics`).
   // Margin fields are in percent units (e.g. op_margin_pct = 9.5 not 0.095).
+  // Batch 7h.21: sector-aware. Altman Z's sales/total_assets term structurally
+  // penalizes banks (huge balance sheets relative to NII) and doesn't model
+  // insurance/REIT balance sheets at all. For non-industrial buckets, drop
+  // Altman and substitute sector-specific metrics from d.sector_metrics.
   var altZ = gv2(TM, 'altman_z'), piF = gv2(TM, 'piotroski_f');
   var om = gv2(TM, 'op_margin_pct'), rg = gv2(IS, 'revenue_growth'), intCov = gv2(TM, 'interest_coverage');
   var fcfM = gv2(CF, 'fcf_margin');
+  var bucket = d.sector_bucket || 'industrial';
+  var sm = d.sector_metrics || {};
   var tradRead = { lens: 'Traditional', label: 'Insufficient', color: 'var(--dim)', flag: 'insufficient', note: 'Core metrics unavailable.' };
-  if (altZ != null || piF != null) {
+
+  // For non-industrial sectors, Altman doesn't apply — null it out of the count.
+  // Piotroski uses ROA/ROE/leverage/CFO trends and works across sectors, so keep it.
+  var altZApplies = (bucket === 'industrial');
+  var effAltZ = altZApplies ? altZ : null;
+
+  if (effAltZ != null || piF != null || (bucket !== 'industrial' && sm && Object.keys(sm).length > 1)) {
     var stress = 0, strong = 0, total = 0;
-    if (altZ != null) { total++; if (altZ < 1.81) stress++; else if (altZ > 3.0) strong++; }
+    if (effAltZ != null) { total++; if (effAltZ < 1.81) stress++; else if (effAltZ > 3.0) strong++; }
     if (piF != null) { total++; if (piF < 4) stress++; else if (piF >= 7) strong++; }
-    if (intCov != null) { total++; if (intCov < 1.5) stress++; else if (intCov > 5) strong++; }
-    if (om != null) { total++; if (om < 0) stress++; else if (om > 15) strong++; }
-    if (rg != null) { total++; if (rg < -5) stress++; else if (rg > 10) strong++; }
-    // Severe-single-signal escalation: Altman in distress zone OR Piotroski <= 2 is
-    // a strong individual signal even without corroboration. Both indicators are
-    // designed to be standalone red flags.
-    var severeSingle = (altZ != null && altZ < 1.81) || (piF != null && piF <= 2) ||
-                       (intCov != null && intCov < 0) || (om != null && om < -5);
+    if (intCov != null && bucket === 'industrial') { total++; if (intCov < 1.5) stress++; else if (intCov > 5) strong++; }
+    if (om != null && bucket === 'industrial') { total++; if (om < 0) stress++; else if (om > 15) strong++; }
+    if (rg != null && bucket === 'industrial') { total++; if (rg < -5) stress++; else if (rg > 10) strong++; }
+
+    // Sector-specific signals replace the industrial metrics dropped above.
+    if (bucket === 'bank') {
+      // Tier 1 capital ratio: >10.5% = well capitalized (Basel III), 8-10.5% adequate, <8% stressed.
+      var tier1 = sm.tier1_ratio;
+      if (tier1 != null) { total++; if (tier1 > 0.105) strong++; else if (tier1 < 0.08) stress++; }
+      // Efficiency ratio: <60% = efficient bank, 60-70% adequate, >70% stressed.
+      var effRatio = sm.efficiency_ratio;
+      if (effRatio != null) { total++; if (effRatio < 0.60) strong++; else if (effRatio > 0.70) stress++; }
+      // Net interest margin: >3% strong, 2-3% adequate, <2% pressured.
+      var nim = sm.net_interest_margin;
+      if (nim != null) { total++; if (nim > 0.03) strong++; else if (nim < 0.02) stress++; }
+    } else if (bucket === 'insurance') {
+      // Combined ratio: <100% = profitable underwriting, 100-105% borderline, >105% structurally stressed.
+      var cr = sm.combined_ratio;
+      if (cr != null) { total++; if (cr < 1.0) strong++; else if (cr > 1.05) stress++; }
+      // Loss ratio in normal industry range 60-70%; outside is worth flagging.
+      var lr = sm.loss_ratio;
+      if (lr != null) { total++; if (lr < 0.65) strong++; else if (lr > 0.75) stress++; }
+    } else if (bucket === 'reit') {
+      // FFO presence: positive FFO is the REIT-canonical earnings signal.
+      var ffo = sm.ffo_ttm;
+      if (ffo != null) { total++; if (ffo > 0) strong++; else stress++; }
+      // NOI yield: typical 4-8% on cost; <3% structurally weak, >8% strong.
+      var noiY = sm.noi_yield;
+      if (noiY != null) { total++; if (noiY > 0.06) strong++; else if (noiY < 0.03) stress++; }
+    }
+
+    // Severe-single-signal escalation. Only fire Altman in industrial bucket;
+    // banks/insurance/REITs use their sector-canonical critical-threshold signals.
+    var severeSingle = false;
+    var severeNote = '';
+    if (altZApplies && altZ != null && altZ < 1.81) {
+      severeSingle = true;
+      severeNote = 'Altman Z ' + altZ.toFixed(2) + ' in distress zone';
+    } else if (piF != null && piF <= 2) {
+      severeSingle = true;
+      severeNote = 'Piotroski F ' + piF + '/9 weak';
+    } else if (bucket === 'industrial' && intCov != null && intCov < 0) {
+      severeSingle = true;
+      severeNote = 'Interest coverage negative — earnings cannot service debt';
+    } else if (bucket === 'industrial' && om != null && om < -5) {
+      severeSingle = true;
+      severeNote = 'Operating margin ' + om.toFixed(1) + '% — core business unprofitable';
+    } else if (bucket === 'bank' && sm.tier1_ratio != null && sm.tier1_ratio < 0.06) {
+      severeSingle = true;
+      severeNote = 'Tier 1 capital ratio ' + (sm.tier1_ratio * 100).toFixed(1) + '% — below regulatory minimum';
+    } else if (bucket === 'insurance' && sm.combined_ratio != null && sm.combined_ratio > 1.10) {
+      severeSingle = true;
+      severeNote = 'Combined ratio ' + (sm.combined_ratio * 100).toFixed(1) + '% — significant underwriting losses';
+    }
+
     if (stress >= 2 && stress > strong) {
       tradRead = { lens: 'Traditional', label: 'Stress', color: 'var(--red)', flag: 'stress', note: stress + ' of ' + total + ' core metrics in stress range.' };
     } else if (severeSingle && stress >= strong) {
-      tradRead = { lens: 'Traditional', label: 'Stress', color: 'var(--red)', flag: 'stress', note: 'Severe single signal: ' + (altZ != null && altZ < 1.81 ? 'Altman Z ' + altZ.toFixed(2) + ' in distress zone' : piF != null && piF <= 2 ? 'Piotroski F ' + piF + '/9 weak' : 'core metric in distress range') + '.' };
+      tradRead = { lens: 'Traditional', label: 'Stress', color: 'var(--red)', flag: 'stress', note: 'Severe single signal: ' + severeNote + '.' };
     } else if (strong >= 3 && strong > stress) {
       tradRead = { lens: 'Traditional', label: 'Strong', color: 'var(--green)', flag: 'strong', note: strong + ' of ' + total + ' core metrics in strong range.' };
     } else if (stress >= 1 && strong >= 1) {
@@ -2183,7 +2243,15 @@ function renderAll(d){
 
   // Header
   (function(){var nm=d.company_name;if(!nm||nm===d.ticker){if(typeof KNOWN!=='undefined'&&KNOWN[d.ticker]&&KNOWN[d.ticker].n)nm=KNOWN[d.ticker].n;}document.getElementById('cmpName').textContent=nm&&nm!==d.ticker?nm:d.ticker;})();
-  document.getElementById('cmpSector').textContent=[d.sector,d.industry].filter(Boolean).join(' '+MIDDOT+' ')||EMDASH;
+  // Batch 7h.21: dedupe sector and industry when backend fell both back to
+  // sicDescription (happens when yfinance is unavailable on Render). Without
+  // this, banks display 'National Commercial Banks · National Commercial Banks'.
+  var __secText = d.sector || '';
+  var __indText = d.industry || '';
+  var __secParts = (__secText && __indText && __secText.toLowerCase() === __indText.toLowerCase())
+    ? [__secText]
+    : [__secText, __indText].filter(Boolean);
+  document.getElementById('cmpSector').textContent = __secParts.join(' '+MIDDOT+' ') || EMDASH;
   /* Batch 7h.9: append sector bucket badge when sector-aware metrics apply */
   (function(){
     var sb=d.sector_bucket;
