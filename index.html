@@ -1143,7 +1143,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>ISC regime classification</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>3-lens Skeptic's Read synthesis</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Plain-English structural read</div>
-        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Coupling score visualization</div>
+        <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Variance EWS trajectory</div>
         <div class="pc-feat"><span style="color:var(--amber)">&#10003;</span>Enron / WorldCom / Spirit historical demos</div>
         <div class="pc-note">Full access for 30 days, then transitions to Investor plan automatically.</div>
         <button class="pc-btn" style="background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)" onclick="startTrial()">Start Free Trial &#8594;</button>
@@ -2021,6 +2021,20 @@ function computeSkepticRead(d, r, C) {
     watchItems.push('Direction of the lens currently in transition.');
   }
 
+  // Batch 7h.22: biotech-specific watch guidance. The generic "second lens
+  // confirms" template assumes Traditional can move; for clinical-stage biotech,
+  // Traditional is structurally Insufficient (operating losses by design) so
+  // the watchpoints are cash runway, clinical milestones, and dilution risk.
+  // Variance EWS captures market reaction to these events but not the events
+  // themselves — users still need to track the underlying drivers.
+  if (d.sector_bucket === 'biotech') {
+    watchItems = [
+      'Cash runway &mdash; quarters of operating cash at current burn rate.',
+      'Clinical trial milestones (Phase II/III readouts, FDA action dates).',
+      'Dilution risk &mdash; recent equity issuance or convertible activity.'
+    ];
+  }
+
   return {
     verdict: verdict,
     color: vColor,
@@ -2374,10 +2388,43 @@ function renderAll(d){
       var leadTime = (r&&r.includes('distressed'))?'1&#8211;3 quarters':(r&&r.includes('rising'))?'2&#8211;4 quarters':(r&&r.includes('elevated'))?'3&#8211;6 quarters':(r&&r.includes('stable'))?'No active signal':'Insufficient data';
       
       // Corroboration score - how many traditional metrics confirm ISC
+      // Batch 7h.22: sector-aware confirmation. Industrial uses Altman+FCF+IntCov.
+      // Banks/insurance/REITs replace those with their sector-canonical metrics
+      // (already loaded via d.sector_metrics). Without this BAC showed "1 of 1"
+      // because two of the three industrial metrics were correctly null for banks,
+      // which understates the confirmation breadth available from bank metrics.
+      var bucket = d.sector_bucket || 'industrial';
+      var sm = d.sector_metrics || {};
       var confirms = 0, total = 0;
-      if(altZ!=null){total++;if(altZ<1.81)confirms++;}
-      if(fcfM!=null){total++;if(fcfM<0)confirms++;}
-      if(intCov!=null){total++;if(intCov<1.5)confirms++;}
+      if (bucket === 'industrial') {
+        if(altZ!=null){total++;if(altZ<1.81)confirms++;}
+        if(fcfM!=null){total++;if(fcfM<0)confirms++;}
+        if(intCov!=null){total++;if(intCov<1.5)confirms++;}
+      } else if (bucket === 'bank') {
+        // Tier 1 < 8% = stressed (regulatory weakness)
+        if (sm.tier1_ratio != null) { total++; if (sm.tier1_ratio < 0.08) confirms++; }
+        // Efficiency ratio > 70% = operationally stressed
+        if (sm.efficiency_ratio != null) { total++; if (sm.efficiency_ratio > 0.70) confirms++; }
+        // NIM < 2% = pressured net interest margin
+        if (sm.net_interest_margin != null) { total++; if (sm.net_interest_margin < 0.02) confirms++; }
+      } else if (bucket === 'insurance') {
+        // Combined ratio > 105% = significant underwriting stress
+        if (sm.combined_ratio != null) { total++; if (sm.combined_ratio > 1.05) confirms++; }
+        // Loss ratio > 75% = elevated claims exposure
+        if (sm.loss_ratio != null) { total++; if (sm.loss_ratio > 0.75) confirms++; }
+      } else if (bucket === 'reit') {
+        // FFO must be positive for a healthy REIT
+        if (sm.ffo_ttm != null) { total++; if (sm.ffo_ttm < 0) confirms++; }
+        // NOI yield < 3% = structurally weak
+        if (sm.noi_yield != null) { total++; if (sm.noi_yield < 0.03) confirms++; }
+      } else {
+        // 'other' (asset managers, broker-dealers, etc.) and 'biotech' fall here.
+        // Keep industrial metrics as a best-effort; will read 0-of-0 for biotech
+        // (correctly degraded — no traditional metrics apply).
+        if(altZ!=null){total++;if(altZ<1.81)confirms++;}
+        if(fcfM!=null){total++;if(fcfM<0)confirms++;}
+        if(intCov!=null){total++;if(intCov<1.5)confirms++;}
+      }
       var corrobPct = total>0?Math.round((confirms/total)*100):null;
       var corrobLabel = corrobPct!=null?(corrobPct>=67?'High &#8212; traditional metrics confirm':corrobPct>=34?'Moderate &#8212; mixed signals':((r&&(r.includes('rising')||r.includes('distressed')))?'EWS Leading &#8212; fundamentals not yet stressed':'Healthy &#8212; no signal corroboration needed')):'Insufficient data';
       var corrobColor = corrobPct!=null?(corrobPct>=67?'var(--red)':corrobPct>=34?'var(--amber)':((r&&(r.includes('rising')||r.includes('distressed')))?'var(--cyan)':'var(--green)')):'var(--dim)';
