@@ -2176,6 +2176,20 @@ async function runAnal() {
         tk = resolved;
         // Update the input box so the user sees what was matched
         document.getElementById('tkIn').value = tk;
+      } else if (rawInput.indexOf(' ') !== -1 || rawInput.length > 5) {
+        // Batch 7h.23 guard: input contained spaces (clear sign of company name)
+        // OR is longer than any real ticker symbol (max length 5 chars: BRK.B etc).
+        // Name lookup failed and the input isn't a plausible ticker — bail with a
+        // clear error rather than running analysis on garbage and rendering a
+        // confused half-broken page.
+        var errMsg = document.getElementById('errMsg');
+        if (errMsg) {
+          errMsg.innerHTML = 'We couldn\'t find a ticker matching <strong>"' + rawInput.replace(/[<>&]/g,'') + '"</strong>. '
+            + 'Our name lookup currently covers about 65 major US companies. Try entering a ticker symbol directly (e.g. AAPL, TSLA, NVDA), '
+            + 'or use one of the suggested tickers below the input.';
+        }
+        document.getElementById('errBanner').classList.add('show');
+        return;  // do NOT continue to analysis
       }
     }
   }
