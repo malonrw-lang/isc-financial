@@ -1882,7 +1882,7 @@ function computeSkepticRead(d, r, C) {
   if (effAltZ != null || piF != null || (bucket !== 'industrial' && sm && Object.keys(sm).length > 1)) {
     var stress = 0, strong = 0, total = 0;
     if (effAltZ != null) { total++; if (effAltZ < 1.81) stress++; else if (effAltZ > 3.0) strong++; }
-    if (piF != null) { total++; if (piF < 4) stress++; else if (piF >= 7) strong++; }
+    if (piF != null && bucket !== 'biotech') { total++; if (piF < 4) stress++; else if (piF >= 7) strong++; }
     if (intCov != null && bucket === 'industrial') { total++; if (intCov < 1.5) stress++; else if (intCov > 5) strong++; }
     if (om != null && bucket === 'industrial') { total++; if (om < 0) stress++; else if (om > 15) strong++; }
     if (rg != null && bucket === 'industrial') { total++; if (rg < -5) stress++; else if (rg > 10) strong++; }
@@ -1921,7 +1921,7 @@ function computeSkepticRead(d, r, C) {
     if (altZApplies && altZ != null && altZ < 1.81) {
       severeSingle = true;
       severeNote = 'Altman Z ' + altZ.toFixed(2) + ' in distress zone';
-    } else if (piF != null && piF <= 2) {
+    } else if (piF != null && piF <= 2 && bucket !== 'biotech') {
       severeSingle = true;
       severeNote = 'Piotroski F ' + piF + '/9 weak';
     } else if (bucket === 'industrial' && intCov != null && intCov < 0) {
