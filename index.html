@@ -1,6 +1,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -915,7 +916,6 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <button class="tb" onclick="swTab('traditional',this)">Traditional</button>
           <button class="tb" onclick="swTab('forensic',this)">&#55357;&#56589; Forensic</button>
           <button class="tb" onclick="swTab('peers',this)">Peers</button>
-          <button class="tb" onclick="swTab('news',this)">News</button>
           <button class="tb" onclick="swTab('portfolio',this)">&#55357;&#56513; Portfolio</button>
           <button class="tb" onclick="swTab('ai',this)">&#55358;&#56598; AI Analyst</button>
         </div>
@@ -1080,15 +1080,6 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
             </div>
             <div id="peersArea"></div>
           </div>
-          <!-- NEWS -->
-          <div id="t-news" class="tab-content hidden">
-            <div class="al al-b" style="margin-bottom:0">
-              <span style="font-size:16px">&#55357;&#56560;</span>
-              <div style="font-size:13px;color:#A0B8D0;line-height:1.7"><strong style="color:var(--wh)">Educational note:</strong> News context can be examined alongside structural signals. Headline-positive news in a company with a distressed variance EWS may reflect short-term events while the structural read suggests deeper dynamics. Headline-negative news in a structurally stable company may be transient. This framing is for educational interpretation only and does not constitute a recommendation; consult a licensed advisor before any trading decisions.</div>
-            </div>
-            <div id="newsContent" style="display:flex;flex-direction:column;gap:8px"></div>
-          </div>
-
           <!-- PORTFOLIO -->
           <div id="t-portfolio" class="tab-content hidden">
             <div class="al al-b" style="margin-bottom:0">
@@ -1114,7 +1105,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
             </div>
             <div class="card-hi" style="margin-bottom:0">
               <div style="font-size:13px;font-weight:700;color:var(--cyan);margin-bottom:6px">Claude AI Analyst</div>
-              <div style="font-size:12px;color:var(--dim);line-height:1.7">Claude has read the variance EWS metrics, financial statements, traditional metrics, and news for this company. Ask analytical questions in plain English &#8212; not for trading recommendations.</div>
+              <div style="font-size:12px;color:var(--dim);line-height:1.7">Claude has read the variance EWS metrics, financial statements, and traditional metrics for this company. Ask analytical questions in plain English &#8212; not for trading recommendations.</div>
             </div>
             <div id="chatHistory" style="display:flex;flex-direction:column;gap:10px;min-height:60px"></div>
             <div>
@@ -1168,7 +1159,6 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
         <div class="pc-feat"><span style="color:var(--green)">&#10003;</span>7-layer cascade with commentary</div>
         <div class="pc-feat"><span style="color:var(--green)">&#10003;</span>Cascade signature pattern recognition</div>
         <div class="pc-feat"><span style="color:var(--green)">&#10003;</span>6 chart visualizations</div>
-        <div class="pc-feat"><span style="color:var(--green)">&#10003;</span>News headlines</div>
         <div class="pc-feat"><span style="color:var(--green)">&#10003;</span>Basic PDF report</div>
         <div class="pc-note">For retail investors who want the full financial picture alongside ISC.</div>
         <button class="pc-btn" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="signupAlert('Investor',19.99)">Upgrade &#8594;</button>
@@ -1726,7 +1716,7 @@ function swTab(id, el) {
       if(onclickAttr.indexOf("swTab('"+id+"'")>=0){btns[i].classList.add('on');break;}
     }
   }
-  var tabs=['overview','charts','isc','income','balance','cashflow','traditional','forensic','peers','news','portfolio','ai'];
+  var tabs=['overview','charts','isc','income','balance','cashflow','traditional','forensic','peers','portfolio','ai'];
   tabs.forEach(function(t){
     var e=document.getElementById('t-'+t);
     if(e) e.classList.toggle('hidden',t!==id);
@@ -2228,8 +2218,7 @@ function mkSim(tk){
     income_statement:{},balance_sheet:{},cash_flow:{},
     traditional:{altman_z:{val:null},piotroski_f:{val:null}},
     market:{price:null},options:{},
-    divergence:{summary:'Real data required for divergence analysis.'},
-    news:[]
+    divergence:{summary:'Real data required for divergence analysis.'}
   };
 }
 
@@ -3187,16 +3176,6 @@ function renderAll(d){
       fc.innerHTML='<div class="card-hi" style="padding:24px;color:var(--dim);margin-top:14px"><div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:8px">&#9888; Forensic renderer error</div><div style="font-size:12px;line-height:1.7;font-family:var(--mono);color:#A0B8D0;background:rgba(0,0,0,.3);padding:10px;border-radius:5px;overflow-x:auto;white-space:pre-wrap">'+(err&&err.message?err.message:String(err))+'</div><div style="font-size:12px;color:var(--dim);margin-top:10px">This error has been logged to the browser console. The forensic data may have arrived in an unexpected format. Try Run Full Analysis again, or use the thumbs-down button in the early-access banner to report.</div></div>';
     }
   })();
-
-  // NEWS
-  var news=d.news||[];
-  document.getElementById('newsContent').innerHTML=news.map(function(n){
-    var nc=n.s==='bull'?'var(--green)':n.s==='bear'?'var(--red)':'var(--amber)';
-    var ic=n.s==='bull'?'&#9650;':n.s==='bear'?'&#9660;':'&#8212;';
-    return '<div class="news-item"><div style="color:'+nc+';font-size:13px;font-weight:700;flex-shrink:0;margin-top:2px">'+ic+'</div>'
-      +'<div><div style="font-size:13px;color:var(--wh);margin-bottom:3px;line-height:1.5">'+n.h+'</div>'
-      +'<div style="font-size:11px;color:var(--dim)">'+n.src+' &#183; '+n.d+'</div></div></div>';
-  }).join('')||'<div style="padding:28px 24px;text-align:center;color:var(--dim);background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.08);border-radius:9px"><div style="font-size:32px;margin-bottom:10px;opacity:.6">&#128240;</div><div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Live news feed not yet integrated</div><div style="font-size:13px;line-height:1.75;max-width:480px;margin:0 auto">A real-time news ingest is planned for a future release; for now this tab is a placeholder. The educational framing above (how to read headlines alongside structural signals) is the design intent. The historical demos &mdash; <a href="javascript:runDemo(\'enron\')" style="color:var(--cyan);text-decoration:none;font-weight:600">Enron</a>, <a href="javascript:runDemo(\'worldcom\')" style="color:var(--cyan);text-decoration:none;font-weight:600">WorldCom</a>, <a href="javascript:runDemo(\'spirit\')" style="color:var(--cyan);text-decoration:none;font-weight:600">Spirit Airlines</a> &mdash; show curated headlines paired with the variance EWS read for those events.</div></div>';
 
   // Data quality warning (post-render)
   (function(){
