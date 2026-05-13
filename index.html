@@ -2,12 +2,13 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>ISC Financial &#8212; The Filter Lab</title>
+<title>The Filter Lab &#8212; The skeptical investor's read</title>
 
 <!-- Batch 7h.23: SEO + social link preview metadata + favicon.
      Description appears in Google search results and link previews.
@@ -15,20 +16,20 @@
      Twitter Card powers X.com previews.
      Favicon is inline SVG (no separate file, no 404). Brand-consistent
      hexagon shape from the existing logo. -->
-<meta name="description" content="ISC Financial surfaces structural early warnings — three independent lenses on every public company. We don't predict. We surface what to question." />
+<meta name="description" content="The skeptical investor's read. Descriptive analysis of public SEC filings — three independent lenses on every public company. We don't predict. We surface what to question." />
 <meta name="theme-color" content="#0a1424" />
 
 <!-- Open Graph (LinkedIn, Facebook, Slack) -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="ISC Financial" />
-<meta property="og:title" content="ISC Financial — The Filter Lab" />
-<meta property="og:description" content="Three independent lenses on every public company — structural dynamics, traditional fundamentals, forensic accounting. We don't predict. We surface what to question." />
+<meta property="og:title" content="The Filter Lab — The skeptical investor's read" />
+<meta property="og:description" content="The skeptical investor's read. Descriptive analysis of public SEC filings — structural dynamics, traditional fundamentals, forensic accounting. We don't predict. We surface what to question." />
 <meta property="og:url" content="https://finance.thefilterlab.app" />
 
 <!-- Twitter Card (X.com) -->
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="ISC Financial — The Filter Lab" />
-<meta name="twitter:description" content="Three independent lenses on every public company. We don't predict. We surface what to question." />
+<meta name="twitter:title" content="The Filter Lab — The skeptical investor's read" />
+<meta name="twitter:description" content="The skeptical investor's read. Descriptive analysis of public SEC filings. We don't predict. We surface what to question." />
 
 <!-- Favicon: inline SVG hexagon, brand-matched cyan on dark navy.
      Self-contained — no external file or HTTP request, no 404.
@@ -558,7 +559,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 <!-- &#9552;&#9552;&#9552; HOME &#9552;&#9552;&#9552; -->
 <div id="pg-home" class="page" style="padding-top:56px">
   <div class="hero">
-    <div class="hero-tag">ISC Financial &#183; The Filter Lab &#183; A Tool For Skeptics</div>
+    <div class="hero-tag">The Filter Lab &#183; The skeptical investor's read</div>
     <h1 class="hero-h1">We don't predict.<br>We surface what <em>to question.</em></h1>
     <p class="hero-sub">Three independent lenses on every public company &#8212; structural dynamics, traditional fundamentals, and forensic accounting. When they converge, the signal is high-conviction. When they disagree, you've found the question worth asking.</p>
     <div class="hero-btns">
@@ -679,12 +680,20 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
     </div>
   </div>
 
-  <footer style="border-top:1px solid var(--bdr);padding:28px 48px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
-    <div style="font-size:12px;color:var(--dim);line-height:1.7">&#169; 2026 The Filter Lab LLC &#183; Spring TX &#183; Not financial advice &#183; AI assistance disclosed<br>
+  <footer style="border-top:1px solid var(--bdr);padding:28px 48px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px">
+    <div style="font-size:12px;color:var(--dim);line-height:1.7;max-width:680px">
+      <div style="font-size:11px;color:#A0B8D0;margin-bottom:10px;line-height:1.6">
+        <strong style="color:var(--wh)">Data quality:</strong> Financials extracted from SEC EDGAR XBRL filings. Tag conventions vary across companies and change over time; individual values may occasionally be incorrect or unavailable. We apply accounting-identity checks to catch errors but cannot guarantee every number. This tool describes what filings show &#8212; it does not predict prices or provide investment advice.
+      </div>
+      <div style="font-size:11px;color:#A0B8D0;margin-bottom:12px;line-height:1.6">
+        <strong style="color:var(--wh)">Privacy:</strong> We don't sell user data. Plausible analytics (privacy-respecting, no cookies, no personal data) tells us aggregate usage only.
+      </div>
+      &#169; 2026 The Filter Lab LLC &#183; Spring TX &#183; Not financial advice &#183; AI assistance disclosed<br>
       <a href="javascript:showPage('terms')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Terms of Service</a>
       <a href="javascript:showPage('privacy')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Privacy Policy</a>
       <a href="javascript:showPage('disclaimer')" style="color:var(--cyan);text-decoration:none;margin-right:14px">Disclaimer</a>
-      <a href="https://tally.so/r/0QoNJ6" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none;margin-right:14px">Report bug / suggest feature &rarr;</a><br><a href="https://doi.org/10.5281/zenodo.18940081" style="color:var(--blue)">doi.org/10.5281/zenodo.18940081</a></div>
+      <a href="https://tally.so/r/0QoNJ6" target="_blank" rel="noopener" style="color:var(--cyan);text-decoration:none;margin-right:14px">Report bug / suggest feature &rarr;</a><br><a href="https://doi.org/10.5281/zenodo.18940081" style="color:var(--blue)">doi.org/10.5281/zenodo.18940081</a>
+    </div>
     <div style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--dim);font-style:italic">The signal beneath the statements.</div>
   </footer>
     <div id="pg-disclaimer" class="page hidden">
@@ -2252,20 +2261,41 @@ async function runAnal() {
     D=data;
     renderAll(data);
     destroyCharts();
+    // Batch 7h.24: stale-tab fix. After re-running analysis, refresh the
+    // currently-active tab's dynamic content. Previously if the user was on
+    // the charts tab and re-ran, destroyCharts() ran but renderCharts() only
+    // fired on tab-click, leaving the charts blank until they clicked away
+    // and back. Same logic applies to any tab with deferred rendering.
+    refreshActiveTab(D);
     if(data.data_sources&&data.data_sources.edgar)addToPortfolio(data);
-    if(data.data_sources&&data.data_sources.edgar) addToPortfolio(data);
   }catch(e){
     clearInterval(iv);fill.style.width='0%';
     btn.textContent=PLAY+' Run Full Analysis';btn.disabled=false;
     D=mkSim(tk);
     renderAll(D);
     destroyCharts();
+    refreshActiveTab(D);
     if(!e.message.includes('NetworkError')&&!e.message.includes('fetch')){
       showError('API warming up (30&#8211;50 second cold start). Click Run Again for real EDGAR data. Error: '+e.message);
     }else{
       showError('API warming up &#8212; click Run Full Analysis again in 30 seconds.');
     }
   }
+}
+
+// Batch 7h.24: helper for stale-tab fix. Finds the active tab button and
+// re-invokes the tab's specific renderer if it has deferred-render content.
+function refreshActiveTab(d){
+  if(!d) return;
+  var activeBtn=document.querySelector('.tb.on');
+  if(!activeBtn) return;
+  var onclickAttr=activeBtn.getAttribute('onclick')||'';
+  var m=onclickAttr.match(/swTab\('([^']+)'/);
+  if(!m) return;
+  var activeId=m[1];
+  // Only the charts tab currently has deferred render; renderAll handles
+  // everything else. If other tabs gain post-load rendering, add here.
+  if(activeId==='charts') renderCharts(d);
 }
 
 /* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
@@ -4128,12 +4158,14 @@ function renderCharts(d){
       heatArea.innerHTML=hHtml;
     }
   }
-  // Box-and-whisker (Series Trend Spread) — Batch 7h.8
+  // Box-and-whisker (Series Trend Spread) — Batch 7h.8, recolored 7h.24
   // Plots distribution of trend_rho (Spearman correlation of each fundamental
   // series with time) across all available series. Range is [-1, +1].
   // |rho| close to 1 = strong directional trend; close to 0 = noise.
-  // Colors reflect magnitude (not direction): a strongly trending company is
-  // "concentrated signal" regardless of whether the trend is up or down.
+  // Colors reflect IQR (cohort coherence), not raw magnitude: a tight IQR
+  // means all financial series agree on direction (clean read, green);
+  // a broad IQR means series contradict each other (alarming signal, red).
+  // Per-dot colors show each series' agreement with the cohort median.
   var boxArea=document.getElementById('boxplotArea');
   if(boxArea){
     var bs=isc.by_series||{};
@@ -4160,16 +4192,25 @@ function renderCharts(d){
       svg+='<rect x="'+pad+'" y="'+(midY-2)+'" width="'+(w-pad*2)+'" height="4" fill="rgba(255,255,255,.04)"/>';
       // Tick marks: 0 (no trend), ±0.6 (strong trend either direction)
       [-0.6,0,0.6].forEach(function(tick){var x=xs(tick);var col=tick==0?'#6B7280':'#9CA3AF';svg+='<line x1="'+x+'" y1="'+(midY-30)+'" x2="'+x+'" y2="'+(midY+30)+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3" opacity="0.4"/>';svg+='<text x="'+x+'" y="'+(midY+50)+'" text-anchor="middle" fill="'+col+'" font-size="9" opacity="0.7">'+tick.toFixed(1)+'</text>';});
-      // Box color reflects magnitude of median trend (regardless of direction)
-      var medMag=Math.abs(med);
-      var boxColor=medMag>0.6?'#EF4444':medMag>0.3?'#F59E0B':'#10B981';
+      // Batch 7h.24: Colormap fix. Original logic colored by |median| which is
+      // backwards — a strongly-trending company (AAPL: median 0.979, IQR 0.243)
+      // is the CLEAN coherent signal; a noisy/contradictory company (Spirit:
+      // median 0.038, IQR 0.976) is the alarm. The right discriminator is IQR
+      // (spread across series), not magnitude. Concentrated IQR = all series
+      // agree on direction = coherent read. Broad-based IQR = series pulling
+      // different ways = no clear signal / contradictions.
+      var boxColor=iqr<0.3?'#10B981':iqr<0.7?'#F59E0B':'#EF4444';
       svg+='<line x1="'+xs(minV)+'" y1="'+(midY-12)+'" x2="'+xs(minV)+'" y2="'+(midY+12)+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(maxV)+'" y1="'+(midY-12)+'" x2="'+xs(maxV)+'" y2="'+(midY+12)+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(minV)+'" y1="'+midY+'" x2="'+xs(q1)+'" y2="'+midY+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(q3)+'" y1="'+midY+'" x2="'+xs(maxV)+'" y2="'+midY+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<rect x="'+xs(q1)+'" y="'+(midY-22)+'" width="'+(xs(q3)-xs(q1))+'" height="44" fill="'+boxColor+'" fill-opacity="0.18" stroke="'+boxColor+'" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(med)+'" y1="'+(midY-22)+'" x2="'+xs(med)+'" y2="'+(midY+22)+'" stroke="'+boxColor+'" stroke-width="2.5"/>';
-      seriesVals.forEach(function(sv){var ptMag=Math.abs(sv.v);var ptColor=ptMag>0.6?'#EF4444':ptMag>0.3?'#F59E0B':'#10B981';svg+='<circle cx="'+xs(sv.v)+'" cy="'+midY+'" r="3" fill="'+ptColor+'" fill-opacity="0.85" stroke="'+ptColor+'" stroke-width="1"><title>'+sv.n+': '+sv.v.toFixed(3)+'</title></circle>';});
+      // Batch 7h.24: per-dot colors reflect cohort coherence, not raw magnitude.
+      // Dots near the median trend with peers (green); outlier dots far from
+      // the median are series pulling against the cohort (red). This matches
+      // the box-level discriminator (IQR) — both surface coherence vs spread.
+      seriesVals.forEach(function(sv){var distFromMed=Math.abs(sv.v-med);var ptColor=distFromMed<0.2?'#10B981':distFromMed<0.5?'#F59E0B':'#EF4444';svg+='<circle cx="'+xs(sv.v)+'" cy="'+midY+'" r="3" fill="'+ptColor+'" fill-opacity="0.85" stroke="'+ptColor+'" stroke-width="1"><title>'+sv.n+': '+sv.v.toFixed(3)+'</title></circle>';});
       svg+='<text x="'+pad+'" y="20" fill="#9CA3AF" font-size="10">min: '+minV.toFixed(3)+'</text>';
       svg+='<text x="'+(w-pad)+'" y="20" text-anchor="end" fill="#9CA3AF" font-size="10">max: '+maxV.toFixed(3)+'</text>';
       svg+='<text x="'+(w/2)+'" y="20" text-anchor="middle" fill="'+boxColor+'" font-size="11" font-weight="700">median: '+med.toFixed(3)+'</text>';
