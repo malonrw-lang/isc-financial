@@ -4158,14 +4158,17 @@ function renderCharts(d){
       heatArea.innerHTML=hHtml;
     }
   }
-  // Box-and-whisker (Series Trend Spread) — Batch 7h.8, recolored 7h.24
+  // Box-and-whisker (Series Trend Spread) — Batch 7h.8, recolored 7h.24b
   // Plots distribution of trend_rho (Spearman correlation of each fundamental
   // series with time) across all available series. Range is [-1, +1].
   // |rho| close to 1 = strong directional trend; close to 0 = noise.
-  // Colors reflect IQR (cohort coherence), not raw magnitude: a tight IQR
-  // means all financial series agree on direction (clean read, green);
-  // a broad IQR means series contradict each other (alarming signal, red).
-  // Per-dot colors show each series' agreement with the cohort median.
+  // Colors use BOTH IQR (cohort coherence) and median sign (direction):
+  //   - concentrated IQR + positive median = coherent uptrend (green)
+  //   - concentrated IQR + negative median = coherent decline (red, alarming)
+  //   - broad IQR = series contradict each other (amber/red)
+  //   - median near zero = no directional signal (amber)
+  // Per-dot colors reflect each series' membership in the cohort and its
+  // own direction; outliers from the cohort are amber regardless of sign.
   var boxArea=document.getElementById('boxplotArea');
   if(boxArea){
     var bs=isc.by_series||{};
@@ -4192,25 +4195,48 @@ function renderCharts(d){
       svg+='<rect x="'+pad+'" y="'+(midY-2)+'" width="'+(w-pad*2)+'" height="4" fill="rgba(255,255,255,.04)"/>';
       // Tick marks: 0 (no trend), ±0.6 (strong trend either direction)
       [-0.6,0,0.6].forEach(function(tick){var x=xs(tick);var col=tick==0?'#6B7280':'#9CA3AF';svg+='<line x1="'+x+'" y1="'+(midY-30)+'" x2="'+x+'" y2="'+(midY+30)+'" stroke="'+col+'" stroke-width="1" stroke-dasharray="3 3" opacity="0.4"/>';svg+='<text x="'+x+'" y="'+(midY+50)+'" text-anchor="middle" fill="'+col+'" font-size="9" opacity="0.7">'+tick.toFixed(1)+'</text>';});
-      // Batch 7h.24: Colormap fix. Original logic colored by |median| which is
-      // backwards — a strongly-trending company (AAPL: median 0.979, IQR 0.243)
-      // is the CLEAN coherent signal; a noisy/contradictory company (Spirit:
-      // median 0.038, IQR 0.976) is the alarm. The right discriminator is IQR
-      // (spread across series), not magnitude. Concentrated IQR = all series
-      // agree on direction = coherent read. Broad-based IQR = series pulling
-      // different ways = no clear signal / contradictions.
-      var boxColor=iqr<0.3?'#10B981':iqr<0.7?'#F59E0B':'#EF4444';
+      // Batch 7h.24b: Colormap fix v2. v1 used IQR alone, which broke on the
+      // case of concentrated bearish trends (Spirit FY22: median -0.865, IQR
+      // 0.130 painted green — wrong, that's coherent decline). The right
+      // discriminator uses BOTH dimensions:
+      //   - tight IQR + positive median = coherent uptrend (green, clean)
+      //   - tight IQR + negative median = coherent decline (red, alarming)
+      //   - broad IQR = series contradict each other (amber, ambiguous)
+      //   - median near zero + broad = pure noise (amber)
+      var boxColor;
+      if(iqr<0.3){
+        // Concentrated cohort — direction matters
+        boxColor = med>0.15 ? '#10B981' : med<-0.15 ? '#EF4444' : '#F59E0B';
+      } else if(iqr<0.7){
+        // Moderate spread — caution regardless of direction
+        boxColor = '#F59E0B';
+      } else {
+        // Broad-based — series pulling different ways, no coherent read
+        boxColor = '#EF4444';
+      }
       svg+='<line x1="'+xs(minV)+'" y1="'+(midY-12)+'" x2="'+xs(minV)+'" y2="'+(midY+12)+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(maxV)+'" y1="'+(midY-12)+'" x2="'+xs(maxV)+'" y2="'+(midY+12)+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(minV)+'" y1="'+midY+'" x2="'+xs(q1)+'" y2="'+midY+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(q3)+'" y1="'+midY+'" x2="'+xs(maxV)+'" y2="'+midY+'" stroke="#9CA3AF" stroke-width="1.5"/>';
       svg+='<rect x="'+xs(q1)+'" y="'+(midY-22)+'" width="'+(xs(q3)-xs(q1))+'" height="44" fill="'+boxColor+'" fill-opacity="0.18" stroke="'+boxColor+'" stroke-width="1.5"/>';
       svg+='<line x1="'+xs(med)+'" y1="'+(midY-22)+'" x2="'+xs(med)+'" y2="'+(midY+22)+'" stroke="'+boxColor+'" stroke-width="2.5"/>';
-      // Batch 7h.24: per-dot colors reflect cohort coherence, not raw magnitude.
-      // Dots near the median trend with peers (green); outlier dots far from
-      // the median are series pulling against the cohort (red). This matches
-      // the box-level discriminator (IQR) — both surface coherence vs spread.
-      seriesVals.forEach(function(sv){var distFromMed=Math.abs(sv.v-med);var ptColor=distFromMed<0.2?'#10B981':distFromMed<0.5?'#F59E0B':'#EF4444';svg+='<circle cx="'+xs(sv.v)+'" cy="'+midY+'" r="3" fill="'+ptColor+'" fill-opacity="0.85" stroke="'+ptColor+'" stroke-width="1"><title>'+sv.n+': '+sv.v.toFixed(3)+'</title></circle>';});
+      // Batch 7h.24b: per-dot colors v2. Match the box logic — coherent
+      // members in favorable direction = green, coherent members in
+      // unfavorable direction = red, outliers (far from cohort median) =
+      // amber regardless of their own direction (the OUTLIER status is the
+      // story for those, not whether they trend up or down).
+      seriesVals.forEach(function(sv){
+        var distFromMed=Math.abs(sv.v-med);
+        var ptColor;
+        if(distFromMed<0.25){
+          // Coherent with cohort — color by direction
+          ptColor = sv.v>0.15 ? '#10B981' : sv.v<-0.15 ? '#EF4444' : '#F59E0B';
+        } else {
+          // Outlier from cohort — amber regardless of direction
+          ptColor = '#F59E0B';
+        }
+        svg+='<circle cx="'+xs(sv.v)+'" cy="'+midY+'" r="3" fill="'+ptColor+'" fill-opacity="0.85" stroke="'+ptColor+'" stroke-width="1"><title>'+sv.n+': '+sv.v.toFixed(3)+'</title></circle>';
+      });
       svg+='<text x="'+pad+'" y="20" fill="#9CA3AF" font-size="10">min: '+minV.toFixed(3)+'</text>';
       svg+='<text x="'+(w-pad)+'" y="20" text-anchor="end" fill="#9CA3AF" font-size="10">max: '+maxV.toFixed(3)+'</text>';
       svg+='<text x="'+(w/2)+'" y="20" text-anchor="middle" fill="'+boxColor+'" font-size="11" font-weight="700">median: '+med.toFixed(3)+'</text>';
