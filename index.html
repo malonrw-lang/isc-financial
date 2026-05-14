@@ -280,86 +280,409 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 /* Legal page overlay - lets legal pages render even when nested inside pg-home */
 .legal-page-overlay { position:fixed !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important; z-index:100 !important; overflow-y:auto !important; background:var(--bg) !important; padding-top:60px !important; }
 
-/* Batch 7h.16: Mobile responsive pass.
-   Stacks sidebar above main content on narrow screens, drops multi-column
-   grids to single column, makes the tab bar scroll smoothly with momentum,
-   and reduces padding so the analyzer is usable on a phone. This is a
-   quick-win pass; a polished mobile-first redesign would do more. */
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE STYLES — Day 9 mobile-tuning pass
+   ─────────────────────────────────────────────────────────────────────
+   REPLACES: the existing two @media blocks at the end of the <style>
+             section in index.html (lines ~340-410, the
+             "@media (max-width: 768px)" and "@media (max-width: 480px)"
+             blocks).
+
+   WHAT'S NEW vs the previous version:
+   - Tab bar collapses to grouped primary + "More" dropdown on phones
+   - Peer table reflows to cards (one per peer) below 700px
+   - Cascade rows stack vertically below 600px
+   - Floating "Download Report" button on mobile so users don't have
+     to scroll back to the sidebar after running analysis
+   - Dev tier switcher hides on mobile
+   - Charts get aspect-ratio handling so they don't squish
+   - iOS form-zoom prevented on ticker input
+   - Help modal's internal tab bar reflows
+   - Hero is tightened so pricing appears in first scroll on phones
+   ───────────────────────────────────────────────────────────────────── */
+
+/* iOS form-zoom prevention: input must be >=16px to avoid auto-zoom on focus.
+   The .tk-input is already 18px but the transform is what stops the zoom on
+   some iOS versions even when font-size is correct. */
+.tk-input {
+  transform: translateZ(0);
+  -webkit-appearance: none;
+}
+
+/* ───── ≤ 900px : tablet ───── */
+@media (max-width: 900px) {
+  /* Pricing grid: 4 cols already drops to 2 in original — fine. */
+
+  /* Charts that go side-by-side at desktop should stack here too */
+  .tab-content > div[style*="grid-template-columns:1fr 1fr"],
+  .tab-content > div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ───── ≤ 768px : phone landscape & tablet portrait ───── */
 @media (max-width: 768px) {
-  /* Stack analyzer layout vertically. Sidebar becomes a top section, main
-     content flows below. Both scroll within a single page scroll context
-     instead of fighting two independent scroll areas. */
-  .az-wrap{
-    display:block;
-    height:auto;
-    min-height:calc(100vh - 56px);
-    overflow:visible;
+  /* ───── Analyzer layout: stack sidebar above main ───── */
+  .az-wrap {
+    display: block;
+    height: auto;
+    min-height: calc(100vh - 56px);
+    overflow: visible;
   }
-  .sidebar{
-    border-right:none;
-    border-bottom:1px solid var(--bdr);
-    max-height:none;
-    padding:14px 12px;
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--bdr);
+    max-height: none;
+    padding: 14px 12px;
   }
-  .main-area{
-    overflow:visible;
+  .main-area {
+    overflow: visible;
   }
 
-  /* Drop multi-column grids to single column on phone */
-  .verdict-grid{grid-template-columns:1fr !important}
-  .pricing-grid{grid-template-columns:1fr !important}
+  /* ───── Drop multi-column grids to single column ───── */
+  .verdict-grid { grid-template-columns: 1fr !important; }
+  .pricing-grid { grid-template-columns: 1fr !important; }
 
-  /* Scroll behavior on tab bar — already overflow-x:auto, add momentum
-     and ensure tabs don't get cramped */
-  .tab-bar{
-    -webkit-overflow-scrolling:touch;
-    padding:0 12px;
+  /* ───── Tab bar: scroll smoothly, snap to tabs ───── */
+  .tab-bar {
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding: 0 12px;
+    /* Visual hint that content extends beyond viewport */
+    mask-image: linear-gradient(to right, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, black 90%, transparent);
   }
-  .tab-bar button{
-    flex-shrink:0;
-    padding:10px 14px;
-    font-size:13px;
+  .tab-bar .tb {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    font-size: 13px;
+    scroll-snap-align: start;
+  }
+  /* Hide secondary tabs on phones; they're reachable via a "More" overlay (see JS patch) */
+  .tab-bar .tb.tb-secondary {
+    display: none;
+  }
+  /* The "More" button is injected by JS; style it here */
+  .tab-bar .tb-more {
+    color: var(--cyan);
+    font-weight: 600;
+  }
+  /* "More" tabs overlay sheet, slides from bottom */
+  .more-tabs-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--pan);
+    border-top: 1px solid var(--bdr);
+    border-radius: 14px 14px 0 0;
+    padding: 16px;
+    z-index: 600;
+    transform: translateY(100%);
+    transition: transform 0.25s ease-out;
+    box-shadow: 0 -8px 24px rgba(0,0,0,.4);
+  }
+  .more-tabs-sheet.open {
+    transform: translateY(0);
+  }
+  .more-tabs-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 599;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .more-tabs-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .more-tabs-sheet button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 14px 12px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--bdr);
+    border-radius: 8px;
+    color: var(--wh);
+    font-family: var(--font);
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 8px;
   }
 
-  /* Reduce nav and section padding so content fits real phone widths */
-  .nav{padding:0 14px;height:54px}
-  .section{padding:24px 14px !important}
-  .hero{padding:48px 16px !important}
-  .hero-h1{font-size:32px !important;line-height:1.1 !important}
-  .hero-sub{font-size:14px !important}
-  .footer{padding:24px 16px !important}
+  /* ───── Reduce padding ───── */
+  nav { padding: 0 14px; height: 54px; }
+  .section { padding: 24px 14px !important; }
+  .hero { padding: 36px 16px 28px !important; min-height: auto !important; }
+  .footer { padding: 24px 16px !important; }
 
-  /* Hero buttons stack instead of squashing */
-  .hero-btns{flex-direction:column;align-items:stretch}
-  .hero-btns button{width:100%}
+  /* ───── Hero: tighten so users see pricing in first scroll ───── */
+  .hero-tag { margin-bottom: 12px; }
+  .hero-h1 {
+    font-size: clamp(28px, 8vw, 40px) !important;
+    line-height: 1.1 !important;
+    margin-bottom: 16px;
+  }
+  .hero-sub {
+    font-size: 14px !important;
+    margin-bottom: 22px;
+  }
+  .hero-btns {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 28px;
+  }
+  .hero-btns button { width: 100%; }
+  .hero-stats {
+    gap: 16px !important;
+    justify-content: space-around;
+    margin-bottom: 0;
+  }
+  .stat-val { font-size: 28px !important; }
+  .stat-lbl { font-size: 10px !important; }
+  /* Hide the demo boxes on phones — they push pricing too far down.
+     Users can still hit Enron from the analyzer placeholder. */
+  .hero .enron-box {
+    display: none;
+  }
 
-  /* Section headers a touch smaller */
-  .section-h2{font-size:24px !important;line-height:1.2 !important}
+  /* ───── Section headers smaller ───── */
+  .section-h2 {
+    font-size: 22px !important;
+    line-height: 1.25 !important;
+  }
 
-  /* Reduce in-card padding */
-  .card{padding:14px !important}
-  .card-sm{padding:12px !important}
+  /* ───── Cards padded less ───── */
+  .card,
+  .card-hi,
+  .card-gold {
+    padding: 14px !important;
+  }
 
-  /* Hide the BETA toast notification on mobile — it covers content */
-  #betaToast{display:none !important}
+  /* ───── Hide BETA toast (covers content on small screens) ───── */
+  #betaToast { display: none !important; }
 
-  /* Verdict block on mobile */
-  .verdict-block{padding:14px !important}
-  .verdict-title{font-size:18px !important}
+  /* ───── Hide dev tier switcher on mobile (overlaps run button) ───── */
+  #devTierSwitcher { display: none !important; }
+
+  /* ───── Verdict block ───── */
+  .verdict-card { padding: 14px !important; }
+  .verdict-title { font-size: 18px !important; }
+  /* Three-lens grid in Skeptic's Read should stack on phones */
+  .verdict-card > div[style*="grid-template-columns:repeat(3"],
+  .verdict-card > div[style*="grid-template-columns: repeat(3"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ───── Result header: more compact ───── */
+  .rh {
+    padding: 14px 14px;
+    flex-wrap: wrap;
+  }
+  .company-h { font-size: 17px; }
+  .regime-badge {
+    font-size: 10px;
+    padding: 3px 9px;
+  }
+
+  /* ───── Floating PDF download button on mobile ───── */
+  #pdfWrap {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    z-index: 450;
+    width: auto;
+  }
+  #pdfWrap .pdf-btn {
+    width: auto;
+    margin-top: 0;
+    padding: 12px 18px;
+    border-radius: 100px;
+    background: linear-gradient(135deg, var(--green), #059669);
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 18px rgba(16,185,129,.35);
+    font-size: 13px;
+  }
+  #pdfWrap.hidden { display: none !important; }
+  /* When the floating button is visible, give the page bottom-padding so it
+     doesn't cover the bottom-most content */
+  .main-area:has(#pdfWrap:not(.hidden)) {
+    padding-bottom: 80px;
+  }
+
+  /* ───── Help modal: tab bar reflows; content padding tightens ───── */
+  .help-modal .help-box {
+    padding: 16px !important;
+    max-height: 90vh !important;
+  }
+  .help-modal > div > div[style*="border-bottom:1px solid var(--bdr);padding:0 16px"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .help-modal .tb {
+    font-size: 12px !important;
+    padding: 9px 10px !important;
+    flex-shrink: 0;
+  }
+  /* The help-howto card grid drops to single col */
+  #help-howto > div > div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ───── Cascade layer rows stack on narrow screens ───── */
+  .layer-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .layer-body {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .layer-icon {
+    flex-shrink: 0;
+  }
+  .layer-comment {
+    font-size: 11.5px;
+  }
+
+  /* ───── Chart canvases: enforce aspect ratio so they don't get too tall ───── */
+  .chart-wrap canvas {
+    max-height: 280px !important;
+  }
+
+  /* ───── Peer table → cards on mobile ───── */
+  /* The peer table uses <table> with overflow-x:auto by default. On phones
+     we hide the table and show a card-stack rendered by JS (see JS patch).
+     If the JS isn't applied yet, fall back to allowing horizontal scroll. */
+  .peers-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .peers-table-wrap table {
+    min-width: 540px;  /* Force scroll rather than awkward squish */
+  }
+  /* When JS has injected card view, hide the table */
+  .peers-card-view + .peers-table-wrap {
+    display: none;
+  }
+  .peers-card-view {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .peer-card {
+    background: rgba(255,255,255,.025);
+    border: 1px solid var(--bdr);
+    border-radius: 9px;
+    padding: 12px 14px;
+  }
+  .peer-card.subject {
+    background: rgba(0,200,255,.04);
+    border-color: rgba(0,200,255,.25);
+  }
+  .peer-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .peer-card-tk {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--wh);
+  }
+  .peer-card.subject .peer-card-tk {
+    color: var(--cyan);
+  }
+  .peer-card-name {
+    font-size: 11px;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+  .peer-card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+    font-size: 12px;
+  }
+  .peer-card-grid > div {
+    display: flex;
+    justify-content: space-between;
+  }
+  .peer-card-grid .pc-label {
+    color: var(--dim);
+  }
+  .peer-card-grid .pc-val {
+    font-family: var(--mono);
+    font-weight: 600;
+  }
+
+  /* ───── Peer charts grid stacks on mobile ───── */
+  .peers-charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .peers-charts-grid > div {
+    min-height: auto;
+  }
+  .peers-charts-grid canvas {
+    max-height: 200px !important;
+  }
 }
 
+/* ───── ≤ 480px : small phones ───── */
 @media (max-width: 480px) {
-  /* Even tighter on small phones */
-  .nav{padding:0 10px}
-  .nav-logo{gap:8px}
-  .nav-actions{gap:6px}
-  .section{padding:20px 12px !important}
-  .hero-h1{font-size:26px !important}
-  .card{padding:12px !important}
+  nav { padding: 0 10px; }
+  nav .nlogo { gap: 8px; }
+  nav .nright { gap: 6px; }
+  nav .nbrand { font-size: 12px; }
+  nav .ntag { display: none; } /* Eyebrow type hides on smallest screens */
+  /* Hide nav links on tiny screens — they're available via a menu */
+  nav .nlinks { display: none; }
+  /* CTA button text shorter */
+  nav .ncta {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
 
-  /* Single-column for legal page lists, etc */
-  .table-wrap{font-size:12px}
+  .section { padding: 20px 12px !important; }
+  .hero-h1 { font-size: 24px !important; }
+  .hero-sub { font-size: 13px !important; }
+  .stat-val { font-size: 24px !important; }
+  .card { padding: 12px !important; }
+
+  .table-wrap { font-size: 12px; }
+
+  /* Modal: full-screen on smallest devices */
+  .help-modal { padding-top: 30px !important; }
+  .help-modal > div {
+    width: 95% !important;
+    max-height: 92vh !important;
+  }
 }
+
+/* ───── Touch device : enlarge tap targets regardless of screen size ───── */
+@media (hover: none) and (pointer: coarse) {
+  .qtk, .ph-tk, .a-pill {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .nl, .tb {
+    min-height: 40px;
+  }
+  /* Remove hover-only effects that don't fire on touch */
+  .pc:hover,
+  .btn-p:hover,
+  .btn-s:hover {
+    transform: none;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -6091,6 +6414,244 @@ function sendHelpChatQ(q){
 setTier('free',document.getElementById('t-free'));
 showPage('home');
 renderPortfolio();
+/* ─────────────────────────────────────────────────────────────────────
+   MOBILE INTERACTIONS — Day 9 mobile-tuning pass
+   ─────────────────────────────────────────────────────────────────────
+   ADD: at the bottom of the main <script> block in index.html, just
+        before the closing  tag (right after `renderPortfolio();`
+        on the very last line).
+
+   ALSO: requires a tag added to specific tab buttons. See the
+         "REQUIRED HTML EDIT" section below.
+   ───────────────────────────────────────────────────────────────────── */
+
+(function mobileEnhancements() {
+  // Only run mobile-specific tweaks on phone-width screens
+  function isMobile() { return window.innerWidth <= 768; }
+
+  // ─────────────────────────────────────────────────────────────────
+  // 1) Tab bar collapse on mobile: hide secondary tabs, add "More" button
+  //    that opens a bottom-sheet overlay with the hidden tabs.
+  // ─────────────────────────────────────────────────────────────────
+  function setupTabCollapse() {
+    var tabBar = document.querySelector('.tab-bar');
+    if (!tabBar) return;
+    if (tabBar.dataset.mobileEnhanced) return;  // idempotent
+    tabBar.dataset.mobileEnhanced = '1';
+
+    // Primary tabs (visible on mobile): Overview, Charts, ISC
+    // Secondary tabs (hidden on mobile under "More"): everything else
+    var primaryIds = ['overview', 'charts', 'isc'];
+    var buttons = tabBar.querySelectorAll('button.tb');
+    var secondaryButtons = [];
+
+    buttons.forEach(function (btn) {
+      var onclickAttr = btn.getAttribute('onclick') || '';
+      var match = onclickAttr.match(/swTab\('([^']+)'/);
+      if (!match) return;
+      var id = match[1];
+      if (primaryIds.indexOf(id) === -1) {
+        btn.classList.add('tb-secondary');
+        secondaryButtons.push({ id: id, label: btn.textContent.trim() });
+      }
+    });
+
+    // Inject the "More" button if there are any hidden tabs
+    if (secondaryButtons.length === 0) return;
+
+    var moreBtn = document.createElement('button');
+    moreBtn.className = 'tb tb-more';
+    moreBtn.innerHTML = 'More \u25BE';  // ▾
+    moreBtn.onclick = function () { openMoreSheet(secondaryButtons); };
+    tabBar.appendChild(moreBtn);
+  }
+
+  function openMoreSheet(items) {
+    // Remove any prior sheet
+    var prior = document.getElementById('moreTabsSheet');
+    if (prior) prior.remove();
+    var priorBd = document.getElementById('moreTabsBackdrop');
+    if (priorBd) priorBd.remove();
+
+    // Backdrop
+    var bd = document.createElement('div');
+    bd.id = 'moreTabsBackdrop';
+    bd.className = 'more-tabs-backdrop';
+    bd.onclick = closeMoreSheet;
+    document.body.appendChild(bd);
+
+    // Sheet
+    var sheet = document.createElement('div');
+    sheet.id = 'moreTabsSheet';
+    sheet.className = 'more-tabs-sheet';
+    var heading = document.createElement('div');
+    heading.style.cssText = 'font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim);text-transform:uppercase;margin-bottom:10px';
+    heading.textContent = 'Jump to tab';
+    sheet.appendChild(heading);
+
+    items.forEach(function (item) {
+      var b = document.createElement('button');
+      b.textContent = item.label;
+      b.onclick = function () {
+        closeMoreSheet();
+        // Programmatically activate the tab
+        if (typeof swTab === 'function') swTab(item.id, null);
+      };
+      sheet.appendChild(b);
+    });
+
+    document.body.appendChild(sheet);
+    // Trigger transition (next frame)
+    requestAnimationFrame(function () {
+      bd.classList.add('open');
+      sheet.classList.add('open');
+    });
+  }
+
+  function closeMoreSheet() {
+    var bd = document.getElementById('moreTabsBackdrop');
+    var sh = document.getElementById('moreTabsSheet');
+    if (bd) { bd.classList.remove('open'); setTimeout(function () { bd.remove(); }, 250); }
+    if (sh) { sh.classList.remove('open'); setTimeout(function () { sh.remove(); }, 250); }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // 2) Peer table → card view on mobile.
+  //    Hooks into renderPeers() by observing the peersArea for changes.
+  // ─────────────────────────────────────────────────────────────────
+  function buildPeerCards() {
+    if (!isMobile()) return;
+    var peersArea = document.getElementById('peersArea');
+    if (!peersArea) return;
+
+    // Wrap the existing table in a class so CSS can hide it
+    var table = peersArea.querySelector('table');
+    if (!table) return;
+    if (peersArea.querySelector('.peers-card-view')) return;  // already done
+
+    var wrap = table.closest('div');
+    if (wrap && !wrap.classList.contains('peers-table-wrap')) {
+      wrap.classList.add('peers-table-wrap');
+    }
+
+    // Also add a class to the charts-grid for stacking
+    var chartsGrid = peersArea.querySelector('div[style*="grid-template-columns:2fr 1fr 1.5fr"]');
+    if (chartsGrid) chartsGrid.classList.add('peers-charts-grid');
+
+    // Parse table rows into card data
+    var rows = table.querySelectorAll('tbody tr');
+    if (rows.length === 0) return;
+
+    var cardView = document.createElement('div');
+    cardView.className = 'peers-card-view';
+
+    rows.forEach(function (tr) {
+      var cells = tr.querySelectorAll('td');
+      if (cells.length < 8) return;
+      var nameCell = cells[0];
+      var isSubject = nameCell.innerHTML.indexOf('☑') !== -1 ||
+                      nameCell.innerHTML.indexOf('&#9745;') !== -1 ||
+                      tr.style.background.indexOf('cyan') !== -1 ||
+                      tr.getAttribute('style').indexOf('rgba(0,200,255') !== -1;
+
+      var card = document.createElement('div');
+      card.className = 'peer-card' + (isSubject ? ' subject' : '');
+
+      // Pull ticker and company name from the first cell
+      var tkEl = nameCell.querySelector('div');
+      var tk = tkEl ? tkEl.textContent.trim() : '';
+      var companyEl = nameCell.querySelectorAll('div')[1];
+      var companyName = companyEl ? companyEl.textContent.trim() : '';
+
+      var head = document.createElement('div');
+      head.className = 'peer-card-head';
+      var tkBlock = document.createElement('div');
+      tkBlock.innerHTML = '<div class="peer-card-tk">' + tk + '</div>' +
+                          '<div class="peer-card-name">' + companyName + '</div>';
+      head.appendChild(tkBlock);
+
+      // Regime badge (cell index 3)
+      if (cells[3]) {
+        var rg = document.createElement('div');
+        rg.style.cssText = cells[3].getAttribute('style') || '';
+        rg.textContent = cells[3].textContent.trim();
+        head.appendChild(rg);
+      }
+      card.appendChild(head);
+
+      // Grid of metrics
+      var grid = document.createElement('div');
+      grid.className = 'peer-card-grid';
+      var labels = ['Mkt Cap', 'Variance', 'Altman Z', 'FCF Margin', 'Op Margin', 'Rev Growth'];
+      var cellIndexes = [1, 2, 4, 5, 6, 7];
+      labels.forEach(function (lbl, i) {
+        var cell = cells[cellIndexes[i]];
+        if (!cell) return;
+        var div = document.createElement('div');
+        var v = cell.textContent.trim();
+        div.innerHTML = '<span class="pc-label">' + lbl + '</span>' +
+                        '<span class="pc-val" style="' + (cell.getAttribute('style') || '') + '">' + v + '</span>';
+        grid.appendChild(div);
+      });
+      card.appendChild(grid);
+      cardView.appendChild(card);
+    });
+
+    // Insert card view before the table wrap
+    if (wrap && wrap.parentNode) {
+      wrap.parentNode.insertBefore(cardView, wrap);
+    }
+  }
+
+  // Watch for renderPeers running by observing peersArea for child changes
+  function setupPeerObserver() {
+    var peersArea = document.getElementById('peersArea');
+    if (!peersArea) return;
+    var obs = new MutationObserver(function () {
+      // Debounce: wait for renderPeers to finish, then build cards
+      setTimeout(buildPeerCards, 50);
+    });
+    obs.observe(peersArea, { childList: true, subtree: false });
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // 3) Re-evaluate on resize (orientation change, etc.)
+  // ─────────────────────────────────────────────────────────────────
+  var resizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      if (isMobile()) {
+        buildPeerCards();
+      }
+    }, 200);
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // INIT
+  // ─────────────────────────────────────────────────────────────────
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setupTabCollapse();
+      setupPeerObserver();
+    });
+  } else {
+    setupTabCollapse();
+    setupPeerObserver();
+  }
+})();
+
+/* ─────────────────────────────────────────────────────────────────────
+   REQUIRED HTML EDIT (none — patch is fully JS-driven)
+   ─────────────────────────────────────────────────────────────────────
+   The tab-collapse logic auto-detects which buttons are secondary based on
+   the swTab('id') call and a hardcoded primary list ['overview','charts',
+   'isc']. No HTML changes needed.
+
+   The peer table → card view hooks via MutationObserver on #peersArea.
+   No HTML changes needed.
+   ───────────────────────────────────────────────────────────────────── */
+
 </script>
 <!-- ===== REGULATORY GATE - added 2026-05-08 =====
      Per legal consultation 5/8/2026 with Michael Blackham (BlackHill Law),
