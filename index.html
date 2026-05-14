@@ -4,6 +4,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1322,6 +1323,7 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <button class="tb on" onclick="swTab('overview',this)">Overview</button>
           <button class="tb" onclick="swTab('charts',this)">Charts</button>
           <button class="tb" onclick="swTab('isc',this)">ISC Analysis</button>
+          <button class="tb" onclick="swTab('backtest',this)">Backtest</button>
           <button class="tb" onclick="swTab('income',this)">Income Stmt</button>
           <button class="tb" onclick="swTab('balance',this)">Balance Sheet</button>
           <button class="tb" onclick="swTab('cashflow',this)">Cash Flow</button>
@@ -1427,6 +1429,27 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <div class="sb-lbl" style="margin-bottom:10px">7-Layer Financial Cascade <button class="mhelp" onclick="showHelp('cascade')">?</button></div>
               <div style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.7">ISC maps corporate financial stress across 7 layers &#8212; from basic liquidity to management credibility. Stress typically cascades from outer layers inward before becoming visible in traditional metrics. The ISC L4 filter is the primary measurement target.</div>
               <div id="cascadeArea"></div>
+            </div>
+          </div>
+
+          <!-- BACKTEST REFERENCE -->
+          <div id="t-backtest" class="tab-content hidden">
+            <div id="iscBacktestBanner" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:8px;padding:10px 14px;font-size:11px;color:#A0B8D0;line-height:1.5;display:flex;align-items:flex-start;gap:10px;margin-bottom:0">
+              <span style="color:var(--amber);font-size:13px;flex-shrink:0">&#9888;</span>
+              <span><strong style="color:var(--wh)">Reference data, not a prediction.</strong> The Backtest Reference shows what the ISC framework would have classified for this ticker at a historical observation date, alongside the actual market outcome that followed. This is descriptive analysis of past data &mdash; not a forecast for any future period and not investment advice.</span>
+            </div>
+            <div class="al al-b" style="margin-bottom:0;margin-top:14px">
+              <span style="font-size:16px;flex-shrink:0">&#128202;</span>
+              <div style="font-size:13px;color:#A0B8D0;line-height:1.7">
+                <strong style="color:var(--wh)">How to read this tab:</strong> Each ticker in the backtest universe has a single Q8 observation point from its 20-quarter EDGAR history. We computed five frameworks (ISC, Altman Z, Piotroski F, Beneish M, Composite) at that date, then tracked the realized return over the next 1Q, 2Q, 4Q, 8Q, and 12Q. The &ldquo;closest-aligned framework&rdquo; is whichever signal best matched the realized outcome &mdash; not the &ldquo;winner&rdquo;, just the one whose prediction landed closest to what actually happened.
+              </div>
+            </div>
+            <div id="backtestArea" style="margin-top:6px">
+              <div class="card-hi" style="text-align:center;padding:32px;color:var(--dim)">
+                <div style="font-size:32px;margin-bottom:10px;opacity:.6">&#9203;</div>
+                <div style="font-size:14px;font-weight:600;color:var(--wh);margin-bottom:8px">Loading backtest data...</div>
+                <div style="font-size:13px;line-height:1.7;max-width:480px;margin:0 auto">If this message persists, click <strong style="color:var(--cyan)">Run Full Analysis</strong> on the left to fetch backtest data for this ticker.</div>
+              </div>
             </div>
           </div>
 
@@ -2118,7 +2141,7 @@ function swTab(id, el) {
       if(onclickAttr.indexOf("swTab('"+id+"'")>=0){btns[i].classList.add('on');break;}
     }
   }
-  var tabs=['overview','charts','isc','income','balance','cashflow','traditional','forensic','peers','portfolio','ai'];
+  var tabs=['overview','charts','isc','backtest','income','balance','cashflow','traditional','forensic','peers','portfolio','ai'];
   tabs.forEach(function(t){
     var e=document.getElementById('t-'+t);
     if(e) e.classList.toggle('hidden',t!==id);
@@ -2633,6 +2656,9 @@ async function runAnal() {
     // fired on tab-click, leaving the charts blank until they clicked away
     // and back. Same logic applies to any tab with deferred rendering.
     refreshActiveTab(D);
+    // Day 9: fetch backtest data in parallel and render the Backtest tab.
+    // Non-blocking — analysis result is already shown; this populates the tab when it arrives.
+    fetchBacktest(tk);
     if(data.data_sources&&data.data_sources.edgar)addToPortfolio(data);
   }catch(e){
     clearInterval(iv);fill.style.width='0%';
@@ -2641,6 +2667,7 @@ async function runAnal() {
     renderAll(D);
     destroyCharts();
     refreshActiveTab(D);
+    fetchBacktest(tk);
     if(!e.message.includes('NetworkError')&&!e.message.includes('fetch')){
       showError('API warming up (30&#8211;50 second cold start). Click Run Again for real EDGAR data. Error: '+e.message);
     }else{
@@ -3970,6 +3997,246 @@ function renderPeerCharts(rows, lockState){
     });
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   BACKTEST REFERENCE TAB (Day 9)
+   Fetches /backtest/{ticker} from the ISC Analyst API and renders a
+   THEN / WHAT HAPPENED / NOW timeline showing what each of the five
+   frameworks (ISC, Altman, Piotroski, Beneish, Composite) classified at
+   a historical observation point, followed by the realized outcome.
+
+   This is REFERENCE DATA. Not a prediction for the current period.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function fetchBacktest(tk){
+  var area=document.getElementById('backtestArea');
+  if(!area)return;
+  // Show loading state
+  area.innerHTML='<div class="card-hi" style="text-align:center;padding:32px;color:var(--dim)">'
+    +'<div style="font-size:24px;margin-bottom:10px;opacity:.6">&#9203;</div>'
+    +'<div style="font-size:13px;color:#A0B8D0">Loading backtest reference for '+tk+'...</div>'
+    +'</div>';
+  fetch(API+'/backtest/'+encodeURIComponent(tk))
+    .then(function(r){
+      if(r.status===404){
+        renderBacktestMissing(tk);
+        return null;
+      }
+      if(!r.ok)throw new Error('Backtest API returned '+r.status);
+      return r.json();
+    })
+    .then(function(data){
+      if(data)renderBacktestTab(data);
+    })
+    .catch(function(err){
+      console.warn('Backtest fetch failed:',err);
+      area.innerHTML='<div class="card-hi" style="padding:24px;color:var(--dim)">'
+        +'<div style="font-size:13px;color:#A0B8D0;line-height:1.7">'
+        +'<strong style="color:var(--wh)">Backtest data unavailable.</strong> '
+        +'The backtest endpoint did not respond. This is usually a transient cold-start issue &mdash; click <strong style="color:var(--cyan)">Run Full Analysis</strong> again in 30 seconds.'
+        +'</div></div>';
+    });
+}
+
+function renderBacktestMissing(tk){
+  var area=document.getElementById('backtestArea');
+  if(!area)return;
+  area.innerHTML='<div class="card-hi" style="padding:28px;text-align:center">'
+    +'<div style="font-size:32px;margin-bottom:14px;opacity:.6">&#128203;</div>'
+    +'<div style="font-size:15px;font-weight:600;color:var(--wh);margin-bottom:10px">'+tk+' is not in the backtest universe</div>'
+    +'<div style="font-size:13px;color:#A0B8D0;line-height:1.7;max-width:560px;margin:0 auto 14px">'
+    +'The backtest reference covers <strong style="color:var(--wh)">478 S&amp;P 500 tickers</strong> for which we have a clean 20-quarter EDGAR history and the corresponding 12-quarter forward price record. '
+    +'Each ticker has a single observation point at the 8th quarter of its history (Q8), with realized outcomes measured at 1Q, 2Q, 4Q, 8Q, and 12Q horizons.'
+    +'</div>'
+    +'<div style="font-size:12px;color:var(--dim);line-height:1.7;max-width:560px;margin:0 auto;padding:12px 14px;background:rgba(255,255,255,.02);border-radius:7px">'
+    +'<strong style="color:#A0B8D0">Coverage will expand:</strong> currently limited to S&amp;P 500 names with full 20Q EDGAR + Tiingo coverage. Russell 1000+ and historical S&amp;P constituents are on the roadmap. '
+    +'The live ISC analysis on the other tabs is not affected by backtest coverage.'
+    +'</div></div>';
+}
+
+function renderBacktestTab(d){
+  var area=document.getElementById('backtestArea');
+  if(!area)return;
+  if(!d||!d.observation||!d.outcomes){
+    area.innerHTML='<div class="card-hi" style="padding:24px;color:var(--dim);font-size:13px">Backtest response missing expected fields. Try Run Full Analysis again.</div>';
+    return;
+  }
+  var tk=d.ticker||'';
+  var obsDate=d.obs_date||'';
+  var obs=d.observation;
+  var outcomes=d.outcomes;
+  var qReturns=d.quarterly_returns||[];
+  var qLabels=d.quarter_labels||[];
+  var closest=d.closest_aligned_framework_8q||d.closest_aligned_framework||'';
+
+  // Helper: regime color
+  function regCol(r){
+    if(!r)return 'var(--dim)';
+    var rl=String(r).toLowerCase();
+    if(rl==='distressed'||rl==='manipulator'||rl==='declining')return 'var(--red)';
+    if(rl==='rising'||rl==='elevated'||rl==='mixed'||rl==='grey')return 'var(--amber)';
+    if(rl==='stable'||rl==='safe'||rl==='strong')return 'var(--green)';
+    return 'var(--dim)';
+  }
+  function regLabel(r){
+    if(!r)return '—';
+    return String(r).charAt(0).toUpperCase()+String(r).slice(1);
+  }
+  function pctF(v){
+    if(v==null||isNaN(v))return '—';
+    return (v>=0?'+':'')+(v*100).toFixed(1)+'%';
+  }
+
+  // Extract framework regimes at observation
+  var iscReg=obs.isc&&obs.isc.regime;
+  var iscScore=obs.isc&&obs.isc.score;
+  var altReg=obs.altman&&obs.altman.regime;
+  var altZ=obs.altman&&obs.altman.z;
+  var pioReg=obs.piotroski&&obs.piotroski.regime;
+  var pioF=obs.piotroski&&obs.piotroski.f_score;
+  var benReg=obs.beneish&&obs.beneish.regime;
+  var benM=obs.beneish&&obs.beneish.m_score;
+  var compReg=obs.composite&&obs.composite.regime;
+
+  // Outcomes
+  var o1=outcomes['1q']||{},o2=outcomes['2q']||{},o4=outcomes['4q']||{},o8=outcomes['8q']||{},o12=outcomes['12q']||{};
+
+  // Build HTML
+  var html='';
+
+  // ─── THEN / WHAT HAPPENED / NOW header ───
+  html+='<div class="card-hi" style="padding:18px 22px;margin-bottom:14px">';
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">';
+
+  // THEN
+  html+='<div style="border-right:1px solid rgba(255,255,255,.06);padding-right:14px">';
+  html+='<div style="font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:.12em;font-weight:700;margin-bottom:6px">THEN &middot; '+obsDate+'</div>';
+  html+='<div style="font-size:13px;color:#A0B8D0;line-height:1.6">Observation point. The five frameworks were computed from EDGAR filings as of this date.</div>';
+  html+='</div>';
+
+  // WHAT HAPPENED
+  var ret8q=o8.total_return;
+  var ret8qCol=ret8q!=null?(ret8q<-0.2?'var(--red)':ret8q<0?'var(--amber)':'var(--green)'):'var(--dim)';
+  html+='<div style="border-right:1px solid rgba(255,255,255,.06);padding-right:14px">';
+  html+='<div style="font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:.12em;font-weight:700;margin-bottom:6px">WHAT HAPPENED &middot; 8Q FORWARD</div>';
+  html+='<div style="font-family:var(--mono);font-size:22px;font-weight:700;color:'+ret8qCol+';line-height:1">'+pctF(ret8q)+'</div>';
+  html+='<div style="font-size:11px;color:var(--dim);margin-top:4px">Total return through '+(qLabels.length>=8?qLabels[7]:'8Q later')+'</div>';
+  html+='</div>';
+
+  // NOW
+  html+='<div>';
+  html+='<div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.12em;font-weight:700;margin-bottom:6px">NOW</div>';
+  html+='<div style="font-size:13px;color:#A0B8D0;line-height:1.6">For live ISC analysis of <strong style="color:var(--wh)">'+tk+'</strong> today, see the ISC Analysis tab. This page is reference data only.</div>';
+  html+='</div>';
+  html+='</div>';
+  html+='</div>';
+
+  // ─── Closest-aligned framework callout ───
+  if(closest){
+    html+='<div style="background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.22);border-left:3px solid var(--purple);border-radius:0 8px 8px 0;padding:13px 16px;margin-bottom:14px">';
+    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:.10em;font-weight:700;margin-bottom:4px">CLOSEST-ALIGNED FRAMEWORK (8Q)</div>';
+    html+='<div style="font-size:14px;color:var(--wh);font-weight:600;margin-bottom:4px">'+closest+'</div>';
+    html+='<div style="font-size:12px;color:var(--dim);line-height:1.6">This is the framework whose classification at '+obsDate+' best matched the realized 8-quarter return. It does not mean the framework &ldquo;won&rdquo; in any predictive sense &mdash; only that its read of the data lined up most closely with what followed.</div>';
+    html+='</div>';
+  }
+
+  // ─── Framework breakdown table ───
+  html+='<div class="card-hi" style="margin-bottom:14px">';
+  html+='<div class="sb-lbl" style="margin-bottom:12px">Framework Classifications at '+obsDate+'</div>';
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html+='<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08)">';
+  ['Framework','Classification','Score','At This Date'].forEach(function(h){
+    html+='<th style="text-align:left;padding:10px 8px;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:600">'+h+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+
+  var rows=[
+    {name:'ISC (Variance EWS)',reg:iscReg,score:iscScore!=null?iscScore.toFixed(3):'—',ctx:'Variance EWS &mdash; rolling 90d variance of log returns'},
+    {name:'Altman Z',reg:altReg,score:altZ!=null?altZ.toFixed(2):'—',ctx:'Multi-factor financial health composite'},
+    {name:'Piotroski F',reg:pioReg,score:pioF!=null?pioF.toFixed(0)+'/9':'—',ctx:'9-point fundamental quality checklist'},
+    {name:'Beneish M',reg:benReg,score:benM!=null?benM.toFixed(2):'—',ctx:'Earnings manipulation screen (M-Score)'},
+    {name:'Composite',reg:compReg,score:'—',ctx:'Aggregate signal across frameworks'},
+  ];
+  rows.forEach(function(row){
+    var rc=regCol(row.reg);
+    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04)">';
+    html+='<td style="padding:11px 8px;color:var(--wh);font-weight:600">'+row.name+'</td>';
+    html+='<td style="padding:11px 8px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:'+rc+'">'+regLabel(row.reg)+'</span></td>';
+    html+='<td style="padding:11px 8px;font-family:var(--mono);color:#A0B8D0">'+row.score+'</td>';
+    html+='<td style="padding:11px 8px;color:var(--dim);font-size:11px">'+row.ctx+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='</div>';
+
+  // ─── Quarterly trajectory bars ───
+  if(qReturns.length>0){
+    html+='<div class="card-hi" style="margin-bottom:14px">';
+    html+='<div class="sb-lbl" style="margin-bottom:6px">12-Quarter Forward Trajectory</div>';
+    html+='<div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.6">Sector-relative total return per quarter following the observation date. Green = positive period return; red = negative. The 8Q and 12Q markers are the framework alignment horizons.</div>';
+    var maxAbs=Math.max.apply(null,qReturns.map(function(v){return Math.abs(v||0);}))||0.1;
+    html+='<div style="display:flex;gap:4px;align-items:flex-end;height:120px;padding:0 4px;border-bottom:1px solid rgba(255,255,255,.08)">';
+    qReturns.forEach(function(r,i){
+      var pct=r!=null?r:0;
+      var h=Math.abs(pct)/maxAbs*100;
+      var pos=pct>=0;
+      var col=pos?'rgba(16,185,129,.7)':'rgba(239,68,68,.7)';
+      var border=pos?'#10B981':'#EF4444';
+      var isMarker=(i===7||i===11); // 8Q and 12Q (0-indexed: 7 and 11)
+      html+='<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;position:relative" title="'+(qLabels[i]||('Q'+(i+1)))+': '+pctF(pct)+'">';
+      if(pos){
+        html+='<div style="height:'+h+'%;background:'+col+';border-top:2px solid '+border+';border-radius:3px 3px 0 0"></div>';
+      } else {
+        // Negative bar: anchor from top of bottom half — simpler: just render as positive height with color
+        html+='<div style="height:'+h+'%;background:'+col+';border-top:2px solid '+border+';border-radius:3px 3px 0 0"></div>';
+      }
+      if(isMarker){
+        html+='<div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:9px;font-family:var(--mono);color:var(--purple);font-weight:700">'+(i===7?'8Q':'12Q')+'</div>';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+    // Quarter labels
+    html+='<div style="display:flex;gap:4px;padding:6px 4px 0;font-size:9px;font-family:var(--mono);color:var(--dim)">';
+    qReturns.forEach(function(r,i){
+      var lbl=qLabels[i]||('Q'+(i+1));
+      html+='<div style="flex:1;text-align:center">'+lbl+'</div>';
+    });
+    html+='</div>';
+    html+='</div>';
+  }
+
+  // ─── Outcome by horizon table ───
+  html+='<div class="card-hi" style="margin-bottom:14px">';
+  html+='<div class="sb-lbl" style="margin-bottom:12px">Realized Outcome by Horizon</div>';
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html+='<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08)">';
+  ['Horizon','Total Return','Outcome Regime'].forEach(function(h){
+    html+='<th style="text-align:left;padding:10px 8px;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:600">'+h+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  [['1Q',o1],['2Q',o2],['4Q',o4],['8Q',o8],['12Q',o12]].forEach(function(pair){
+    var hz=pair[0],oc=pair[1];
+    var ret=oc.total_return;
+    var rc=ret!=null?(ret<-0.2?'var(--red)':ret<0?'var(--amber)':'var(--green)'):'var(--dim)';
+    var outReg=oc.outcome_regime||'—';
+    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04)">';
+    html+='<td style="padding:11px 8px;color:var(--wh);font-weight:600;font-family:var(--mono)">'+hz+'</td>';
+    html+='<td style="padding:11px 8px;font-family:var(--mono);font-weight:700;color:'+rc+'">'+pctF(ret)+'</td>';
+    html+='<td style="padding:11px 8px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:'+regCol(outReg)+'">'+regLabel(outReg)+'</span></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='</div>';
+
+  // ─── Methodology footer ───
+  html+='<div style="padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid var(--bdr);border-radius:8px;font-size:11.5px;color:var(--dim);line-height:1.7">';
+  html+='<strong style="color:#A0B8D0">About this backtest.</strong> 478 S&amp;P 500 tickers were analyzed at a single Q8 observation point in their 20-quarter EDGAR history. Forward outcomes were measured at 1Q/2Q/4Q/8Q/12Q horizons using Tiingo sector-relative returns. The observation dates span 2010-09-30 through 2024-12-31, providing real walk-forward dispersion. ISC outperformed the four traditional frameworks on Spearman rank correlation at every horizon (1Q ρ=0.255 vs Composite 0.118, 8Q ρ=0.214 vs Composite 0.130). This is descriptive validation, not a prediction for future periods. The framework does not predict outcomes for any specific company.';
+  html+='</div>';
+
+  area.innerHTML=html;
+}
+
 function renderPeers(d){
   var area=document.getElementById('peersArea');
   if(!area)return;
@@ -6500,7 +6767,7 @@ renderPortfolio();
 
     // Primary tabs (visible on mobile): Overview, Charts, ISC
     // Secondary tabs (hidden on mobile under "More"): everything else
-    var primaryIds = ['overview', 'charts', 'isc'];
+    var primaryIds = ['overview', 'charts', 'isc', 'backtest'];
     var buttons = tabBar.querySelectorAll('button.tb');
     var secondaryButtons = [];
 
