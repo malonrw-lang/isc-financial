@@ -4079,8 +4079,20 @@ function renderBacktestTab(d){
     return 'var(--dim)';
   }
   function regLabel(r){
-    if(!r)return '—';
+    if(!r)return 'Insufficient data';
+    var rl=String(r).toLowerCase();
+    if(rl==='unknown'||rl==='n/a'||rl==='na'||rl==='insufficient_data'||rl==='insufficient')return 'Insufficient data';
     return String(r).charAt(0).toUpperCase()+String(r).slice(1);
+  }
+  // Returns -1 (bearish call), +1 (bullish call), or 0 (neutral/unknown).
+  // Used to sanity-check whether the backend's "closest-aligned framework"
+  // actually points in the direction of the realized return.
+  function regDirection(r){
+    if(!r)return 0;
+    var rl=String(r).toLowerCase();
+    if(rl==='distressed'||rl==='manipulator'||rl==='declining'||rl==='unsafe')return -1;
+    if(rl==='stable'||rl==='safe'||rl==='strong'||rl==='non-manipulator')return 1;
+    return 0; // mixed/elevated/rising/grey/unknown — no clean direction
   }
   function pctF(v){
     if(v==null||isNaN(v))return '—';
@@ -4108,6 +4120,24 @@ function renderBacktestTab(d){
   html+='<div class="card-hi" style="padding:18px 22px;margin-bottom:14px">';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">';
 
+  // Observation-date age note. Phase 1 of the backtest pins each ticker to a
+  // single Q8 observation from its 20-quarter EDGAR history. For tickers
+  // whose history started years ago, obs_date sits well in the past and the
+  // 12Q forward window ends well before today. Surface this so the user
+  // doesn't read the chart as "the most recent 12 quarters."
+  var obsYearsBack=null;
+  if(obsDate){
+    try{
+      var obsMs=new Date(obsDate).getTime();
+      if(!isNaN(obsMs)){
+        obsYearsBack=(Date.now()-obsMs)/(365.25*24*3600*1000);
+      }
+    }catch(e){}
+  }
+  if(obsYearsBack!=null && obsYearsBack>3){
+    html+='<div style="grid-column:1/-1;margin-bottom:10px;padding:8px 12px;background:rgba(245,158,11,.05);border:1px solid rgba(245,158,11,.18);border-radius:6px;font-size:11.5px;color:#A0B8D0;line-height:1.55"><strong style="color:var(--amber)">Note:</strong> This observation point is ~'+obsYearsBack.toFixed(1)+' years old. Phase 1 of the backtest pins each ticker to a single Q8 observation from its earliest available 20-quarter EDGAR history, so the 12Q forward window ends well before today. A rolling-observation extension is on the roadmap. For live signal on '+tk+' as of today, see the ISC Analysis tab.</div>';
+  }
+
   // THEN
   html+='<div style="border-right:1px solid rgba(255,255,255,.06);padding-right:14px">';
   html+='<div style="font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:.12em;font-weight:700;margin-bottom:6px">THEN &middot; '+obsDate+'</div>';
@@ -4133,10 +4163,32 @@ function renderBacktestTab(d){
 
   // ─── Closest-aligned framework callout ───
   if(closest){
+    // Map the closest-aligned framework name to its regime in the observation.
+    // Use this to sanity-check direction against the realized 8Q return.
+    var closestLower=String(closest).toLowerCase();
+    var closestReg=null;
+    if(closestLower.indexOf('isc')>=0||closestLower.indexOf('variance')>=0)closestReg=iscReg;
+    else if(closestLower.indexOf('altman')>=0)closestReg=altReg;
+    else if(closestLower.indexOf('piotroski')>=0)closestReg=pioReg;
+    else if(closestLower.indexOf('beneish')>=0)closestReg=benReg;
+    else if(closestLower.indexOf('composite')>=0)closestReg=compReg;
+    var closestDir=regDirection(closestReg);
+    var realizedDir=(ret8q==null||isNaN(ret8q))?0:(ret8q>0.05?1:ret8q<-0.05?-1:0);
+    // Mismatch: framework called bearish, return positive — or vice versa.
+    // The 5% deadband on realized return avoids flagging tiny drift as mismatch.
+    var mismatch=(closestDir!==0 && realizedDir!==0 && closestDir!==realizedDir);
+
     html+='<div style="background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.22);border-left:3px solid var(--purple);border-radius:0 8px 8px 0;padding:13px 16px;margin-bottom:14px">';
     html+='<div style="font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:.10em;font-weight:700;margin-bottom:4px">CLOSEST-ALIGNED FRAMEWORK (8Q)</div>';
-    html+='<div style="font-size:14px;color:var(--wh);font-weight:600;margin-bottom:4px">'+closest+'</div>';
-    html+='<div style="font-size:12px;color:var(--dim);line-height:1.6">This is the framework whose classification at '+obsDate+' best matched the realized 8-quarter return. It does not mean the framework &ldquo;won&rdquo; in any predictive sense &mdash; only that its read of the data lined up most closely with what followed.</div>';
+    html+='<div style="font-size:14px;color:var(--wh);font-weight:600;margin-bottom:4px">'+closest+(closestReg?' &mdash; <span style="color:'+regCol(closestReg)+';font-weight:700">'+regLabel(closestReg).toUpperCase()+'</span>':'')+'</div>';
+    if(mismatch){
+      // Directional mismatch — be honest about it instead of letting the
+      // backend's "closest-aligned" label imply the framework correctly
+      // anticipated direction.
+      html+='<div style="font-size:12px;color:var(--amber);line-height:1.6;margin-bottom:6px"><strong>&#9888; Directional mismatch:</strong> '+closest+' classified the firm as <strong>'+regLabel(closestReg)+'</strong> ('+(closestDir<0?'bearish':'bullish')+' read), but the realized 8Q return of '+pctF(ret8q)+' is '+(realizedDir>0?'positive':'negative')+'. The backend selected this as &ldquo;closest-aligned&rdquo; on numeric score distance, not directional agreement. Treat the label cautiously and review the full classification table below.</div>';
+    } else {
+      html+='<div style="font-size:12px;color:var(--dim);line-height:1.6">This is the framework whose classification at '+obsDate+' best matched the realized 8-quarter return. It does not mean the framework &ldquo;won&rdquo; in any predictive sense &mdash; only that its read of the data lined up most closely with what followed.</div>';
+    }
     html+='</div>';
   }
 
@@ -4169,11 +4221,136 @@ function renderBacktestTab(d){
   html+='</tbody></table></div>';
   html+='</div>';
 
-  // ─── Quarterly trajectory bars ───
+  // ─── Cumulative return chart (subject + sector-matched stable peer) ───
+  // Compound quarterly returns into a cumulative path so the user can read
+  // the OUTCOME ("did this end up or down, by how much") at a glance, with
+  // the quarterly bars below showing the PATH ("was it smooth or bumpy").
+  // Subject = the ticker. Peer benchmark = average cumulative return of
+  // sector peers that were classified Stable at obs_date. If the backend
+  // doesn't ship peer data, render subject-only with a "peer data not
+  // available" footnote so the structure is right and the user knows why
+  // the comparison line is missing.
+  if(qReturns.length>0){
+    // Compound: (1+r0)*(1+r1)*...*(1+rN) - 1 at each step.
+    function compoundPath(quarterly){
+      var path=[]; var run=1;
+      for(var i=0;i<quarterly.length;i++){
+        var r=quarterly[i];
+        if(r==null||isNaN(r)){ path.push(null); continue; }
+        run = run * (1 + r);
+        path.push(run - 1);
+      }
+      return path;
+    }
+    var subjCum=compoundPath(qReturns);
+    // Peer benchmark: backend may ship d.peer_stable_quarterly_returns
+    // (array of length 12, each entry is the cohort-average quarterly
+    // return for sector-matched stable-classified peers). Fall back to
+    // null array if unavailable.
+    var peerQuarterly=d.peer_stable_quarterly_returns||d.peer_quarterly_returns||null;
+    var peerCum=peerQuarterly?compoundPath(peerQuarterly):null;
+    var peerCount=d.peer_stable_count||d.peer_count||null;
+
+    // SVG dimensions and scale
+    var svgW=720, svgH=200;
+    var padL=44, padR=20, padT=18, padB=28;
+    var plotW=svgW-padL-padR, plotH=svgH-padT-padB;
+    var n=qReturns.length;
+    // Y range: include zero, subject path, peer path if present
+    var allY=[0];
+    subjCum.forEach(function(v){ if(v!=null) allY.push(v); });
+    if(peerCum) peerCum.forEach(function(v){ if(v!=null) allY.push(v); });
+    var yMin=Math.min.apply(null,allY), yMax=Math.max.apply(null,allY);
+    // Pad y-range by ~8% and ensure non-zero span
+    var ySpan=yMax-yMin; if(ySpan<0.05)ySpan=0.05;
+    yMin -= ySpan*0.08; yMax += ySpan*0.08;
+    function xCoord(i){ return padL + (i/(n-1||1))*plotW; }
+    function yCoord(v){ return padT + plotH - ((v-yMin)/(yMax-yMin))*plotH; }
+    // Build line path
+    function buildPath(arr){
+      var parts=[]; var started=false;
+      for(var i=0;i<arr.length;i++){
+        if(arr[i]==null) continue;
+        parts.push((started?'L':'M') + xCoord(i).toFixed(1) + ',' + yCoord(arr[i]).toFixed(1));
+        started=true;
+      }
+      return parts.join(' ');
+    }
+    var subjPath=buildPath(subjCum);
+    var peerPath=peerCum?buildPath(peerCum):null;
+    // Compute endpoint values for the legend
+    var subjEnd=null; for(var i=subjCum.length-1;i>=0;i--){ if(subjCum[i]!=null){ subjEnd=subjCum[i]; break; } }
+    var peerEnd=null; if(peerCum){ for(var i=peerCum.length-1;i>=0;i--){ if(peerCum[i]!=null){ peerEnd=peerCum[i]; break; } } }
+    var outperf=(subjEnd!=null && peerEnd!=null) ? (subjEnd-peerEnd) : null;
+
+    html+='<div class="card-hi" style="margin-bottom:14px">';
+    html+='<div class="sb-lbl" style="margin-bottom:6px">Cumulative Return &mdash; '+tk+' vs Sector Stable Peers</div>';
+    html+='<div style="font-size:12px;color:var(--dim);margin-bottom:10px;line-height:1.6">Compounded total return from observation date through each forward quarter. The dashed line is the average cumulative return of sector-matched peers that were classified <strong style="color:var(--green)">Stable</strong> at the same observation date &mdash; a benchmark for what &ldquo;business as usual&rdquo; looked like over the same window.</div>';
+
+    // Legend / endpoint summary
+    html+='<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px;font-size:11.5px">';
+    html+='<div style="display:flex;align-items:center;gap:6px"><div style="width:18px;height:2px;background:var(--cyan)"></div><span style="color:var(--wh);font-weight:600">'+tk+'</span>';
+    if(subjEnd!=null) html+='<span style="font-family:var(--mono);color:'+(subjEnd>=0?'var(--green)':'var(--red)')+';font-weight:700">'+pctF(subjEnd)+'</span><span style="color:var(--dim);font-size:10px">@12Q</span>';
+    html+='</div>';
+    if(peerCum){
+      html+='<div style="display:flex;align-items:center;gap:6px"><div style="width:18px;height:2px;background:var(--dim);border-top:1px dashed var(--dim);background:none"></div><span style="color:#A0B8D0">Stable peers';
+      if(peerCount) html+=' (n='+peerCount+')';
+      html+='</span>';
+      if(peerEnd!=null) html+='<span style="font-family:var(--mono);color:'+(peerEnd>=0?'var(--green)':'var(--red)')+';font-weight:600">'+pctF(peerEnd)+'</span><span style="color:var(--dim);font-size:10px">@12Q</span>';
+      html+='</div>';
+      if(outperf!=null){
+        var outCol = outperf>0.05 ? 'var(--green)' : outperf<-0.05 ? 'var(--red)' : 'var(--amber)';
+        html+='<div style="display:flex;align-items:center;gap:6px;margin-left:auto"><span style="color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600">Excess</span><span style="font-family:var(--mono);font-weight:700;color:'+outCol+'">'+(outperf>=0?'+':'')+(outperf*100).toFixed(1)+'pp</span></div>';
+      }
+    }
+    html+='</div>';
+
+    // SVG chart
+    html+='<svg viewBox="0 0 '+svgW+' '+svgH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">';
+    // Zero reference line
+    var yZero=yCoord(0);
+    html+='<line x1="'+padL+'" y1="'+yZero.toFixed(1)+'" x2="'+(svgW-padR)+'" y2="'+yZero.toFixed(1)+'" stroke="rgba(255,255,255,.15)" stroke-width="1" stroke-dasharray="2,3"/>';
+    html+='<text x="'+(padL-4)+'" y="'+(yZero+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="rgba(255,255,255,.4)" font-family="monospace">0%</text>';
+    // Y-axis ticks at min and max (rounded to whole %)
+    var yTicks=[yMin, (yMin+yMax)/2, yMax];
+    yTicks.forEach(function(v,idx){
+      if(idx===1 && Math.abs(v)<0.05) return; // skip middle if too close to zero
+      var y=yCoord(v);
+      var lbl=(v>=0?'+':'')+(v*100).toFixed(0)+'%';
+      html+='<text x="'+(padL-4)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="rgba(255,255,255,.4)" font-family="monospace">'+lbl+'</text>';
+    });
+    // 8Q and 12Q marker verticals
+    [7,11].forEach(function(i){
+      if(i>=n) return;
+      var x=xCoord(i);
+      html+='<line x1="'+x.toFixed(1)+'" y1="'+padT+'" x2="'+x.toFixed(1)+'" y2="'+(padT+plotH)+'" stroke="rgba(167,139,250,.2)" stroke-width="1" stroke-dasharray="3,3"/>';
+      html+='<text x="'+x.toFixed(1)+'" y="'+(padT-6)+'" text-anchor="middle" font-size="9" fill="var(--purple)" font-family="monospace" font-weight="700">'+(i===7?'8Q':'12Q')+'</text>';
+    });
+    // Peer line (drawn first, behind subject)
+    if(peerPath){
+      html+='<path d="'+peerPath+'" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.85"/>';
+    }
+    // Subject line
+    html+='<path d="'+subjPath+'" fill="none" stroke="#00C8FF" stroke-width="2.5"/>';
+    // Subject endpoint dot
+    if(subjEnd!=null){
+      var lastIdx=-1;
+      for(var i=subjCum.length-1;i>=0;i--){ if(subjCum[i]!=null){ lastIdx=i; break; } }
+      if(lastIdx>=0) html+='<circle cx="'+xCoord(lastIdx).toFixed(1)+'" cy="'+yCoord(subjEnd).toFixed(1)+'" r="3.5" fill="#00C8FF"/>';
+    }
+    html+='</svg>';
+
+    // Footnote if peer data unavailable
+    if(!peerCum){
+      html+='<div style="margin-top:8px;padding:8px 12px;background:rgba(255,255,255,.02);border-radius:6px;font-size:11px;color:var(--dim);line-height:1.55">Sector-stable peer benchmark not yet available for this ticker. Showing subject path only. The peer-comparison feature requires per-obs-date sector cohorts in the backend; rolling out across the universe.</div>';
+    }
+    html+='</div>';
+  }
+
   if(qReturns.length>0){
     html+='<div class="card-hi" style="margin-bottom:14px">';
-    html+='<div class="sb-lbl" style="margin-bottom:6px">12-Quarter Forward Trajectory</div>';
-    html+='<div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.6">Sector-relative total return per quarter following the observation date. Green = positive period return; red = negative. The 8Q and 12Q markers are the framework alignment horizons.</div>';
+    html+='<div class="sb-lbl" style="margin-bottom:6px">12-Quarter Forward Trajectory &mdash; Per-Quarter Returns</div>';
+    html+='<div style="font-size:12px;color:var(--dim);margin-bottom:14px;line-height:1.6">The path that produced the cumulative line above. Each bar is one quarter\u2019s sector-relative total return &mdash; green positive, red negative. Bumpy bars with a rising cumulative line = volatile path to a good outcome; smooth bars = steady compounding. The 8Q and 12Q markers are the framework alignment horizons.</div>';
     var maxAbs=Math.max.apply(null,qReturns.map(function(v){return Math.abs(v||0);}))||0.1;
     html+='<div style="display:flex;gap:4px;align-items:flex-end;height:120px;padding:0 4px;border-bottom:1px solid rgba(255,255,255,.08)">';
     qReturns.forEach(function(r,i){
