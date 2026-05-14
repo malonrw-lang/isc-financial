@@ -3745,6 +3745,11 @@ function findPeers(ticker, sector, maxN){
     if(x==='Healthcare'||x==='Health Care')return 'Healthcare';
     if(x==='Airlines'||x==='Aerospace & Defense'||x==='Industrials')return 'Industrials';
     if(x==='Energy Trading'||x==='Oil & Gas'||x==='Energy')return 'Energy';
+    if(x==='Information Technology'||x==='Technology'||x==='Tech')return 'Technology';
+    if(x==='Consumer Staples'||x==='Consumer Defensive')return 'Consumer Defensive';
+    if(x==='Materials'||x==='Basic Materials')return 'Basic Materials';
+    if(x==='Real Estate'||x==='REITs')return 'Real Estate';
+    if(x==='Utilities')return 'Utilities';
     return x;
   }
   var targetSector=normSector(sector);
@@ -3779,6 +3784,21 @@ function findPeers(ticker, sector, maxN){
   sortByMcapProximity(sectorMatches);
   // Combined list: industry matches first (tighter peers), then sector matches
   var combined=industryMatches.concat(sectorMatches);
+  // Fallback: if both lists are empty but we have a target industry,
+  // search across ALL sectors for matching industry (handles sector label mismatches).
+  if(combined.length===0 && targetIndustry){
+    var industryFallback=[];
+    Object.keys(KNOWN).forEach(function(k){
+      if(k===t)return;
+      var p=KNOWN[k];
+      if(!p||p.altZ==null)return;
+      if(p.i && String(p.i).trim()===targetIndustry){
+        industryFallback.push(Object.assign({ticker:k},p));
+      }
+    });
+    sortByMcapProximity(industryFallback);
+    combined=industryFallback;
+  }
   return combined.slice(0, maxN||5);
 }
 function getPeerTierLimit(){
@@ -3964,7 +3984,7 @@ function renderPeers(d){
   var locked=isPeerLocked();
   var allPeers=findPeers(ticker, subjSector, 5);
   if(allPeers.length===0){
-    area.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--dim)"><div style="font-size:14px">No peers in '+subjSector+' available in the snapshot database yet.</div></div>';
+    area.innerHTML='<div class="card" style="padding:40px;text-align:center;color:var(--dim)"><div style="font-size:14px;color:#A0B8D0;margin-bottom:8px">No peer matches for '+subjSector+' in the current dataset.</div><div style="font-size:12px;line-height:1.6">Peer coverage is being expanded. The current peer pool focuses on large-cap US-listed names. Try a different ticker, or check back as the snapshot dataset grows.</div></div>';
     return;
   }
   var visiblePeers=allPeers.slice(0, tierLimit);
