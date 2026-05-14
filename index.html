@@ -3,6 +3,7 @@
 
 
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -682,18 +683,69 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
     transform: none;
   }
 }
-}    ← existing closing brace of the touch device media query
-
-.nav-hamburger {    ← START of paste
+.nav-hamburger {
   display: none;
-  ...
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--bdr);
+  border-radius: 7px;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.nav-hamburger:hover { background: rgba(255,255,255,.08); }
+.nav-hamburger svg { width: 18px; height: 18px; }
+.nav-hamburger svg line { stroke: var(--wh); stroke-width: 2; stroke-linecap: round; }
+
+.mobile-nav-panel {
+  display: none;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  right: 0;
+  background: rgba(7,16,30,.98);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--bdr);
+  z-index: 499;
+  padding: 8px 14px 14px;
+  transform: translateY(-110%);
+  transition: transform 0.22s ease-out;
+  box-shadow: 0 8px 24px rgba(0,0,0,.45);
+}
+.mobile-nav-panel.open {
+  transform: translateY(0);
+}
+.mobile-nav-panel button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--wh);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 13px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.mobile-nav-panel button:last-child {
+  border-bottom: none;
+}
+.mobile-nav-panel button:hover,
+.mobile-nav-panel button:active {
+  color: var(--cyan);
+  background: rgba(0,200,255,.05);
+}
+
 @media (max-width: 768px) {
   .nav-hamburger { display: inline-flex; }
   .mobile-nav-panel { display: block; }
-}    ← END of paste
+}
 
-</style>    ← existing
-</head>    ← existing
 </style>
 </head>
 <body>
@@ -6656,17 +6708,6 @@ renderPortfolio();
   // INIT
   // ─────────────────────────────────────────────────────────────────
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      setupTabCollapse();
-      setupPeerObserver();
-    });
-  } else {
-    setupTabCollapse();
-    setupPeerObserver();
-  }
-})();    
-
-if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
       setupTabCollapse();
       setupPeerObserver();
