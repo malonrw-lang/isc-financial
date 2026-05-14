@@ -682,7 +682,18 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
     transform: none;
   }
 }
+}    ← existing closing brace of the touch device media query
 
+.nav-hamburger {    ← START of paste
+  display: none;
+  ...
+@media (max-width: 768px) {
+  .nav-hamburger { display: inline-flex; }
+  .mobile-nav-panel { display: block; }
+}    ← END of paste
+
+</style>    ← existing
+</head>    ← existing
 </style>
 </head>
 <body>
@@ -876,8 +887,22 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
   <div class="nright">
     <div class="tier-bar" style="display:none"></div>
     <button class="ncta" onclick="showPage('analyzer')">Run Free Analysis &#8594;</button>
+    <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()" aria-label="Open menu">
+      <svg viewBox="0 0 24 24" fill="none">
+        <line x1="4" y1="7" x2="20" y2="7"></line>
+        <line x1="4" y1="12" x2="20" y2="12"></line>
+        <line x1="4" y1="17" x2="20" y2="17"></line>
+      </svg>
+    </button>
   </div>
 </nav>
+<div class="mobile-nav-panel" id="mobileNavPanel">
+  <button onclick="mobileNavGo('home')">Home</button>
+  <button onclick="mobileNavGo('analyzer')">Analyzer</button>
+  <button onclick="mobileNavGo('pricing')">Pricing</button>
+  <button onclick="mobileNavGo('about')">About ISC</button>
+  <button onclick="mobileNavGoHelp()">&#10067; Help</button>
+</div>
 
 <!-- &#9552;&#9552;&#9552; HOME &#9552;&#9552;&#9552; -->
 <div id="pg-home" class="page" style="padding-top:56px">
@@ -6639,6 +6664,17 @@ renderPortfolio();
     setupTabCollapse();
     setupPeerObserver();
   }
+})();    
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setupTabCollapse();
+      setupPeerObserver();
+    });
+  } else {
+    setupTabCollapse();
+    setupPeerObserver();
+  }
 })();
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -6651,6 +6687,32 @@ renderPortfolio();
    The peer table → card view hooks via MutationObserver on #peersArea.
    No HTML changes needed.
    ───────────────────────────────────────────────────────────────────── */
+
+function toggleMobileNav() {
+  var panel = document.getElementById('mobileNavPanel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+}
+function closeMobileNav() {
+  var panel = document.getElementById('mobileNavPanel');
+  if (panel) panel.classList.remove('open');
+}
+function mobileNavGo(page) {
+  closeMobileNav();
+  if (typeof showPage === 'function') showPage(page);
+}
+function mobileNavGoHelp() {
+  closeMobileNav();
+  if (typeof showHelp === 'function') showHelp('what-is-isc');
+}
+document.addEventListener('click', function(e) {
+  var panel = document.getElementById('mobileNavPanel');
+  var hamburger = document.getElementById('navHamburger');
+  if (!panel || !hamburger) return;
+  if (!panel.classList.contains('open')) return;
+  if (panel.contains(e.target) || hamburger.contains(e.target)) return;
+  panel.classList.remove('open');
+});
 
 </script>
 <!-- ===== REGULATORY GATE - added 2026-05-08 =====
