@@ -4116,6 +4116,56 @@ function renderBacktestTab(d){
   // Build HTML
   var html='';
 
+  // ─── Per-framework directional verdict (computed once, used by summary + verdict block) ───
+  // For each framework: did its classification at obs_date point in the same
+  // direction as the realized 8Q return? Direction is computed from the
+  // regime label via regDirection() above. A 5% deadband on the realized
+  // return avoids calling tiny drift "right" or "wrong."
+  var ret8qVal=(o8&&o8.total_return!=null)?o8.total_return:null;
+  var realizedDir8q=(ret8qVal==null||isNaN(ret8qVal))?0:(ret8qVal>0.05?1:ret8qVal<-0.05?-1:0);
+  var fwks=[
+    {name:'ISC (Variance EWS)',  reg:iscReg, dir:regDirection(iscReg)},
+    {name:'Altman Z',            reg:altReg, dir:regDirection(altReg)},
+    {name:'Piotroski F',         reg:pioReg, dir:regDirection(pioReg)},
+    {name:'Beneish M',           reg:benReg, dir:regDirection(benReg)},
+    {name:'Composite',           reg:compReg, dir:regDirection(compReg)}
+  ];
+  function verdictOf(f){
+    if(!f.reg) return 'no-data';
+    if(f.dir===0) return 'neutral';
+    if(realizedDir8q===0) return 'neutral';
+    return (f.dir===realizedDir8q) ? 'correct' : 'wrong';
+  }
+  fwks.forEach(function(f){ f.verdict=verdictOf(f); });
+  var correctFwks  = fwks.filter(function(f){return f.verdict==='correct';});
+  var wrongFwks    = fwks.filter(function(f){return f.verdict==='wrong';});
+  var neutralFwks  = fwks.filter(function(f){return f.verdict==='neutral' || f.verdict==='no-data';});
+
+  // ─── Plain-English summary (top of tab) ───
+  // One-sentence verdict so the user knows what happened before they read
+  // any chart or table. Names the frameworks that called it right and
+  // wrong. Falls back gracefully if data is thin.
+  if(realizedDir8q!==0){
+    var summaryParts=[];
+    summaryParts.push('At <strong style="color:var(--cyan)">'+obsDate+'</strong>, looking <strong>8 quarters forward</strong>, '+tk+' returned <strong style="color:'+(realizedDir8q>0?'var(--green)':'var(--red)')+';font-family:var(--mono)">'+pctF(ret8qVal)+'</strong>.');
+    if(correctFwks.length>0){
+      var names=correctFwks.map(function(f){return '<strong style="color:var(--green)">'+f.name+'</strong>';}).join(', ');
+      summaryParts.push('Called it correctly: '+names+'.');
+    }
+    if(wrongFwks.length>0){
+      var names=wrongFwks.map(function(f){return '<strong style="color:var(--red)">'+f.name+'</strong>';}).join(', ');
+      summaryParts.push('Called it the wrong way: '+names+'.');
+    }
+    if(neutralFwks.length>0 && (correctFwks.length>0 || wrongFwks.length>0)){
+      var names=neutralFwks.map(function(f){return f.name;}).join(', ');
+      summaryParts.push('<span style="color:var(--dim)">Neutral or insufficient data: '+names+'.</span>');
+    }
+    html+='<div class="card-hi" style="padding:14px 18px;margin-bottom:14px;border-left:3px solid var(--cyan)">';
+    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--cyan);letter-spacing:.10em;font-weight:700;margin-bottom:6px">SUMMARY</div>';
+    html+='<div style="font-size:13.5px;color:var(--wh);line-height:1.7">'+summaryParts.join(' ')+'</div>';
+    html+='</div>';
+  }
+
   // ─── THEN / WHAT HAPPENED / NOW header ───
   html+='<div class="card-hi" style="padding:18px 22px;margin-bottom:14px">';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">';
@@ -4161,36 +4211,8 @@ function renderBacktestTab(d){
   html+='</div>';
   html+='</div>';
 
-  // ─── Closest-aligned framework callout ───
-  if(closest){
-    // Map the closest-aligned framework name to its regime in the observation.
-    // Use this to sanity-check direction against the realized 8Q return.
-    var closestLower=String(closest).toLowerCase();
-    var closestReg=null;
-    if(closestLower.indexOf('isc')>=0||closestLower.indexOf('variance')>=0)closestReg=iscReg;
-    else if(closestLower.indexOf('altman')>=0)closestReg=altReg;
-    else if(closestLower.indexOf('piotroski')>=0)closestReg=pioReg;
-    else if(closestLower.indexOf('beneish')>=0)closestReg=benReg;
-    else if(closestLower.indexOf('composite')>=0)closestReg=compReg;
-    var closestDir=regDirection(closestReg);
-    var realizedDir=(ret8q==null||isNaN(ret8q))?0:(ret8q>0.05?1:ret8q<-0.05?-1:0);
-    // Mismatch: framework called bearish, return positive — or vice versa.
-    // The 5% deadband on realized return avoids flagging tiny drift as mismatch.
-    var mismatch=(closestDir!==0 && realizedDir!==0 && closestDir!==realizedDir);
-
-    html+='<div style="background:rgba(167,139,250,.06);border:1px solid rgba(167,139,250,.22);border-left:3px solid var(--purple);border-radius:0 8px 8px 0;padding:13px 16px;margin-bottom:14px">';
-    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--purple);letter-spacing:.10em;font-weight:700;margin-bottom:4px">CLOSEST-ALIGNED FRAMEWORK (8Q)</div>';
-    html+='<div style="font-size:14px;color:var(--wh);font-weight:600;margin-bottom:4px">'+closest+(closestReg?' &mdash; <span style="color:'+regCol(closestReg)+';font-weight:700">'+regLabel(closestReg).toUpperCase()+'</span>':'')+'</div>';
-    if(mismatch){
-      // Directional mismatch — be honest about it instead of letting the
-      // backend's "closest-aligned" label imply the framework correctly
-      // anticipated direction.
-      html+='<div style="font-size:12px;color:var(--amber);line-height:1.6;margin-bottom:6px"><strong>&#9888; Directional mismatch:</strong> '+closest+' classified the firm as <strong>'+regLabel(closestReg)+'</strong> ('+(closestDir<0?'bearish':'bullish')+' read), but the realized 8Q return of '+pctF(ret8q)+' is '+(realizedDir>0?'positive':'negative')+'. The backend selected this as &ldquo;closest-aligned&rdquo; on numeric score distance, not directional agreement. Treat the label cautiously and review the full classification table below.</div>';
-    } else {
-      html+='<div style="font-size:12px;color:var(--dim);line-height:1.6">This is the framework whose classification at '+obsDate+' best matched the realized 8-quarter return. It does not mean the framework &ldquo;won&rdquo; in any predictive sense &mdash; only that its read of the data lined up most closely with what followed.</div>';
-    }
-    html+='</div>';
-  }
+  // (Closest-aligned framework callout moved BELOW the evidence — see
+  // "Verdict" block after the quarterly trajectory chart.)
 
   // ─── Framework breakdown table ───
   html+='<div class="card-hi" style="margin-bottom:14px">';
@@ -4381,6 +4403,87 @@ function renderBacktestTab(d){
     });
     html+='</div>';
     html+='</div>';
+  }
+
+  // ─── Verdict: who called it right? ───
+  // Appears AFTER the user has seen both the classifications (table) and the
+  // actual outcome (cumulative chart + quarterly bars). The verdict combines:
+  //   (a) the backend's "closest-aligned framework" (its scoring choice), and
+  //   (b) a directional verdict based on whether each framework's regime
+  //       called the realized 8Q direction correctly.
+  // When (a) and (b) disagree — e.g. backend names Beneish (MANIPULATOR, bearish)
+  // but the return was strongly positive — surface that explicitly.
+  if(closest || realizedDir8q!==0){
+    var closestLower=closest?String(closest).toLowerCase():'';
+    var closestReg=null;
+    if(closestLower.indexOf('isc')>=0||closestLower.indexOf('variance')>=0)closestReg=iscReg;
+    else if(closestLower.indexOf('altman')>=0)closestReg=altReg;
+    else if(closestLower.indexOf('piotroski')>=0)closestReg=pioReg;
+    else if(closestLower.indexOf('beneish')>=0)closestReg=benReg;
+    else if(closestLower.indexOf('composite')>=0)closestReg=compReg;
+    var closestDir=regDirection(closestReg);
+    var mismatch=(closest && closestDir!==0 && realizedDir8q!==0 && closestDir!==realizedDir8q);
+
+    html+='<div class="card-hi" style="margin-bottom:14px;border-left:3px solid var(--purple)">';
+    html+='<div class="sb-lbl" style="margin-bottom:12px;color:var(--purple)">Verdict &mdash; Who Called It Right?</div>';
+
+    // Three-column verdict grid: correct / wrong / neutral
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">';
+
+    // Correct calls
+    html+='<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.22);border-radius:8px;padding:12px">';
+    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.10em;font-weight:700;margin-bottom:8px">CALLED IT &nbsp;&#10003;</div>';
+    if(correctFwks.length>0){
+      correctFwks.forEach(function(f){
+        html+='<div style="font-size:12px;color:var(--wh);margin-bottom:4px"><strong>'+f.name+'</strong> &mdash; <span style="color:'+regCol(f.reg)+';font-weight:600">'+regLabel(f.reg)+'</span></div>';
+      });
+    } else {
+      html+='<div style="font-size:11.5px;color:var(--dim);font-style:italic">No framework called the direction correctly.</div>';
+    }
+    html+='</div>';
+
+    // Wrong calls
+    html+='<div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.22);border-radius:8px;padding:12px">';
+    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--red);letter-spacing:.10em;font-weight:700;margin-bottom:8px">WRONG DIRECTION &nbsp;&#10007;</div>';
+    if(wrongFwks.length>0){
+      wrongFwks.forEach(function(f){
+        html+='<div style="font-size:12px;color:var(--wh);margin-bottom:4px"><strong>'+f.name+'</strong> &mdash; <span style="color:'+regCol(f.reg)+';font-weight:600">'+regLabel(f.reg)+'</span></div>';
+      });
+    } else {
+      html+='<div style="font-size:11.5px;color:var(--dim);font-style:italic">No framework called the wrong direction.</div>';
+    }
+    html+='</div>';
+
+    // Neutral / no data
+    html+='<div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:12px">';
+    html+='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.10em;font-weight:700;margin-bottom:8px">NEUTRAL / NO DATA</div>';
+    if(neutralFwks.length>0){
+      neutralFwks.forEach(function(f){
+        html+='<div style="font-size:12px;color:#A0B8D0;margin-bottom:4px"><strong>'+f.name+'</strong> &mdash; <span style="color:var(--dim)">'+regLabel(f.reg)+'</span></div>';
+      });
+    } else {
+      html+='<div style="font-size:11.5px;color:var(--dim);font-style:italic">All frameworks made directional calls.</div>';
+    }
+    html+='</div>';
+
+    html+='</div>'; // end grid
+
+    // Backend's "closest-aligned" pick, with mismatch warning if needed
+    if(closest){
+      if(mismatch){
+        html+='<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-left:3px solid var(--amber);border-radius:0 8px 8px 0;padding:11px 14px;font-size:12px;color:#E5D5A0;line-height:1.65">';
+        html+='<strong style="color:var(--amber)">&#9888; Backend closest-aligned pick disagrees with directional verdict.</strong> The backend named <strong>'+closest+'</strong> (classification: <strong>'+regLabel(closestReg)+'</strong>, '+(closestDir<0?'bearish':'bullish')+' read) as the closest-aligned framework at 8Q, but the realized return was '+(realizedDir8q>0?'positive':'negative')+'. The backend ranks by numeric score distance, not directional agreement &mdash; treat the pick cautiously. See the green column above for which frameworks actually called the direction right.';
+        html+='</div>';
+      } else {
+        html+='<div style="background:rgba(167,139,250,.05);border-left:3px solid var(--purple);padding:10px 14px;font-size:12px;color:var(--dim);line-height:1.6">';
+        html+='Backend closest-aligned pick at 8Q: <strong style="color:var(--wh)">'+closest+'</strong>';
+        if(closestReg) html+=' (<span style="color:'+regCol(closestReg)+';font-weight:600">'+regLabel(closestReg)+'</span>)';
+        html+='. This is the framework whose numeric score best matched the realized return &mdash; consistent with the directional verdict above.';
+        html+='</div>';
+      }
+    }
+
+    html+='</div>'; // end card
   }
 
   // ─── Outcome by horizon table ───
