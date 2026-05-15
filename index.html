@@ -193,6 +193,24 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
 .tab-bar::-webkit-scrollbar{display:none}
 .tb{background:none;border:none;color:var(--dim);font-family:var(--font);font-size:13px;font-weight:500;padding:11px 14px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .18s}
 .tb:hover{color:var(--wh)}.tb.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+/* Tier toggle — investor vs institutional view mode. Sits right-aligned in
+   the tab-bar. Persisted in localStorage as 'fl_tier'. Drives whether
+   each tab renders its compact (investor) or full (institutional) view. */
+.tier-toggle{display:flex;align-items:center;gap:0;margin-left:auto;align-self:center;padding:3px;background:rgba(255,255,255,.03);border:1px solid var(--bdr);border-radius:6px;flex-shrink:0}
+.tier-toggle button{background:none;border:none;color:var(--dim);font-family:var(--font);font-size:11px;font-weight:600;padding:5px 11px;cursor:pointer;border-radius:4px;transition:all .15s;letter-spacing:.03em;text-transform:uppercase}
+.tier-toggle button:hover{color:var(--wh)}
+.tier-toggle button.on{background:var(--cyan);color:#001a2e}
+.tier-toggle-lbl{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.10em;text-transform:uppercase;font-weight:700;margin-right:8px;align-self:center}
+@media (max-width:640px){.tier-toggle-lbl{display:none}.tier-toggle button{padding:4px 8px;font-size:10px}}
+/* Tier-aware content visibility. Elements tagged .inst-only show only when
+   body[data-view-tier="institutional"]. Elements tagged .inv-only show only
+   when body[data-view-tier="investor"]. Untagged elements show in both. */
+body[data-view-tier="investor"] .inst-only{display:none !important}
+body[data-view-tier="institutional"] .inv-only{display:none !important}
+/* Until the JS runs, default to hiding investor blocks (institutional is the
+   safer default since it's the existing content). The JS applies the real
+   tier on DOM-ready. */
+body:not([data-view-tier]) .inv-only{display:none}
 .tab-content{padding:20px;display:flex;flex-direction:column;gap:16px;flex:1}
 
 /* PLACEHOLDER */
@@ -1332,6 +1350,11 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <button class="tb" onclick="swTab('peers',this)">Peers</button>
           <button class="tb" onclick="swTab('portfolio',this)">Portfolio</button>
           <button class="tb" onclick="swTab('ai',this)">AI Analyst</button>
+          <span class="tier-toggle-lbl">View</span>
+          <div class="tier-toggle" id="tierToggle">
+            <button id="tierBtnInvestor" class="on" onclick="setTier('investor')" title="Compact, glanceable view — the answer first">Investor</button>
+            <button id="tierBtnInstitutional" onclick="setTier('institutional')" title="Full detail — every number and methodology">Institutional</button>
+          </div>
         </div>
 
         <!-- Tab Contents -->
@@ -1341,7 +1364,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
           <div id="t-overview" class="tab-content">
             <div id="verdictCard" class="verdict-card"></div>
             <div id="triangulationPanel" style="margin-top:14px"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="inv-only" style="text-align:center;padding:14px;margin-top:14px;font-size:11.5px;color:var(--dim)">Want the full breakdown? <a href="javascript:setViewTier('institutional')" style="color:var(--cyan);text-decoration:underline;cursor:pointer">Switch to Institutional view</a> for the variance gauge, health snapshot, and the three-regime explainer.</div>
+            <div class="inst-only" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div class="card">
                 <div class="sb-lbl" style="margin-bottom:10px">Variance Early Warning Signal (EWS) <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
                 <div id="gaugeArea"></div>
@@ -1351,8 +1375,8 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
                 <div id="healthSnap"></div>
               </div>
             </div>
-            <div id="flagArea"></div>
-            <div class="card">
+            <div id="flagArea" class="inst-only"></div>
+            <div class="card inst-only">
               <div class="sb-lbl" style="margin-bottom:12px">What The Three Regimes Mean <button class="mhelp" onclick="showHelp('regimes')">?</button></div>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
                 <div style="padding:14px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.18);border-radius:9px"><div style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px">&#10003; Stable</div><div style="font-size:12px;color:var(--dim);line-height:1.65">The framework's "Stable" classification: rolling-window variance is in the baseline calibration range (variance &le; 0.10). The variance EWS metric does not show amplification across the rolling window. This is the framework's baseline calibration band for non-distressed historical cases.</div></div>
@@ -1419,13 +1443,14 @@ nav{position:fixed;top:0;left:0;right:0;height:56px;z-index:500;background:rgba(
               <div class="sb-lbl" style="margin-bottom:8px">Variance EWS &#8212; Full Analysis <button class="mhelp" onclick="showHelp('coupling')">?</button></div>
               <div id="iscDetail"></div>
             </div>
-            <div id="iscDrivers"></div>
-            <div class="card">
+            <div class="inv-only" style="text-align:center;padding:14px;font-size:11.5px;color:var(--dim)">Want the full breakdown? <a href="javascript:setViewTier('institutional')" style="color:var(--cyan);text-decoration:underline;cursor:pointer">Switch to Institutional view</a> for key drivers, per-series trajectory, and the 7-layer cascade.</div>
+            <div id="iscDrivers" class="inst-only"></div>
+            <div class="card inst-only">
               <div class="sb-lbl" style="margin-bottom:10px">Per-Series Trajectory</div>
               <div style="font-size:12px;color:var(--dim);margin-bottom:12px">The variance EWS is computed from price-return dynamics. Per-series fundamental trajectory below shows how each financial line item is trending across the analyzed quarters &#8212; rising, flat, or falling.</div>
               <div id="bySeries"></div>
             </div>
-            <div class="card">
+            <div class="card inst-only">
               <div class="sb-lbl" style="margin-bottom:10px">7-Layer Financial Cascade <button class="mhelp" onclick="showHelp('cascade')">?</button></div>
               <div style="font-size:13px;color:var(--dim);margin-bottom:14px;line-height:1.7">ISC maps corporate financial stress across 7 layers &#8212; from basic liquidity to management credibility. Stress typically cascades from outer layers inward before becoming visible in traditional metrics. The ISC L4 filter is the primary measurement target.</div>
               <div id="cascadeArea"></div>
@@ -1729,6 +1754,49 @@ var dataSource = 'edgar';
 var chatCtx = [];
 var uploadedData = null;
 var charts = {};
+
+/* &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+   VIEW TIER — investor vs institutional rendering mode
+   Persisted in localStorage as 'fl_tier'. Default 'investor' for first-visit
+   users (compact, answer-first). 'institutional' shows full detail.
+   This is independent of the subscription tier above (free/analyst/etc).
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
+function getViewTier(){
+  try { return localStorage.getItem('fl_tier') || 'investor'; }
+  catch(e){ return 'investor'; }
+}
+function setViewTier(t){
+  if(t!=='investor' && t!=='institutional') t='investor';
+  try { localStorage.setItem('fl_tier', t); } catch(e){}
+  // Update body attribute (for CSS hooks) and toggle button states
+  if(document.body) document.body.setAttribute('data-view-tier', t);
+  var bi=document.getElementById('tierBtnInvestor');
+  var bn=document.getElementById('tierBtnInstitutional');
+  if(bi) bi.classList.toggle('on', t==='investor');
+  if(bn) bn.classList.toggle('on', t==='institutional');
+  // Re-render the active tab so the new view applies immediately
+  if(window._lastAnalyzedData && typeof refreshActiveTab==='function'){
+    try { refreshActiveTab(window._lastAnalyzedData); } catch(e){}
+  }
+}
+function setTier(t){ setViewTier(t); } // alias used by the toggle button onclick
+function isInst(){ return getViewTier()==='institutional'; }
+// Apply persisted tier as soon as DOM is ready so the toggle reflects saved state
+(function(){
+  function apply(){
+    var t=getViewTier();
+    if(document.body) document.body.setAttribute('data-view-tier', t);
+    var bi=document.getElementById('tierBtnInvestor');
+    var bn=document.getElementById('tierBtnInstitutional');
+    if(bi) bi.classList.toggle('on', t==='investor');
+    if(bn) bn.classList.toggle('on', t==='institutional');
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', apply);
+  } else {
+    apply();
+  }
+})();
 
 var TIERS = {
   free:    {name:'Reader',        price:'$0',       desc:'Free '+MIDDOT+' No account needed', color:'var(--amber)', rgb:'245,158,11'},
@@ -2648,6 +2716,7 @@ async function runAnal() {
     setTimeout(function(){fill.style.width='0%';},400);
     btn.textContent=PLAY+' Run Full Analysis';btn.disabled=false;
     D=data;
+    window._lastAnalyzedData=data;
     renderAll(data);
     destroyCharts();
     // Batch 7h.24: stale-tab fix. After re-running analysis, refresh the
@@ -2664,6 +2733,7 @@ async function runAnal() {
     clearInterval(iv);fill.style.width='0%';
     btn.textContent=PLAY+' Run Full Analysis';btn.disabled=false;
     D=mkSim(tk);
+    window._lastAnalyzedData=D;
     renderAll(D);
     destroyCharts();
     refreshActiveTab(D);
@@ -4405,6 +4475,38 @@ function renderBacktestTab(d){
     html+='</div>';
   }
 
+  // ─── Outcome by horizon table (placed ABOVE verdict so reader sees the
+  // number that drives the verdict before reading the verdict itself) ───
+  html+='<div class="card-hi" style="margin-bottom:14px">';
+  html+='<div class="sb-lbl" style="margin-bottom:6px">Realized Outcome by Horizon</div>';
+  html+='<div style="font-size:11.5px;color:var(--dim);margin-bottom:12px;line-height:1.6"><strong style="color:#A0B8D0">Cumulative</strong> = total return from obs_date through that horizon (the number plotted in the cyan line above). <strong style="color:#A0B8D0">That Quarter</strong> = single-quarter return at that horizon only (one of the bars below).</div>';
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html+='<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08)">';
+  ['Horizon','Cumulative Return','That Quarter','Outcome Regime'].forEach(function(h){
+    html+='<th style="text-align:left;padding:10px 8px;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:600">'+h+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  // Horizon → 0-based index into qReturns array (1Q=index 0, 2Q=1, 4Q=3, 8Q=7, 12Q=11)
+  [['1Q',o1,0],['2Q',o2,1],['4Q',o4,3],['8Q',o8,7],['12Q',o12,11]].forEach(function(triple){
+    var hz=triple[0], oc=triple[1], qIdx=triple[2];
+    var cumRet=oc.total_return;
+    var qRet=(qReturns && qIdx<qReturns.length)?qReturns[qIdx]:null;
+    var cumCol=cumRet!=null?(cumRet<-0.2?'var(--red)':cumRet<0?'var(--amber)':'var(--green)'):'var(--dim)';
+    var qCol=qRet!=null?(qRet<-0.1?'var(--red)':qRet<0?'var(--amber)':'var(--green)'):'var(--dim)';
+    var outReg=oc.outcome_regime||'—';
+    // Bold the 8Q row — it's the primary verdict horizon
+    var rowBold=(hz==='8Q');
+    var rowBg=rowBold?'background:rgba(167,139,250,.04);':'';
+    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04);'+rowBg+'">';
+    html+='<td style="padding:11px 8px;color:var(--wh);font-weight:'+(rowBold?'700':'600')+';font-family:var(--mono)">'+hz+(rowBold?' <span style="color:var(--purple);font-size:9px;letter-spacing:.05em">PRIMARY</span>':'')+'</td>';
+    html+='<td style="padding:11px 8px;font-family:var(--mono);font-weight:700;color:'+cumCol+'">'+pctF(cumRet)+'</td>';
+    html+='<td style="padding:11px 8px;font-family:var(--mono);font-weight:'+(rowBold?'600':'500')+';color:'+qCol+'">'+pctF(qRet)+'</td>';
+    html+='<td style="padding:11px 8px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:'+regCol(outReg)+'">'+regLabel(outReg)+'</span></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='</div>';
+
   // ─── Verdict: who called it right? ───
   // Appears AFTER the user has seen both the classifications (table) and the
   // actual outcome (cumulative chart + quarterly bars). The verdict combines:
@@ -4486,33 +4588,139 @@ function renderBacktestTab(d){
     html+='</div>'; // end card
   }
 
-  // ─── Outcome by horizon table ───
-  html+='<div class="card-hi" style="margin-bottom:14px">';
-  html+='<div class="sb-lbl" style="margin-bottom:12px">Realized Outcome by Horizon</div>';
-  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
-  html+='<thead><tr style="border-bottom:1px solid rgba(255,255,255,.08)">';
-  ['Horizon','Total Return','Outcome Regime'].forEach(function(h){
-    html+='<th style="text-align:left;padding:10px 8px;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:600">'+h+'</th>';
-  });
-  html+='</tr></thead><tbody>';
-  [['1Q',o1],['2Q',o2],['4Q',o4],['8Q',o8],['12Q',o12]].forEach(function(pair){
-    var hz=pair[0],oc=pair[1];
-    var ret=oc.total_return;
-    var rc=ret!=null?(ret<-0.2?'var(--red)':ret<0?'var(--amber)':'var(--green)'):'var(--dim)';
-    var outReg=oc.outcome_regime||'—';
-    html+='<tr style="border-bottom:1px solid rgba(255,255,255,.04)">';
-    html+='<td style="padding:11px 8px;color:var(--wh);font-weight:600;font-family:var(--mono)">'+hz+'</td>';
-    html+='<td style="padding:11px 8px;font-family:var(--mono);font-weight:700;color:'+rc+'">'+pctF(ret)+'</td>';
-    html+='<td style="padding:11px 8px"><span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:'+regCol(outReg)+'">'+regLabel(outReg)+'</span></td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table></div>';
-  html+='</div>';
+  // (Realized Outcome by Horizon table moved ABOVE the verdict block so the
+  // reader sees the number that drives the verdict before reading the verdict.)
 
   // ─── Methodology footer ───
   html+='<div style="padding:14px 16px;background:rgba(255,255,255,.02);border:1px solid var(--bdr);border-radius:8px;font-size:11.5px;color:var(--dim);line-height:1.7">';
   html+='<strong style="color:#A0B8D0">About this backtest.</strong> 478 S&amp;P 500 tickers were analyzed at a single Q8 observation point in their 20-quarter EDGAR history. Forward outcomes were measured at 1Q/2Q/4Q/8Q/12Q horizons using Tiingo sector-relative returns. The observation dates span 2010-09-30 through 2024-12-31, providing real walk-forward dispersion. ISC outperformed the four traditional frameworks on Spearman rank correlation at every horizon (1Q ρ=0.255 vs Composite 0.118, 8Q ρ=0.214 vs Composite 0.130). This is descriptive validation, not a prediction for future periods. The framework does not predict outcomes for any specific company.';
   html+='</div>';
+
+  // ─── INVESTOR-MODE BRANCH ─────────────────────────────────────────────────
+  // When the user has toggled View → Investor, replace the full detail-heavy
+  // render with a compact "answer first" version. The institutional html is
+  // already fully built above; we just discard it and rebuild a leaner one
+  // using the same already-computed variables.
+  if(typeof getViewTier==='function' && getViewTier()==='investor'){
+    var ihtml='';
+
+    // (1) HOOK SCORECARD — the 8Q return as the big visible number, with a
+    // one-line verdict tally underneath. Designed to read in 2 seconds.
+    var hookCol = (realizedDir8q>0) ? 'var(--green)' : (realizedDir8q<0) ? 'var(--red)' : 'var(--amber)';
+    var hookSign = (ret8qVal!=null && ret8qVal>=0) ? '+' : '';
+    var hookPct = (ret8qVal!=null) ? hookSign+(ret8qVal*100).toFixed(1)+'%' : '—';
+
+    ihtml+='<div class="card-hi" style="padding:24px 28px;margin-bottom:14px;border-left:4px solid '+hookCol+'">';
+    ihtml+='<div style="display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin-bottom:8px">';
+    ihtml+='<div style="font-family:var(--mono);font-size:42px;font-weight:800;color:'+hookCol+';line-height:1">'+hookPct+'</div>';
+    ihtml+='<div style="flex:1;min-width:200px">';
+    ihtml+='<div style="font-size:11px;font-family:var(--mono);color:var(--dim);letter-spacing:.10em;text-transform:uppercase;font-weight:700;margin-bottom:2px">'+tk+' &middot; 8 quarters after '+obsDate+'</div>';
+    ihtml+='<div style="font-size:13px;color:#A0B8D0;line-height:1.5">Cumulative total return from observation date. This is the number the framework verdict is measured against.</div>';
+    ihtml+='</div>';
+    ihtml+='</div>';
+
+    // Scorecard pills — who called it
+    ihtml+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.06)">';
+    if(correctFwks.length>0){
+      ihtml+='<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.30);border-radius:100px"><span style="color:var(--green);font-weight:700;font-size:12px">&#10003; '+correctFwks.length+' called it</span><span style="color:var(--dim);font-size:11px">'+correctFwks.map(function(f){return f.name.replace(' (Variance EWS)','').replace(' Z','').replace(' F','').replace(' M','');}).join(', ')+'</span></div>';
+    }
+    if(wrongFwks.length>0){
+      ihtml+='<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.30);border-radius:100px"><span style="color:var(--red);font-weight:700;font-size:12px">&#10007; '+wrongFwks.length+' missed</span><span style="color:var(--dim);font-size:11px">'+wrongFwks.map(function(f){return f.name.replace(' (Variance EWS)','').replace(' Z','').replace(' F','').replace(' M','');}).join(', ')+'</span></div>';
+    }
+    if(neutralFwks.length>0){
+      ihtml+='<div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:100px"><span style="color:#A0B8D0;font-weight:700;font-size:12px">&mdash; '+neutralFwks.length+' neutral</span></div>';
+    }
+    ihtml+='</div>';
+    ihtml+='</div>';
+
+    // (2) CUMULATIVE CHART — same SVG as institutional view. Re-compute path
+    // here using compoundPath() which is in scope.
+    if(qReturns.length>0){
+      // Compound (function only available inside the if-block in institutional view, so re-declare)
+      function ic_compound(arr){
+        var p=[],r=1;
+        for(var i=0;i<arr.length;i++){
+          if(arr[i]==null||isNaN(arr[i])){p.push(null);continue;}
+          r=r*(1+arr[i]);p.push(r-1);
+        }
+        return p;
+      }
+      var subjCum=ic_compound(qReturns);
+      var peerQuarterly=d.peer_stable_quarterly_returns||d.peer_quarterly_returns||null;
+      var peerCum=peerQuarterly?ic_compound(peerQuarterly):null;
+      var peerCount=d.peer_stable_count||d.peer_count||null;
+
+      var svgW=720,svgH=200,padL=44,padR=20,padT=18,padB=28;
+      var plotW=svgW-padL-padR,plotH=svgH-padT-padB,n=qReturns.length;
+      var allY=[0];
+      subjCum.forEach(function(v){if(v!=null)allY.push(v);});
+      if(peerCum) peerCum.forEach(function(v){if(v!=null)allY.push(v);});
+      var yMin=Math.min.apply(null,allY),yMax=Math.max.apply(null,allY);
+      var ySpan=yMax-yMin;if(ySpan<0.05)ySpan=0.05;
+      yMin-=ySpan*0.08;yMax+=ySpan*0.08;
+      function ic_x(i){return padL+(i/(n-1||1))*plotW;}
+      function ic_y(v){return padT+plotH-((v-yMin)/(yMax-yMin))*plotH;}
+      function ic_path(arr){
+        var parts=[],started=false;
+        for(var i=0;i<arr.length;i++){
+          if(arr[i]==null)continue;
+          parts.push((started?'L':'M')+ic_x(i).toFixed(1)+','+ic_y(arr[i]).toFixed(1));
+          started=true;
+        }
+        return parts.join(' ');
+      }
+      var subjPath=ic_path(subjCum);
+      var peerPath=peerCum?ic_path(peerCum):null;
+      var subjEnd=null;for(var i=subjCum.length-1;i>=0;i--){if(subjCum[i]!=null){subjEnd=subjCum[i];break;}}
+      var peerEnd=null;if(peerCum){for(var i=peerCum.length-1;i>=0;i--){if(peerCum[i]!=null){peerEnd=peerCum[i];break;}}}
+
+      ihtml+='<div class="card-hi" style="margin-bottom:14px">';
+      ihtml+='<div class="sb-lbl" style="margin-bottom:6px">'+tk+' vs Sector Stable Peers &mdash; Cumulative Return</div>';
+      ihtml+='<div style="font-size:11.5px;color:var(--dim);margin-bottom:12px;line-height:1.55">The cyan line is '+tk+'. The dashed grey line is the average sector peer that was classified <strong style="color:var(--green)">Stable</strong> on the same observation date.</div>';
+
+      // Legend
+      ihtml+='<div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px;font-size:11.5px">';
+      ihtml+='<div style="display:flex;align-items:center;gap:6px"><div style="width:18px;height:2px;background:var(--cyan)"></div><span style="color:var(--wh);font-weight:600">'+tk+'</span>';
+      if(subjEnd!=null) ihtml+='<span style="font-family:var(--mono);color:'+(subjEnd>=0?'var(--green)':'var(--red)')+';font-weight:700">'+(subjEnd>=0?'+':'')+(subjEnd*100).toFixed(1)+'%</span>';
+      ihtml+='</div>';
+      if(peerCum){
+        ihtml+='<div style="display:flex;align-items:center;gap:6px"><div style="width:18px;height:2px;background:var(--dim);border-top:1px dashed var(--dim);background:none"></div><span style="color:#A0B8D0">Peers'+(peerCount?' (n='+peerCount+')':'')+'</span>';
+        if(peerEnd!=null) ihtml+='<span style="font-family:var(--mono);color:'+(peerEnd>=0?'var(--green)':'var(--red)')+';font-weight:600">'+(peerEnd>=0?'+':'')+(peerEnd*100).toFixed(1)+'%</span>';
+        ihtml+='</div>';
+      }
+      ihtml+='</div>';
+
+      // SVG
+      ihtml+='<svg viewBox="0 0 '+svgW+' '+svgH+'" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block">';
+      var yZ=ic_y(0);
+      ihtml+='<line x1="'+padL+'" y1="'+yZ.toFixed(1)+'" x2="'+(svgW-padR)+'" y2="'+yZ.toFixed(1)+'" stroke="rgba(255,255,255,.15)" stroke-width="1" stroke-dasharray="2,3"/>';
+      ihtml+='<text x="'+(padL-4)+'" y="'+(yZ+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="rgba(255,255,255,.4)" font-family="monospace">0%</text>';
+      // 8Q marker only (skip 12Q in investor — less clutter)
+      if(7<n){
+        var xM=ic_x(7);
+        ihtml+='<line x1="'+xM.toFixed(1)+'" y1="'+padT+'" x2="'+xM.toFixed(1)+'" y2="'+(padT+plotH)+'" stroke="rgba(167,139,250,.25)" stroke-width="1" stroke-dasharray="3,3"/>';
+        ihtml+='<text x="'+xM.toFixed(1)+'" y="'+(padT-6)+'" text-anchor="middle" font-size="9" fill="var(--purple)" font-family="monospace" font-weight="700">8Q VERDICT</text>';
+      }
+      if(peerPath) ihtml+='<path d="'+peerPath+'" fill="none" stroke="#6B7280" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.85"/>';
+      ihtml+='<path d="'+subjPath+'" fill="none" stroke="#00C8FF" stroke-width="2.5"/>';
+      if(subjEnd!=null){
+        var lastIdx=-1;for(var i=subjCum.length-1;i>=0;i--){if(subjCum[i]!=null){lastIdx=i;break;}}
+        if(lastIdx>=0) ihtml+='<circle cx="'+ic_x(lastIdx).toFixed(1)+'" cy="'+ic_y(subjEnd).toFixed(1)+'" r="3.5" fill="#00C8FF"/>';
+      }
+      ihtml+='</svg>';
+
+      if(!peerCum){
+        ihtml+='<div style="margin-top:8px;font-size:11px;color:var(--dim);font-style:italic">Sector peer benchmark not yet available for this ticker.</div>';
+      }
+      ihtml+='</div>';
+    }
+
+    // (3) Switch to institutional view link
+    ihtml+='<div style="text-align:center;padding:14px;font-size:11.5px;color:var(--dim)">Need the full picture? <a href="javascript:setViewTier(\'institutional\')" style="color:var(--cyan);text-decoration:underline;cursor:pointer">Switch to Institutional view</a> for classifications, per-quarter detail, and the verdict breakdown.</div>';
+
+    html=ihtml; // replace institutional html with the compact investor version
+  }
+  // ─── END INVESTOR-MODE BRANCH ─────────────────────────────────────────────
 
   area.innerHTML=html;
 }
