@@ -2153,7 +2153,21 @@ function onTkInput(){
   var v=document.getElementById('tkIn').value.toUpperCase().trim();
   var drop=document.getElementById('tkDrop');
   if(!v){drop.style.display='none';return;}
-  var m=STOCKS.filter(function(t){return t.s.startsWith(v)||t.n.toUpperCase().includes(v);}).slice(0,7);
+  // Day 10 union: build candidate pool from STOCKS + SNAPSHOT.tickers, dedupe by ticker
+  var pool=[];
+  var seen={};
+  STOCKS.forEach(function(t){
+    if(!seen[t.s]){pool.push({s:t.s, n:t.n}); seen[t.s]=true;}
+  });
+  if(typeof SNAPSHOT==='object' && SNAPSHOT.tickers){
+    Object.keys(SNAPSHOT.tickers).forEach(function(tk){
+      if(seen[tk])return;
+      var row=SNAPSHOT.tickers[tk];
+      pool.push({s:tk, n:(row && row.company_name)||tk});
+      seen[tk]=true;
+    });
+  }
+  var m=pool.filter(function(t){return t.s.startsWith(v)||t.n.toUpperCase().includes(v);}).slice(0,7);
   if(!m.length){drop.style.display='none';return;}
   drop.innerHTML=m.map(function(t){
     return '<div class="tk-item" onclick="setTk(\''+t.s+'\');closeDrop();runAnal()">'
@@ -7290,7 +7304,9 @@ function parseTickerFromURL(){
     var m = path.match(/^\/ticker\/([A-Za-z][A-Za-z0-9.\-]{0,9})\/deep-dive\/?$/);
     if (!m) return null;
     var tk = m[1].toUpperCase();
-    if (typeof KNOWN !== 'object' || !KNOWN[tk]) return null;
+    var inKnown = (typeof KNOWN === 'object') && KNOWN[tk];
+    var inSnapshot = (typeof SNAPSHOT === 'object') && SNAPSHOT.tickers && SNAPSHOT.tickers[tk];
+    if (!inKnown && !inSnapshot) return null;
     return tk;
   } catch(e) {
     return null;
