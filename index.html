@@ -2766,6 +2766,97 @@ function refreshActiveTab(d){
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 var KNOWN={AAPL:{C:-0.985,n:'Apple Inc',s:'Technology',i:'Consumer Electronics',altZ:5.8,fcfM:27.5,opM:30.7,revG:5.2,mcap:3520},MSFT:{C:-0.512,n:'Microsoft Corporation',s:'Technology',i:'Software',altZ:6.4,fcfM:30.2,opM:44.6,revG:15.7,mcap:3120},NVDA:{C:-0.445,n:'NVIDIA Corporation',s:'Technology',i:'Semiconductors',altZ:28.5,fcfM:45.8,opM:62.4,revG:78.4,mcap:3300},GOOGL:{C:-0.418,n:'Alphabet Inc',s:'Technology',i:'Internet Content',altZ:7.1,fcfM:22.4,opM:30.5,revG:12.3,mcap:2200},AVGO:{C:-0.388,n:'Broadcom Inc',s:'Technology',i:'Semiconductors',altZ:4.2,fcfM:36.5,opM:32.1,revG:17.5,mcap:800},ADBE:{C:-0.624,n:'Adobe Inc',s:'Technology',i:'Software',altZ:12.8,fcfM:38.5,opM:36.2,revG:11.4,mcap:240},ORCL:{C:-0.298,n:'Oracle Corporation',s:'Technology',i:'Software',altZ:3.4,fcfM:24.6,opM:30.5,revG:8.5,mcap:380},CRM:{C:-0.412,n:'Salesforce Inc',s:'Technology',i:'Software',altZ:4.8,fcfM:28.6,opM:18.4,revG:11.2,mcap:280},AMD:{C:-0.331,n:'Advanced Micro Devices',s:'Technology',i:'Semiconductors',altZ:6.2,fcfM:18.5,opM:14.8,revG:22.3,mcap:250},INTC:{C:0.142,n:'Intel Corporation',s:'Technology',i:'Semiconductors',altZ:1.8,fcfM:5.5,opM:-8.2,revG:-1.4,mcap:90},QCOM:{C:-0.282,n:'Qualcomm Inc',s:'Technology',i:'Semiconductors',altZ:5.5,fcfM:24.8,opM:28.5,revG:9.2,mcap:190},INTU:{C:-0.591,n:'Intuit Inc',s:'Technology',i:'Software',altZ:8.6,fcfM:30.5,opM:25.4,revG:13.5,mcap:180},NOW:{C:-0.487,n:'ServiceNow Inc',s:'Technology',i:'Software',altZ:9.2,fcfM:31.4,opM:12.8,revG:23.5,mcap:220},META:{C:-0.221,n:'Meta Platforms',s:'Communication Services',i:'Internet Content',altZ:7.8,fcfM:28.4,opM:38.6,revG:16.2,mcap:1480},NFLX:{C:-0.108,n:'Netflix Inc',s:'Communication Services',i:'Entertainment',altZ:4.1,fcfM:16.8,opM:22.4,revG:14.8,mcap:320},DIS:{C:0.087,n:'Walt Disney Co',s:'Communication Services',i:'Entertainment',altZ:1.9,fcfM:8.5,opM:6.2,revG:2.5,mcap:200},T:{C:0.215,n:'AT&T Inc',s:'Communication Services',i:'Telecom',altZ:1.4,fcfM:12.5,opM:18.4,revG:1.8,mcap:145},VZ:{C:0.184,n:'Verizon Communications',s:'Communication Services',i:'Telecom',altZ:1.6,fcfM:14.2,opM:22.5,revG:0.5,mcap:175},CMCSA:{C:0.046,n:'Comcast Corporation',s:'Communication Services',i:'Media',altZ:2.1,fcfM:12.8,opM:18.6,revG:1.2,mcap:165},TSLA:{C:0.312,n:'Tesla Inc',s:'Consumer Discretionary',i:'Auto Manufacturers',altZ:3.5,fcfM:5.8,opM:7.6,revG:18.2,mcap:850},AMZN:{C:-0.387,n:'Amazon.com Inc',s:'Consumer Cyclical',i:'Internet Retail',altZ:4.8,fcfM:8.4,opM:9.5,revG:12.5,mcap:1880},HD:{C:-0.342,n:'Home Depot Inc',s:'Consumer Cyclical',i:'Home Improvement',altZ:4.5,fcfM:11.2,opM:14.8,revG:4.2,mcap:410},NKE:{C:-0.156,n:'NIKE Inc',s:'Consumer Cyclical',i:'Footwear',altZ:4.2,fcfM:11.5,opM:11.8,revG:-1.2,mcap:120},MCD:{C:-0.418,n:'McDonald\'s Corporation',s:'Consumer Cyclical',i:'Restaurants',altZ:6.2,fcfM:24.8,opM:45.2,revG:5.1,mcap:215},SBUX:{C:-0.085,n:'Starbucks Corporation',s:'Consumer Cyclical',i:'Restaurants',altZ:3.4,fcfM:11.5,opM:14.6,revG:1.2,mcap:110},GME:{C:0.671,n:'GameStop Corp',s:'Consumer Cyclical',i:'Specialty Retail',altZ:1.8,fcfM:-2.5,opM:-3.4,revG:-8.2,mcap:8},WMT:{C:-0.382,n:'Walmart Inc',s:'Consumer Defensive',i:'Discount Stores',altZ:4.1,fcfM:5.2,opM:4.5,revG:5.8,mcap:720},COST:{C:-0.622,n:'Costco Wholesale',s:'Consumer Defensive',i:'Discount Stores',altZ:8.5,fcfM:4.8,opM:3.6,revG:8.2,mcap:410},TGT:{C:-0.152,n:'Target Corporation',s:'Consumer Defensive',i:'Discount Stores',altZ:3.2,fcfM:6.8,opM:5.4,revG:1.4,mcap:70},PG:{C:-0.451,n:'Procter & Gamble',s:'Consumer Defensive',i:'Household Products',altZ:5.4,fcfM:17.8,opM:22.5,revG:2.8,mcap:380},KO:{C:-0.394,n:'Coca-Cola Company',s:'Consumer Defensive',i:'Beverages',altZ:4.8,fcfM:22.4,opM:28.6,revG:3.5,mcap:290},BAC:{C:0.18,n:'Bank of America',s:'Financial Services',i:'Banks',altZ:1.4,fcfM:18.5,opM:30.5,revG:5.2,mcap:360},JPM:{C:-0.156,n:'JPMorgan Chase',s:'Financial Services',i:'Banks',altZ:1.8,fcfM:22.4,opM:38.5,revG:4.8,mcap:660},GS:{C:0.024,n:'Goldman Sachs',s:'Financial Services',i:'Investment Banking',altZ:1.5,fcfM:14.5,opM:25.4,revG:-0.5,mcap:165},MS:{C:-0.082,n:'Morgan Stanley',s:'Financial Services',i:'Investment Banking',altZ:1.6,fcfM:16.8,opM:22.5,revG:1.8,mcap:175},WFC:{C:0.215,n:'Wells Fargo',s:'Financial Services',i:'Banks',altZ:1.3,fcfM:17.2,opM:26.4,revG:-0.8,mcap:200},BLK:{C:-0.385,n:'BlackRock Inc',s:'Financial Services',i:'Asset Management',altZ:4.2,fcfM:24.5,opM:36.5,revG:6.5,mcap:165},BX:{C:-0.224,n:'Blackstone Inc',s:'Financial Services',i:'Asset Management',altZ:3.5,fcfM:22.8,opM:30.5,revG:8.2,mcap:175},SCHW:{C:0.041,n:'Charles Schwab',s:'Financial Services',i:'Capital Markets',altZ:1.7,fcfM:18.5,opM:32.4,revG:-3.5,mcap:145},XOM:{C:-0.218,n:'Exxon Mobil',s:'Energy',i:'Oil & Gas Integrated',altZ:3.8,fcfM:12.5,opM:13.4,revG:-2.8,mcap:540},CVX:{C:-0.265,n:'Chevron Corporation',s:'Energy',i:'Oil & Gas Integrated',altZ:4.1,fcfM:14.5,opM:15.6,revG:-1.2,mcap:290},COP:{C:-0.198,n:'ConocoPhillips',s:'Energy',i:'Oil & Gas E&P',altZ:4.5,fcfM:18.5,opM:22.4,revG:-3.5,mcap:145},HAL:{C:-0.352,n:'Halliburton Co',s:'Energy',i:'Oil & Gas Services',altZ:3.2,fcfM:9.5,opM:12.4,revG:6.8,mcap:28},SLB:{C:-0.385,n:'Schlumberger NV',s:'Energy',i:'Oil & Gas Services',altZ:3.4,fcfM:11.2,opM:14.5,revG:8.5,mcap:65},EOG:{C:-0.422,n:'EOG Resources',s:'Energy',i:'Oil & Gas E&P',altZ:5.2,fcfM:24.5,opM:32.5,revG:-1.4,mcap:75},JNJ:{C:-0.524,n:'Johnson & Johnson',s:'Healthcare',i:'Drug Manufacturers',altZ:5.8,fcfM:21.5,opM:24.5,revG:4.2,mcap:410},UNH:{C:-0.318,n:'UnitedHealth Group',s:'Healthcare',i:'Healthcare Plans',altZ:4.5,fcfM:6.8,opM:8.4,revG:9.5,mcap:480},PFE:{C:-0.082,n:'Pfizer Inc',s:'Healthcare',i:'Drug Manufacturers',altZ:2.8,fcfM:14.5,opM:22.5,revG:-41.4,mcap:165},ABBV:{C:-0.158,n:'AbbVie Inc',s:'Healthcare',i:'Drug Manufacturers',altZ:1.9,fcfM:28.5,opM:32.4,revG:-6.4,mcap:320},MRK:{C:-0.388,n:'Merck & Co',s:'Healthcare',i:'Drug Manufacturers',altZ:4.8,fcfM:26.5,opM:30.5,revG:1.5,mcap:280},LLY:{C:-0.444,n:'Eli Lilly',s:'Healthcare',i:'Drug Manufacturers',altZ:9.5,fcfM:22.5,opM:28.6,revG:26.5,mcap:720},BA:{C:0.452,n:'Boeing Co',s:'Industrials',i:'Aerospace & Defense',altZ:0.8,fcfM:-8.5,opM:-3.5,revG:12.5,mcap:105},CAT:{C:-0.215,n:'Caterpillar Inc',s:'Industrials',i:'Farm & Heavy Construction',altZ:4.2,fcfM:14.5,opM:21.5,revG:4.5,mcap:195},GE:{C:-0.085,n:'General Electric',s:'Industrials',i:'Specialty Industrial',altZ:2.5,fcfM:8.5,opM:12.4,revG:7.5,mcap:195},DE:{C:-0.158,n:'Deere & Co',s:'Industrials',i:'Farm & Heavy Construction',altZ:4.5,fcfM:11.2,opM:22.5,revG:-8.5,mcap:110},HON:{C:-0.288,n:'Honeywell International',s:'Industrials',i:'Conglomerates',altZ:4.8,fcfM:18.5,opM:21.5,revG:3.4,mcap:145},AAL:{C:0.385,n:'American Airlines',s:'Industrials',i:'Airlines',altZ:1.2,fcfM:-2.8,opM:3.5,revG:9.5,mcap:9},DAL:{C:0.152,n:'Delta Air Lines',s:'Industrials',i:'Airlines',altZ:1.6,fcfM:4.5,opM:8.5,revG:7.2,mcap:30},UAL:{C:0.218,n:'United Airlines',s:'Industrials',i:'Airlines',altZ:1.4,fcfM:3.2,opM:7.8,revG:6.5,mcap:18},LUV:{C:0.245,n:'Southwest Airlines',s:'Industrials',i:'Airlines',altZ:1.8,fcfM:1.5,opM:1.8,revG:4.2,mcap:20},F:{C:0.288,n:'Ford Motor Company',s:'Consumer Discretionary',i:'Auto Manufacturers',altZ:1.5,fcfM:-1.2,opM:2.5,revG:5.8,mcap:45},GM:{C:0.184,n:'General Motors',s:'Consumer Discretionary',i:'Auto Manufacturers',altZ:1.7,fcfM:5.5,opM:6.8,revG:8.5,mcap:60},ENR:{C:0.082,n:'Energizer Holdings',s:'Consumer Defensive',i:'Household Products',altZ:1.45,fcfM:7.8,opM:11.5,revG:-2.1,mcap:2.5},SAVE:{C:0.541,n:'Spirit Airlines',s:'Industrials',i:'Airlines',altZ:0.28,fcfM:-11.8,opM:-11.8,revG:56.9,mcap:1.5}};
 
+/* ═════════════════════════════════════════════════════════════════════
+   SNAPSHOT LOADER (Day 10, 2026-05-18)
+   Fetches the nightly snapshot CSV from the isc-financial-snapshots repo
+   and populates a SNAPSHOT global. Async, fire-and-forget — never blocks
+   page render. If fetch fails, code falls through to KNOWN[].
+
+   SNAPSHOT shape after load:
+     SNAPSHOT.tickers[ticker]  → row object (column-name keys)
+     SNAPSHOT.list             → [ticker, ticker, ...] sorted alpha
+     SNAPSHOT.meta             → {snapshotDate, totalRows, loadedAt, loaded}
+
+   Downstream chunks (inventory swap, peer table, freshness label) await
+   SNAPSHOT_READY before reading. If the promise rejects, downstream code
+   falls back to KNOWN[]/STOCKS for graceful degradation.
+
+   Reads from snapshots/latest.csv — a stable URL maintained by the
+   snapshot pipeline (see isc-financial-snapshots/snapshot_job.py).
+═════════════════════════════════════════════════════════════════════ */
+var SNAPSHOT = {tickers:{}, list:[], meta:{loaded:false}};
+var SNAPSHOT_URL = 'https://raw.githubusercontent.com/malonrw-lang/isc-financial-snapshots/main/snapshots/latest.csv';
+
+function parseSnapshotCSV(text){
+  /* Minimal RFC-4180 CSV parser: handles quoted fields containing commas,
+     escaped double-quotes within quoted fields, and trailing newlines.
+     Returns an array of row objects keyed by header name. */
+  var rows=[], i=0, field='', row=[], inQuotes=false, len=text.length;
+  while(i<len){
+    var c=text[i];
+    if(inQuotes){
+      if(c==='"' && text[i+1]==='"'){field+='"';i+=2;continue;}
+      if(c==='"'){inQuotes=false;i++;continue;}
+      field+=c;i++;continue;
+    }
+    if(c==='"'){inQuotes=true;i++;continue;}
+    if(c===','){row.push(field);field='';i++;continue;}
+    if(c==='\n'||c==='\r'){
+      if(field!==''||row.length>0){row.push(field);rows.push(row);}
+      field='';row=[];
+      if(c==='\r'&&text[i+1]==='\n')i+=2;else i++;
+      continue;
+    }
+    field+=c;i++;
+  }
+  if(field!==''||row.length>0){row.push(field);rows.push(row);}
+  if(rows.length<2)return [];
+  var headers=rows[0];
+  return rows.slice(1).map(function(r){
+    var obj={};
+    headers.forEach(function(h,idx){
+      var v=r[idx];
+      obj[h]=(v==null||v==='')?null:v;
+    });
+    return obj;
+  });
+}
+
+var SNAPSHOT_READY = (function(){
+  return fetch(SNAPSHOT_URL, {cache:'no-cache'})
+    .then(function(resp){
+      if(!resp.ok)throw new Error('HTTP '+resp.status);
+      return resp.text();
+    })
+    .then(function(text){
+      var parsed=parseSnapshotCSV(text);
+      if(!parsed.length)throw new Error('empty snapshot');
+      var tickers={}, list=[];
+      parsed.forEach(function(row){
+        var tk=row.ticker;
+        if(!tk)return;
+        tickers[tk]=row;
+        list.push(tk);
+      });
+      list.sort();
+      SNAPSHOT.tickers=tickers;
+      SNAPSHOT.list=list;
+      SNAPSHOT.meta={
+        snapshotDate: parsed[0].snapshot_date || null,
+        totalRows: list.length,
+        loadedAt: new Date().toISOString(),
+        loaded: true
+      };
+      console.log('[snapshot] loaded '+list.length+' tickers ('+SNAPSHOT.meta.snapshotDate+')');
+      return SNAPSHOT;
+    })
+    .catch(function(err){
+      console.warn('[snapshot] load failed; falling back to KNOWN[]: '+err.message);
+      SNAPSHOT.meta={loaded:false, error:err.message, loadedAt:new Date().toISOString()};
+      return SNAPSHOT;
+    });
+})();
+
 var DEMO_REDIRECT_MAP = {ENR:'enron',ENRN:'enron',ENRNQ:'enron',WCOM:'worldcom',WCOEQ:'worldcom',SAVE:'spirit',SAVEQ:'spirit'};
 var DEMO_LABELS = {enron:'Enron Corporation (Q3 2001)',worldcom:'WorldCom Inc (Q1 2002)',spirit:'Spirit Airlines (FY 2022)'};
 var DEMO_BLURBS = {
