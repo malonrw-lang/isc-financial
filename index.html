@@ -7185,7 +7185,26 @@ function startTrial(){
    INIT
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552; */
 
-function sparkline(d,col,h,area){h=h||36;var w=90;if(!d||d.length<2)return"";var v=d.filter(function(x){return x!=null&&!isNaN(x);});if(v.length<2)return"";var mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),r=mx-mn||1;var pts=v.map(function(x,i){return((i/(v.length-1))*w).toFixed(1)+","+(h-((x-mn)/r)*(h-4)-2).toFixed(1);});var p="M "+pts.join(" L ");var c=col||"#3B82F6";var a=area?"<path d='"+p+" L "+w+","+h+" L 0,"+h+" Z' fill='"+c+"' opacity='0.12'/>":"";return"<svg width='"+w+"' height='"+h+"'>"+a+"<path d='"+p+"' fill='none' stroke='"+c+"' stroke-width='1.5'/></svg>";}
+/* ═════════════════════════════════════════════════════════════════════
+   URL-DRIVEN TICKER (Option A — May 18, 2026)
+   When loaded via /ticker/<TICKER>/deep-dive (Vercel rewrite from the
+   filterlab-site Astro project at thefilterlab.app), parse the ticker
+   from the path and validate against KNOWN[]. Returns the ticker string
+   or null. Boot sequence below branches on the result so the analyzer
+   page is shown first (no flash-of-home).
+═════════════════════════════════════════════════════════════════════ */
+function parseTickerFromURL(){
+  try {
+    var path = window.location.pathname || '';
+    var m = path.match(/^\/ticker\/([A-Za-z][A-Za-z0-9.\-]{0,9})\/deep-dive\/?$/);
+    if (!m) return null;
+    var tk = m[1].toUpperCase();
+    if (typeof KNOWN !== 'object' || !KNOWN[tk]) return null;
+    return tk;
+  } catch(e) {
+    return null;
+  }
+}function sparkline(d,col,h,area){h=h||36;var w=90;if(!d||d.length<2)return"";var v=d.filter(function(x){return x!=null&&!isNaN(x);});if(v.length<2)return"";var mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),r=mx-mn||1;var pts=v.map(function(x,i){return((i/(v.length-1))*w).toFixed(1)+","+(h-((x-mn)/r)*(h-4)-2).toFixed(1);});var p="M "+pts.join(" L ");var c=col||"#3B82F6";var a=area?"<path d='"+p+" L "+w+","+h+" L 0,"+h+" Z' fill='"+c+"' opacity='0.12'/>":"";return"<svg width='"+w+"' height='"+h+"'>"+a+"<path d='"+p+"' fill='none' stroke='"+c+"' stroke-width='1.5'/></svg>";}
 function makeTrend(val,regime,q){q=q||8;if(val==null)return null;var t=[],n=Math.abs(val)*0.05,v=val*0.78;for(var i=0;i<q;i++){var tg=val*(regime==="bifurcating"?0.98:1.0);v=v+(tg-v)*0.3+(Math.random()-0.48)*n;t.push(parseFloat(v.toFixed(2)));}return t;}
 function switchHelpTab(tab){["howto","encyc","support","ai"].forEach(function(t){var e=document.getElementById("help-"+t);if(e)e.style.display=t===tab?"block":"none";var b=document.getElementById("help-tab-"+t);if(b)b.classList.toggle("on",t===tab);});}
 var portfolio=[];try{portfolio=JSON.parse(localStorage.getItem("isc_portfolio")||"[]");}catch(e){}
@@ -7226,7 +7245,17 @@ function sendHelpChatQ(q){
   hist.scrollTop=hist.scrollHeight;
 }
 setTier('free',document.getElementById('t-free'));
-showPage('home');
+/* URL-driven ticker: if path matches /ticker/<TICKER>/deep-dive AND ticker
+   is in KNOWN[], boot directly into the analyzer with that ticker queued.
+   Falls through to home for all other URLs. */
+var _urlTicker = parseTickerFromURL();
+if (_urlTicker) {
+  document.getElementById('tkIn').value = _urlTicker;
+  if (typeof trackEvent === 'function') trackEvent('URL Ticker Load', {ticker: _urlTicker});
+  runAnal();
+} else {
+  showPage('home');
+}
 renderPortfolio();
 /* ─────────────────────────────────────────────────────────────────────
    MOBILE INTERACTIONS — Day 9 mobile-tuning pass
