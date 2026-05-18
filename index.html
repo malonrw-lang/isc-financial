@@ -4865,7 +4865,11 @@ function renderPeers(d){
   var html='';
   html+='<div class="card-hi" style="margin-bottom:14px">';
   html+='<div class="sb-lbl" style="margin-bottom:6px">Peer Comparison '+EMDASH+' '+subjSector+'</div>';
-  html+='<div style="font-size:12px;color:var(--dim);margin-bottom:14px">Snapshot data as of last quarterly update. Tier: '+(typeof tier!=="undefined"?tier:'free')+(tierLimit>=99?' '+EMDASH+' unlimited peers':' '+EMDASH+' '+tierLimit+' peer'+(tierLimit>1?'s':'')+' visible')+'.</div>';
+  /* Day 10 Chunk 5: surface snapshot freshness from SNAPSHOT.meta.snapshotDate
+     (loaded by Chunk 1's snapshot loader). Falls back to placeholder text if
+     snapshot didn't load. */
+  var _snapDate = (typeof SNAPSHOT==='object' && SNAPSHOT.meta && SNAPSHOT.meta.snapshotDate) ? SNAPSHOT.meta.snapshotDate : 'last quarterly update';
+  html+='<div style="font-size:12px;color:var(--dim);margin-bottom:14px">Snapshot data as of '+_snapDate+'. Tier: '+(typeof tier!=="undefined"?tier:'free')+(tierLimit>=99?' '+EMDASH+' unlimited peers':' '+EMDASH+' '+tierLimit+' peer'+(tierLimit>1?'s':'')+' visible')+'.</div>';
   var lockState=getPeerLockState();
   // Charts grid (3 columns: bar, regime, radar)
   var chartBlur=lockState==='full'?'filter:blur(6px);user-select:none;pointer-events:none':'';
