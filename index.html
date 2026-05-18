@@ -7353,17 +7353,24 @@ function sendHelpChatQ(q){
 }
 setTier('free',document.getElementById('t-free'));
 /* URL-driven ticker: if path matches /ticker/<TICKER>/deep-dive AND ticker
-   is in KNOWN[], boot directly into the analyzer with that ticker queued.
-   Falls through to home for all other URLs. */
-var _urlTicker = parseTickerFromURL();
-if (_urlTicker) {
-  document.getElementById('tkIn').value = _urlTicker;
-  if (typeof trackEvent === 'function') trackEvent('URL Ticker Load', {ticker: _urlTicker});
-  runAnal();
-} else {
-  showPage('home');
-}
+   is in KNOWN[] OR SNAPSHOT.tickers, boot directly into the analyzer with
+   that ticker queued. Falls through to home for all other URLs.
+
+   Day 10 fix: await SNAPSHOT_READY before parsing the URL, otherwise
+   snapshot-only tickers (not in KNOWN[]) fall through on first load
+   because the snapshot fetch hasn't resolved yet. SNAPSHOT_READY always
+   resolves (success or failure), so this never hangs. Show home page
+   immediately so the user sees something while we wait. */
+showPage('home');
 renderPortfolio();
+SNAPSHOT_READY.then(function(){
+  var _urlTicker = parseTickerFromURL();
+  if (_urlTicker) {
+    document.getElementById('tkIn').value = _urlTicker;
+    if (typeof trackEvent === 'function') trackEvent('URL Ticker Load', {ticker: _urlTicker});
+    runAnal();
+  }
+});
 /* ─────────────────────────────────────────────────────────────────────
    MOBILE INTERACTIONS — Day 9 mobile-tuning pass
    ─────────────────────────────────────────────────────────────────────
